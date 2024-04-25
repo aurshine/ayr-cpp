@@ -1,19 +1,12 @@
-﻿#include "law/law.hpp"
+﻿#include <string>
+#include "law/printer.hpp"
 #include "json/parse.hpp"
-#include "thread/threadpool.hpp"
-
-void dfs(int id, int bg)
-{
-	ayr::print("id =", id, "value =", bg);
-}
 
 int main()
 {
-	using namespace ayr;
-	ThreadPool pool(5);
-	for (int i = 0; i < 5000; ++i)
-		pool.push(dfs, i, i + 5000);
+	std::string json_str = R"({"array": [1, 2, "3", 4.0, true, null],})";
+	ayr::Json json_obj = ayr::parse(json_str);
 
-
+	ayr::print(json_obj);
 	return 0;
 }

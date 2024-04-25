@@ -19,6 +19,12 @@ namespace ayr
 	class Json : public Object
 	{
 	public:
+		using JsonInt = long long;
+
+		using JsonDouble = double;
+
+		using JsonBool = bool;
+
 		using JsonStr = std::string;
 
 		using JsonArray = std::vector<Json>;
@@ -27,92 +33,65 @@ namespace ayr
 
 		Json()
 		{
-			reset();
 			this->json_type = JSON_NULL;
 		}
 
 		Json(long long item)
 		{
-			this->int_item = new long long(item);
+			this->json_item = new long long(item);
 			this->json_type = JSON_INT;
 		}
 
 		Json(double item)
 		{
-			this->double_item = new double(item);
+			this->json_item = new double(item);
 			json_type = JSON_DOUBLE;
 		}
 
 		Json(bool item)
 		{
-			this->bool_item = new bool(item);
+			this->json_item = new bool(item);
 			this->json_type = JSON_BOOL;
 		}
 
 		Json(const char* item)
 		{
-			this->str_item = new JsonStr(item);
+			this->json_item = new JsonStr(item);
 			this->json_type = JSON_STR;
 		}
 
 		Json(JsonStr&& item)
 		{
-			this->str_item = new JsonStr(std::move(item));
+			this->json_item = new JsonStr(std::move(item));
 			this->json_type = JSON_STR;
 		}
 
 		Json(JsonArray&& item)
 		{
-			this->arr_item = new JsonArray(std::move(item));
+			this->json_item = new JsonArray(std::move(item));
 			this->json_type = JSON_ARRAY;
 		}
 
 		Json(JsonDict&& item)
 		{
-			this->dict_item = new JsonDict(std::move(item));
+			this->json_item = new JsonDict(std::move(item));
 			this->json_type = JSON_DICT;
 		}
 
 		Json(Json&& json) noexcept
 		{
-			release();
-			if (json.int_item)
-				this->int_item = json.int_item;
-			else if (json.double_item)
-				this->double_item = json.double_item;
-			else if (json.bool_item)
-				this->bool_item = json.bool_item;
-			else if (json.str_item)
-				this->str_item = json.str_item;
-			else if (json.arr_item)
-				this->arr_item = json.arr_item;
-			else if (json.dict_item)
-				this->dict_item = json.dict_item;
-
+			this->json_item = json.json_item;
+			json.json_item = nullptr;
 			this->json_type = json.json_type;
-			json.reset();
 		}
 
 		Json& operator= (Json&& json) noexcept
 		{
 			if (this != &json)
 			{
-				release();
-				if (json.int_item)
-					this->int_item = json.int_item;
-				else if (json.double_item)
-					this->double_item = json.double_item;
-				else if (json.bool_item)
-					this->bool_item = json.bool_item;
-				else if (json.str_item)
-					this->str_item = json.str_item;
-				else if (json.arr_item)
-					this->arr_item = json.arr_item;
-				else if (json.dict_item)
-					this->dict_item = json.dict_item;
-
+				this->json_item = json.json_item;
+				json.json_item = nullptr;
 				this->json_type = json.json_type;
-				json.reset();
 			}
 
 			return *this;
@@ -123,47 +102,8 @@ namespace ayr
 
 		~Json()
 		{
-			release();
+			delete this->json_item;
 		}
-
-		void release()
-		{
-			switch (this->json_type)
-			{
-			case JSON_INT:
-				delete this->int_item;
-				break;
-			case JSON_DOUBLE:
-				delete this->double_item;
-				break;
-			case JSON_BOOL:
-				delete this->bool_item;
-				break;
-			case JSON_STR:
-				delete this->str_item;
-				break;
-			case JSON_ARRAY:
-				delete this->arr_item;
-				break;
-			case JSON_DICT:
-				delete this->dict_item;
-				break;
-			}
-
-			this->json_type = JSON_NULL;
-			reset();
-		}
-
-		void reset()
-		{
-			this->int_item = nullptr;
-			this->double_item = nullptr;
-			this->bool_item = nullptr;
-			this->str_item = nullptr;
-			this->arr_item = nullptr;
-			this->dict_item = nullptr;
-		}
-
 
 		// 返回 Json 存储的对象类型
 		JsonType type()
@@ -171,83 +111,96 @@ namespace ayr
 			return this->json_type;
 		}
 
-		long long& as_int()
+		JsonInt& as_int()
 		{
 			error_assert(json_type == JSON_INT, "Json type is not JSON_INT");
-			return *this->int_item;
+
+			return *reinterpret_cast<JsonInt*>(this->json_item);
 		}
 
-		long long as_int() const
+		JsonInt as_int() const
 		{
 			error_assert(json_type == JSON_INT, "Json type is not JSON_INT");
-			return *this->int_item;
+			return *reinterpret_cast<JsonInt*>(this->json_item);
 		}
 
-		double& as_double()
+		JsonDouble& as_double()
 		{
 			error_assert(json_type == JSON_DOUBLE, "Json type is not JSON_DOUBLE");
-			return *this->double_item;
+			return *reinterpret_cast<JsonDouble*>(this->json_item);
 		}
 
-		double as_double() const
+		JsonDouble as_double() const
 		{
 			error_assert(json_type == JSON_DOUBLE, "Json type is not JSON_DOUBLE");
-			return *this->double_item;
+			return *reinterpret_cast<JsonDouble*>(this->json_item);
 		}
 
-		bool& as_bool()
+		JsonBool& as_bool()
 		{
 			error_assert(json_type == JSON_BOOL, "Json type is not JSON_BOOL");
-			return *this->bool_item;
+			return *reinterpret_cast<JsonBool*>(this->json_item);
 		}
 
-		bool as_bool() const
+		JsonBool as_bool() const
 		{
 			error_assert(json_type == JSON_BOOL, "Json type is not JSON_BOOL");
-			return *this->bool_item;
+			return *reinterpret_cast<JsonBool*>(this->json_item);
 		}
 
 		JsonStr& as_str()
 		{
 			error_assert(json_type == JSON_STR, "Json type is not JSON_STR");
-			return *this->str_item;
+			return *reinterpret_cast<JsonStr*>(this->json_item);
 		}
 
-		JsonStr as_str() const
+		const JsonStr& as_str() const
 		{
 			error_assert(json_type == JSON_STR, "Json type is not JSON_STR");
-			return *this->str_item;
+			return *reinterpret_cast<JsonStr*>(this->json_item);
 		}
 
 		JsonArray& as_array()
 		{
 			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
-			return *this->arr_item;
+			return *reinterpret_cast<JsonArray*>(this->json_item);
+		}
+
+		const JsonArray& as_array() const
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+			return *reinterpret_cast<JsonArray*>(this->json_item);
 		}
 
 		JsonDict& as_dict()
 		{
 			error_assert(json_type == JSON_DICT, "Json type is not JSON_DICT");
-			return *this->dict_item;
+			return *reinterpret_cast<JsonDict*>(this->json_item);
+		}
+
+		const JsonDict& as_dict() const
+		{
+			error_assert(json_type == JSON_DICT, "Json type is not JSON_DICT");
+			return *reinterpret_cast<JsonDict*>(this->json_item);
 		}
 
 		std::string to_string() const override
 		{
 			std::string str;
 			if (json_type == JSON_INT)
-				str = std::to_string(*this->int_item);
+				str = std::to_string(this->as_int());
 			else if (json_type == JSON_DOUBLE)
-				str = std::to_string(*this->double_item);
+				str = std::to_string(this->as_double());
 			else if (json_type == JSON_BOOL)
-				str = *this->bool_item ? "true" : "false";
+				str = this->as_bool() ? "true" : "false";
 			else if (json_type == JSON_NULL)
 				str = "null";
 			else if (json_type == JSON_STR)
-				str = "\"" + *this->str_item + "\"";
+				str = "\"" + this->as_str() + "\"";
 			else if (json_type == JSON_ARRAY)
 			{
 				str = "[";
-				for (auto& item : *this->arr_item)
+				for (auto& item : this->as_array())
 					str += item.to_string() + ", ";
 				str.pop_back(), str.pop_back();
 				str += "]\n";
@@ -255,7 +208,7 @@ namespace ayr
 			else if (json_type == JSON_DICT)
 			{
 				str = "{";
-				for (auto& kv : *this->dict_item)
+				for (auto& kv : this->as_dict())
 				{
 					str += "\"" + kv.first + "\": " + kv.second.to_string() + ", ";
 				}
@@ -266,20 +219,7 @@ namespace ayr
 			return str;
 		}
 	private:
-		union
-		{
-			long long* int_item;
-
-			double* double_item;
-
-			bool* bool_item;
-
-			JsonStr* str_item;
-
-			JsonArray* arr_item;
-
-			JsonDict* dict_item;
-		};
+		void* json_item;
 
 		JsonType json_type;
 	};
