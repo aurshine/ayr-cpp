@@ -1,6 +1,6 @@
 ﻿#include "law/law.hpp"
 #include "json/parse.hpp"
-#include "threadpool.hpp"
+#include "thread/threadpool.hpp"
 
 void dfs(int id, int bg)
 {
@@ -11,8 +11,8 @@ int main()
 {
 	using namespace ayr;
 	ThreadPool pool(5);
-	for (int i = 0; i < 5; ++i)
-		pool.push(dfs, i, i);
+	for (int i = 0; i < 5000; ++i)
+		pool.push(dfs, i, i + 5000);
 
 
 	return 0;

@@ -27,6 +27,7 @@ namespace ayr
 		template<class T, class ...Args>
 		void operator() (const T& object, const Args& ...args)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			this->operator()(object, std::bool_constant<std::is_base_of_v<Object, std::decay_t<T>>>{}, this->sep_word);
 			this->operator()(args...);
 		}
@@ -35,6 +36,7 @@ namespace ayr
 		template<class T>
 		void operator() (const T& object)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			this->operator()(object, std::bool_constant<std::is_base_of_v<Object, std::decay_t<T>>>{}, this->end_word);
 		}
 
@@ -42,6 +44,7 @@ namespace ayr
 		template<class T>
 		void set_end_word(T&& end_word)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			this->end_word = std::forward<T>(end_word);
 		}
 
@@ -49,6 +52,7 @@ namespace ayr
 		template<class T>
 		void set_sep_word(T&& end_word)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			this->sep_word = std::forward<T>(end_word);
 		}
 
@@ -57,6 +61,7 @@ namespace ayr
 		template<class T, class Str>
 		void operator() (const T& object, std::true_type, const Str& end)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			*this->ostream << object.to_string() << end;
 		}
 
@@ -64,12 +69,15 @@ namespace ayr
 		template<class T, class Str>
 		void operator() (const T& object, std::false_type, const Str& end)
 		{
+			std::lock_guard<std::recursive_mutex> lock(this->mutex);
 			*this->ostream << object << end;
 		}
 
 		std::string end_word;
 
 		std::string sep_word;
+
+		std::recursive_mutex mutex;
 
 		Ostream* ostream;
 	};
