@@ -32,8 +32,8 @@ namespace ayr
 		using JsonDict = std::map<JsonStr, Json>;
 
 		Json()
+			: json_item(nullptr), json_type(JSON_NULL)
 		{
-			this->json_type = JSON_NULL;
 		}
 
 		Json(long long item)
