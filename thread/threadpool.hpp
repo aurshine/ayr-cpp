@@ -3,7 +3,7 @@
 #include <condition_variable>
 #include <queue>
 #include <functional>
-#include "law/law.hpp"
+#include "../law/object.hpp"
 
 namespace ayr
 {

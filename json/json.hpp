@@ -34,6 +34,7 @@ namespace ayr
 		Json()
 			: json_item(nullptr), json_type(JSON_NULL)
 		{
+
 		}
 
 		Json(long long item)
@@ -80,25 +81,38 @@ namespace ayr
 
 		Json(Json&& json) noexcept
 		{
+			delete this->json_item;
 			this->json_item = json.json_item;
 			json.json_item = nullptr;
 			this->json_type = json.json_type;
 		}
 
-		Json& operator= (Json&& json) noexcept
+		Json(const Json& json)
 		{
-			if (this != &json)
-			{
-				this->json_item = json.json_item;
-				json.json_item = nullptr;
-				this->json_type = json.json_type;
-			}
-
-			return *this;
+			*this = json;
 		}
 
-		Json(const Json& json) = delete;
+		Json& operator=(const Json& json)
+		{
+			if (this == &json)
+				return *this;
 
+			delete this->json_item;
+			if (json.json_type == JSON_INT)
+				this->json_item = new JsonInt(json.as_int());
+			else if (json.json_type == JSON_DOUBLE)
+				this->json_item = new JsonDouble(json.as_double());
+			else if (json.json_type == JSON_BOOL)
+				this->json_item = new JsonBool(json.as_bool());
+			else if (json.json_type == JSON_STR)
+				this->json_item = new JsonStr(json.as_str());
+			else if (json.json_type == JSON_ARRAY)
+				this->json_item = new JsonArray(json.as_array());
+			else if (json.json_type == JSON_DICT)
+				this->json_item = new JsonDict(json.as_dict());
+			this->json_type = json.json_type;
+			return *this;
+		}
 
 		~Json()
 		{
@@ -184,6 +198,42 @@ namespace ayr
 			return *reinterpret_cast<JsonDict*>(this->json_item);
 		}
 
+		operator JsonInt() const
+		{
+			error_assert(json_type == JSON_INT, "Json type is not JSON_INT");
+			return *reinterpret_cast<JsonInt*>(this->json_item);
+		}
+
+		operator JsonDouble() const
+		{
+			error_assert(json_type == JSON_DOUBLE, "Json type is not JSON_DOUBLE");
+			return *reinterpret_cast<JsonDouble*>(this->json_item);
+		}
+
+		operator JsonBool() const
+		{
+			error_assert(json_type == JSON_BOOL, "Json type is not JSON_BOOL");
+			return *reinterpret_cast<JsonBool*>(this->json_item);
+		}
+
+		operator JsonStr() const
+		{
+			error_assert(json_type == JSON_STR, "Json type is not JSON_STR");
+			return *reinterpret_cast<JsonStr*>(this->json_item);
+		}
+
+		operator JsonArray() const
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+			return *reinterpret_cast<JsonArray*>(this->json_item);
+		}
+
+		operator JsonDict() const
+		{
+			error_assert(json_type == JSON_DICT, "Json type is not JSON_DICT");
+			return *reinterpret_cast<JsonDict*>(this->json_item);
+		}
+
 		std::string to_string() const override
 		{
 			std::string str;
@@ -217,6 +267,55 @@ namespace ayr
 			}
 
 			return str;
+		}
+
+		Json& append(Json&& json)
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+			this->as_array().emplace_back(std::move(json));
+			return *this;
+		}
+
+		Json& operator[] (const JsonStr& key)
+		{
+			error_assert(json_type == JSON_DICT, "Json type is not JSON_DICT");
+			return this->as_dict()[key];
+		}
+
+		const Json& operator[] (const JsonStr& key) const
+		{
+			error_assert(json_type == JSON_DICT, "Json type is not JSON_DICT");
+			return this->as_dict().at(key);
+		}
+
+		Json& operator[] (size_t index)
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+			return this->as_array()[index];
+		}
+
+		const Json& operator[] (size_t index) const
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+			return this->as_array().at(index);
+		}
+
+		void pop(size_t index = -1)
+		{
+			error_assert(json_type == JSON_ARRAY, "Json type is not JSON_ARRAY");
+
+			if (index == -1)
+				index = this->as_array().size() - 1;
+			this->as_array().erase(this->as_array().begin() + index);
+		}
+
+		size_t size() const
+		{
+			if (json_type == JSON_ARRAY)
+				return this->as_array().size();
+			else if (json_type == JSON_DICT)
+				return this->as_dict().size();
+			error_assert(false, "Json type is not JSON_ARRAY or JSON_DICT");
 		}
 	private:
 		void* json_item;

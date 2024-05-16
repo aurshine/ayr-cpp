@@ -118,11 +118,7 @@ namespace ayr
 			++end;
 		}
 
-		Json ret;
-		if (float_flag)
-			ret = Json(atof(json_str.substr(start, end - start).c_str()));
-		else
-			ret = Json(atoll(json_str.substr(start, end - start).c_str()));
+		Json ret = float_flag ? Json(atof(json_str.substr(start, end - start).c_str())) : Json(atoll(json_str.substr(start, end - start).c_str()));
 
 
 		start = end;

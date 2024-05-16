@@ -10,7 +10,7 @@ namespace ayr
 		// a > b 等价于 ! a <= b
 		virtual bool operator> (const T& other) const
 		{
-			warn_assert(false, "The default comparison function is being used");
+			// warn_assert(false, "The default comparison function is being used");
 			return !this->operator<= (other);
 		}
 
@@ -24,27 +24,27 @@ namespace ayr
 		// a >= b 等价于 ! a < b
 		virtual bool operator>= (const T& other) const
 		{
-			warn_assert(false, "The default comparison function is being used");
+			// warn_assert(false, "The default comparison function is being used");
 			return !this->operator< (other);
 		}
 
 		// a <= b 等价于 ! a > b
 		virtual bool operator<= (const T& other) const
 		{
-			warn_assert(false, "The default comparison function is being used");
+			// warn_assert(false, "The default comparison function is being used");
 			return !this->operator> (other);
 		}
 
 		virtual bool operator== (const T& other) const
 		{
-			warn_assert(false, "The default comparison function is being used");
+			// warn_assert(false, "The default comparison function is being used");
 			return this == &other;
 		}
 
 		// a != b 等价于 ! a == b
 		virtual bool operator!= (const T& other) const
 		{
-			warn_assert(false, "The default comparison function is being used");
+			//warn_assert(false, "The default comparison function is being used");
 			return !this->operator==(other);
 		}
 	};

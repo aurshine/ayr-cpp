@@ -1,5 +1,6 @@
-﻿#pragma
-#include "printer.hpp"
+﻿#pragma once
+#include "object.hpp"
+#include "iterator.hpp"
 
 namespace ayr
 {
@@ -7,47 +8,40 @@ namespace ayr
 	class Container : public Object
 	{
 	public:
-		virtual size_t size() const
+		virtual ~Container()
 		{
-			error_assert(false, "正在使用Container的默认 size 函数");
-			return 0;
+			this->release();
 		}
 
-		template<class Key>
-		T& operator[](const Key& item)
+	public:
+		virtual size_t size() const = 0;
+
+		virtual bool empty() const
 		{
-			error_assert(false, "正在使用Container的默认 operator[] 函数");
-			return T();
+			return size() == 0;
 		}
 
-		template<class Key>
-		T operator[](const Key& item) const
-		{
-			error_assert(false, "正在使用Container的默认 operator[] 函数");
-			return T();
-		}
+		virtual bool contains(const T& item) const = 0;
 
-		virtual bool contains(const T& item)
-		{
-			warn_assert(false, "正在使用Container的默认 contains 函数");
-			return false;
-		}
+		virtual void insert(const T& item) = 0;
 
-		template<class Ty>
-		void add(Ty&& item)
-		{
-			warn_assert(false, "正在使用Container的默认 add 函数");
-		}
+		virtual void remove(const T& item) = 0;
 
-		template<class Ty>
-		void add(const Ty& item)
-		{
-			warn_assert(false, "正在使用Container的默认 add 函数");
-		}
+		virtual void clear() {}
 
-		virtual void remove(const T& item)
-		{
-			warn_assert(false, "正在使用Container的默认 remove 函数");
-		}
+		// 清空容器并释放资源
+		virtual release() {}
+
+		virtual Iterator<T>* begin() = 0;
+
+		virtual Iterator<T>* end() = 0;
+
+		virtual const Iterator<T>* cbegin() const = 0;
+
+		virtual const Iterator<T>* cend() const = 0;
+
+		virtual Iterator<T>* rbegin() = 0;
+
+		virtual Iterator<T>* rend() = 0;
 	};
 }
