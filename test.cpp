@@ -1,12 +1,7 @@
-﻿#include <string>
-#include "law/printer.hpp"
-#include "json/parse.hpp"
+﻿#include "test/iterator_test.cpp"
 
 int main()
 {
-	std::string json_str = R"({"array": [1, 2, "3", 4.0, true, null],})";
-	ayr::Json json_obj = ayr::parse(json_str);
-
-	ayr::print(json_obj);
+	iterator_test();
 	return 0;
 }
