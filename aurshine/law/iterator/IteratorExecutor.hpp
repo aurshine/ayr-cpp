@@ -13,6 +13,8 @@ namespace ayr
 		virtual ~IteratorExecutor() = default;
 
 	public:
+		bool __eq__(const IteratorExecutor<T>& other) const override { return iter_executor == other.iter_executor; }
+
 		IteratorExecutor& operator++()
 		{
 			iter_executor = iter_executor->__next__();
@@ -32,8 +34,6 @@ namespace ayr
 		const T& operator*() const { return iter_executor->__iterval__(); }
 
 		const T* operator->() const { return &iter_executor->__iterval__(); }
-
-		bool __eq__(const IteratorExecutor<T>& other) const override { return iter_executor == other.iter_executor; }
 
 		bool stop_iterator() const { return iter_executor == nullptr; }
 
