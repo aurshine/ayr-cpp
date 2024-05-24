@@ -1,9 +1,10 @@
-﻿#include "test/iterator_test.cpp"
+﻿#include "aurshine/json/json.hpp"
 
 
 
 int main()
 {
-	iterator_test();
+	ayr::Json j(1ll);
+	std::cout << j.transform<ayr::JsonInt>();
 	return 0;
 }
