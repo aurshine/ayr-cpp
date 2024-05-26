@@ -4,7 +4,7 @@
 
 int main()
 {
-	ayr::json::Json j(std::string("hello world"));
-	std::cout << j.transform<ayr::json::JsonStr>() << " " << j.type();
+	ayr::json::Json j(ayr::json::make_int(5ll));
+	std::cout << j.transform<ayr::json::JsonType::JsonInt>() << " " << j.type();
 	return 0;
 }
