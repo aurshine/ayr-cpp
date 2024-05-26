@@ -1,10 +1,10 @@
 ﻿#include "aurshine/json/json.hpp"
-
+#include <typeinfo>
 
 
 int main()
 {
-	ayr::Json j(1ll);
-	std::cout << j.transform<ayr::JsonInt>();
+	ayr::json::Json j(std::string("hello world"));
+	std::cout << j.transform<ayr::json::JsonStr>() << " " << j.type();
 	return 0;
 }
