@@ -13,7 +13,7 @@ namespace ayr
 		virtual ~IteratorExecutor() = default;
 
 	public:
-		bool __eq__(const IteratorExecutor<T>& other) const override { return iter_executor == other.iter_executor; }
+		int64_t __cmp__(const IteratorExecutor<T>& other) const override { return iter_executor - other.iter_executor; }
 
 		IteratorExecutor& operator++()
 		{

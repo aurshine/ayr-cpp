@@ -7,35 +7,19 @@ namespace ayr
 	class Comparator : public Object
 	{
 	public:
-		// > 默认等价于 !__le__
-		virtual bool __gt__(const T& other) const { return !__le__(other); }
+		// 返回值大于0为大于， 小于0为小于，等于0为等于
+		virtual int64_t __cmp__(const T& other) const { return (size_t)this - (size_t)&other; }
 
-		// < 默认等价于 !__ge__
-		virtual bool __lt__(const T& other) const { return !__ge__(other); }
+		bool operator> (const T& other) const { return __cmp__(other) > 0; }
 
-		// >= 默认等价于 !__lt__
-		virtual bool __ge__(const T& other) const { return !__lt__(other); }
+		bool operator< (const T& other) const { return __cmp__(other) < 0; }
 
-		// <= 默认等价于 !__gt__
-		virtual bool __le__(const T& other) const { return !__gt__(other); }
+		bool operator>= (const T& other) const { return __cmp__(other) >= 0; }
 
-		// == 默认等价于 this == &other
-		virtual bool __eq__(const T& other) const { return this == &other; }
+		bool operator<= (const T& other) const { return __cmp__(other) <= 0; }
 
-		// != 默认等价于 !__eq__
-		virtual bool __ueq__(const T& other) const { return !__eq__(other); }
+		bool operator== (const T& other) const { return __cmp__(other) == 0; }
 
-
-		bool operator> (const T& other) const { return __gt__(other); }
-
-		bool operator< (const T& other) const { return __lt__(other); }
-
-		bool operator>= (const T& other) const { return __ge__(other); }
-
-		bool operator<= (const T& other) const { return __le__(other); }
-
-		bool operator== (const T& other) const { return __eq__(other); }
-
-		bool operator!= (const T& other) const { return __ueq__(other); }
+		bool operator!= (const T& other) const { return __cmp__(other) != 0; }
 	};
 }

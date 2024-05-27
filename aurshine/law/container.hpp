@@ -1,32 +1,26 @@
 ﻿#pragma once
-#include "object.hpp"
+#include "implemented.hpp"
 #include "iterator/IteratorExecutor.hpp"
 
 namespace ayr
 {
+	// 描述容器尺寸的类型
+	using c_size = int64_t;
+
 	template<class T>
 	class Container : public Object
 	{
 	public:
-		virtual ~Container() { this->release(); }
+		Container() = default;
+
+		virtual ~Container() = default;
 
 	public:
-		virtual bool empty() const { return size() == 0; }
+		virtual c_size size() const no_implement_v(0)
 
-		virtual void clear() {}
+		virtual bool contains(const T& item) const no_implement_v(false)
 
-		// 清空容器并释放资源
-		virtual release() {}
-
-		virtual size_t size() const = 0;
-
-		virtual bool contains(const T& item) const = 0;
-
-		virtual void insert(const T& item) = 0;
-
-		virtual void remove(const T& item) = 0;
-
-		virtual IteratorExecutor<T> __iter__() = 0;
+		virtual IteratorExecutor<T> __iter__() no_implement_v(IteratorExecutor<T>(nullptr));
 
 		IteratorExecutor<T> begin() { return __iter__(); }
 
@@ -36,7 +30,7 @@ namespace ayr
 
 		const IteratorExecutor<T> cend() const { return IteratorExecutor<T>(nullptr); };
 
-		virtual IteratorExecutor<T> rbegin() = 0;
+		virtual IteratorExecutor<T> rbegin() no_implement_v(IteratorExecutor<T>(nullptr));
 
 		virtual IteratorExecutor<T> rend() { return IteratorExecutor<T>(nullptr); };
 	};

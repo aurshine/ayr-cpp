@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <iostream>
+#include <format>
 #include <mutex>
 #include "object.hpp"
 
@@ -8,27 +10,20 @@ namespace ayr
 	class Printer : public Object
 	{
 	public:
-		Printer(Ostream* ostream)
-			:Printer("\n", " ", ostream)
-		{
-
-		}
+		Printer(Ostream* ostream): Printer("\n", " ", ostream) {}
 
 		template<class T1, class T2>
 		Printer(T1&& end_word, T2&& sep_word, Ostream* ostream)
 			: end_word(std::forward<T1>(end_word)),
 			sep_word(std::forward<T2>(sep_word)),
-			ostream(ostream)
-		{
-
-		}
+			ostream(ostream){}
 
 		// 可变形参
 		template<class T, class ...Args>
 		void operator() (const T& object, const Args& ...args)
 		{
 			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			this->operator()(object, std::bool_constant<std::is_base_of_v<Object, std::decay_t<T>>>{}, this->sep_word);
+			*ostream << object << " ";
 			this->operator()(args...);
 		}
 
@@ -37,7 +32,7 @@ namespace ayr
 		void operator() (const T& object)
 		{
 			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			this->operator()(object, std::bool_constant<std::is_base_of_v<Object, std::decay_t<T>>>{}, this->end_word);
+			*ostream << object << this->end_word;
 		}
 
 		// 设置输出结束符
@@ -57,22 +52,6 @@ namespace ayr
 		}
 
 	private:
-		// 输出 Object 的子类
-		template<class T, class Str>
-		void operator() (const T& object, std::true_type, const Str& end)
-		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			*this->ostream << object.to_string() << end;
-		}
-
-		// 输出非 Object的类型
-		template<class T, class Str>
-		void operator() (const T& object, std::false_type, const Str& end)
-		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			*this->ostream << object << end;
-		}
-
 		std::string end_word;
 
 		std::string sep_word;
@@ -132,27 +111,26 @@ namespace ayr
 #define ayr_error ColorPrinter<std::ostream>(&std::cout, ayr::Color::RED)
 
 
-	template<class ...Msg>
-	inline void _warn_assert(bool condition, const Msg& ...msg)
+	inline void _warn_assert(bool condition, const std::string& msg)
 	{
 		{
 			if (!condition)
-				ayr_warner(msg...);
+				ayr_warner(msg);
 		}
 	}
 
 
-	template<class ...Msg>
-	inline void _error_assert(bool condition, const Msg& ...msg)
+	inline void _error_assert(bool condition, const std::string& msg)
 	{
 		if (!condition)
-			ayr_error(msg...);
-		if (!condition)
+		{
+			ayr_error(msg);
 			exit(-1);
+		}
 	}
 
 	// 打印警告信息,继续向下执行
-#define warn_assert(condition, info) _warn_assert(condition, "FILE:", __FILE__, "LINE:", __LINE__, "\nINFORMATION:", info)
-	// 打印错误信息，并抛出异常
-#define error_assert(condition, info) _error_assert(condition, "FILE:", __FILE__, "LINE", __LINE__, "\nINFORMATION:", info)
+#define warn_assert(condition, info) _warn_assert(condition, std::format("{} [{}]\nINFORMATION: {}", __FILE__, __LINE__, info))
+	// 打印错误信息，并退出
+#define error_assert(condition, info) _error_assert(condition, std::format("{} [{}]\nINFORMATION: {}", __FILE__, __LINE__, info))
 }

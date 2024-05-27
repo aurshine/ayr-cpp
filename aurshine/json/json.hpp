@@ -50,6 +50,8 @@ namespace ayr
 						this->json_item = new typename JsonType::JsonArray(transform<typename JsonType::JsonArray>());
 					else if (json.json_type == GetJsonTypeEnum<typename JsonType::JsonDict>::ID)
 						this->json_item = new typename JsonType::JsonDict(transform<typename JsonType::JsonDict>());
+					else
+						error_assert(false, std::format("ValueError: json_type can not be {}", type()));
 				}
 
 				return *this;
@@ -96,12 +98,13 @@ namespace ayr
 				else if (json_type == GetJsonTypeEnum<typename JsonType::JsonNull>::ID)
 					buffer = "null";
 				else if (json_type == GetJsonTypeEnum<typename JsonType::JsonStr>::ID)
-					buffer = "\"" + transform<typename JsonType::JsonStr>() + "\"";
+					buffer = std::format(R"("{}")", transform<typename JsonType::JsonStr>());
 				else if (json_type == GetJsonTypeEnum<typename JsonType::JsonArray>::ID)
 				{
 					buffer = "[";
 					for (auto& item : transform<typename JsonType::JsonArray>())
 						buffer += item.to_string() + ", ";
+
 					buffer.pop_back(), buffer.pop_back();
 					buffer += "]\n";
 				}
@@ -220,6 +223,12 @@ namespace ayr
 
 			error_assert(false, "Unsupported " + std::string(typeid(T).name()) + " for make_float");
 			return 0;
+		}
+
+		template<typename T>
+		JsonType::JsonBool make_bool(T&& value)
+		{
+			return static_cast<JsonType::JsonBool>(value);
 		}
 	}
 }
