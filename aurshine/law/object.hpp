@@ -20,8 +20,9 @@ namespace ayr
 		// hash 编码
 		virtual size_t hash() const { return std::hash<std::string>{}(this->__str__()); }
 
-		// 相等
-		virtual bool operator= (const Object& obj) const { return this == &obj; }
+
+		// 返回值大于0为大于， 小于0为小于，等于0为等于
+		virtual int64_t __cmp__(const Object& other) const { return (size_t)this - (size_t)&other; }
 	};
 
 	template<typename T>
@@ -33,4 +34,22 @@ namespace ayr
 		cout << item.__str__();
 		return cout;
 	}
+
+	template<DerivedObject T>
+	bool operator> (const T& one, const T& other) { return one.__cmp__(other) > 0; }
+
+	template<DerivedObject T>
+	bool operator< (const T& one, const T& other) { return one.__cmp__(other) < 0; }
+
+	template<DerivedObject T>
+	bool operator>= (const T& one, const T& other) { return one.__cmp__(other) >= 0; }
+
+	template<DerivedObject T>
+	bool operator<= (const T& one, const T& other) { return one.__cmp__(other) <= 0; }
+
+	template<DerivedObject T>
+	bool operator== (const T& one, const T& other) { return one.__cmp__(other) == 0; }
+
+	template<DerivedObject T>
+	bool operator!= (const T& one, const T& other) { return one.__cmp__(other) != 0; }
 }

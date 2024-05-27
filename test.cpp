@@ -1,9 +1,9 @@
 ﻿#include "aurshine/law/implemented.hpp"
 #include "aurshine/law/Array.hpp"
+#include "aurshine/law/String.hpp"
 
 int main()
 {
-	ayr::Array<int> a{ 1, 2, 3, 5};
-	ayr::print(a.slice(1, -35));
-	return 0;
+	ayr::AString<char> str = "Hello, world! ";
+	ayr::print(str + "This is a test.");
 }

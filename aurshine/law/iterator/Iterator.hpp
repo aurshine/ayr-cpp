@@ -1,15 +1,15 @@
 ﻿#pragma once
 #include "../printer.hpp"
-#include "../comparator.hpp"
 
 namespace ayr
 {
 	// 迭代器基类
 	template<typename T>
-	class Iterator : public Comparator<Iterator<T>>
+	class Iterator : public Object
 	{
 	public:
 		constexpr Iterator() {};
+
 		virtual ~Iterator() = default;
 
 	public:

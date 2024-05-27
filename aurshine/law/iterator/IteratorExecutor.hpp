@@ -5,7 +5,7 @@ namespace ayr
 {
 	// 迭代器执行器
 	template<class T>
-	class IteratorExecutor : public Comparator<IteratorExecutor<T>>
+	class IteratorExecutor : public Object
 	{
 	public:
 		constexpr IteratorExecutor(Iterator<T>* _it) :iter_executor(_it) {}
@@ -13,7 +13,7 @@ namespace ayr
 		virtual ~IteratorExecutor() = default;
 
 	public:
-		int64_t __cmp__(const IteratorExecutor<T>& other) const override { return iter_executor - other.iter_executor; }
+		int64_t __cmp__(const IteratorExecutor<T>& other) const { return iter_executor - other.iter_executor; }
 
 		IteratorExecutor& operator++()
 		{
