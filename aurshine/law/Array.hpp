@@ -1,10 +1,11 @@
 ﻿#pragma once
 #include <algorithm>
 #include <functional>
+#include <iterator>
 #include <string>
 
 #include "printer.hpp"
-#include "container.hpp"
+
 
 namespace ayr
 {
@@ -17,24 +18,23 @@ namespace ayr
 		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}]", x, lbound, rbound));
 	};
 	
-
 	template<typename T>
-	class Array : public Container<T>
+	class Array : public Object
 	{
 	public:
 		Array() : arr_(nullptr), size_(0) {}
 
-		Array(c_size size__) : Array() { alloc(size__); }
+		Array(c_size size__) : Array() { relloc(size__); }
 
 		Array(const T& fill_, c_size size__) : Array(size__) { fill(fill_); }
 
 		Array(T* raw_arr, c_size size__) : arr_(raw_arr), size_(size__) {}
 
-		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list); }
+		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.size()); }
 
 		Array(const Array& other) : Array(other.size_) { fill(other); }
 
-		Array(Array&& other) : Array(other.arr_, other.size_) { other.arr_ = nullptr, other.size_ = 0; }
+		Array(Array&& other) : Array() { swap(other); }
 
 		~Array() { release(); }
 
@@ -43,7 +43,7 @@ namespace ayr
 			if (this == &other) return *this;
 
 			release();
-			alloc(other.size_);
+			relloc(other.size_);
 			fill(other);
 			return *this;
 		}
@@ -63,6 +63,8 @@ namespace ayr
 			std::swap(arr_, other.arr_);
 			std::swap(size_, other.size_);
 		}
+
+		void swap(Array&& other) { swap(other); }
 
 		// fill_val 填充值
 		void fill(const T& fill_val, c_size pos = 0)
@@ -105,44 +107,6 @@ namespace ayr
 			if (size_ - pos - other.size_ > 0)
 				fill(default_, size_ - pos - other.size_);
 		}
-
-		// 以迭代器填充元素
-		template<typename Iterable>
-		void fill(Iterable&& iter)
-		{
-			c_size idx = 0;
-			for (auto it : iter)
-			{
-				if (idx == size_) break;
-				arr_[idx++] = std::forward<T>(it);
-			}
-		}
-
-		// 以迭代器填充元素, 未填满使用默认值
-		template<typename Iterable>
-		void fill(Iterable&& iter, const T& default_)
-		{
-			c_size idx = 0;
-			for (auto it : iter)
-			{
-				if (idx == size_) break;
-				arr_[idx++] = std::forward<T>(it);
-			}
-
-			while (idx < size_) arr_[idx++] = default_;
-		}
-
-		// 容器大小
-		c_size size() const { return size_; }
-
-		// 容器底层指针
-		T* ptr() { return arr_; }
-
-		// 容器底层指针
-		const T* ptr() const { return arr_; }
-
-		// 元素是否存在
-		bool contains(const T& item) const override { return find(item) != -1; }
 
 		// 寻找元素返回下标
 		c_size find(const T& find_item, c_size pos = 0) const
@@ -199,7 +163,8 @@ namespace ayr
 			return ret;
 		}
 
-		const char* __str__() const override
+		// 输出的字符串形式
+		std::string __str__() const override
 		{
 			std::stringstream stream;
 			stream << "[";
@@ -209,9 +174,10 @@ namespace ayr
 				stream << arr_[i];
 			}
 			stream << "]";
-			return stream.str().c_str();
+			return stream.str();
 		}
 
+		// 比较逻辑
 		c_size __cmp__(const Array<T>& other) const
 		{
 			for (c_size i = 0; i < std::min(size_, other.size_); ++i)
@@ -227,9 +193,39 @@ namespace ayr
 
 			return size_ - other.size_;
 		}
+		
+		// 容器大小
+		c_size size() const { return size_; }
 
+		// 容器底层指针
+		T* ptr() { return arr_; }
+
+		// 容器底层指针
+		const T* ptr() const { return arr_; }
+
+		// 元素是否存在
+		bool contains(const T& item) const { return find(item) != -1; }
+
+		// 迭代器
+		T* begin() { return arr_; }
+
+		T* end() { return arr_ + size_; }
+
+		const T* begin() const { return arr_; }
+
+		const T* end() const { return arr_ + size_; }
+
+		std::reverse_iterator<T*> rbegin() { return arr_ + size_ - 1; }
+
+		std::reverse_iterator<T*> rend() { return arr_ - 1; }
+
+		const std::reverse_iterator<T*> rbegin() const { return arr_ + size_ - 1; }
+
+		const std::reverse_iterator<T*> rend() const { return arr_ - 1; }
+
+	protected:
 		// 先释放再分配
-		void alloc(c_size size__)
+		virtual void relloc(c_size size__)
 		{
 			assert_insize(size__, 0, MAX_ALLOC);
 			release();
@@ -238,13 +234,13 @@ namespace ayr
 		}
 
 		// 释放内存
-		void release()
+		virtual void release()
 		{
 			delete[] arr_;
 			arr_ = nullptr;
 			size_ = 0;
 		}
-	private:
+
 		T* arr_;
 
 		c_size size_;
