@@ -86,7 +86,7 @@ namespace ayr
 			operator T() const { return *reinterpret_cast<T*>(this->json_item); }
 
 			// 转换为字符串
-			std::string to_string() const override
+			const char* __str__() const override
 			{
 				std::string buffer;
 				if (json_type == GetJsonTypeEnum<typename JsonType::JsonInt>::ID)
@@ -103,7 +103,7 @@ namespace ayr
 				{
 					buffer = "[";
 					for (auto& item : transform<typename JsonType::JsonArray>())
-						buffer += item.to_string() + ", ";
+						buffer = buffer + item.__str__() + ", ";
 
 					buffer.pop_back(), buffer.pop_back();
 					buffer += "]\n";
@@ -112,13 +112,13 @@ namespace ayr
 				{
 					buffer = "{";
 					for (auto& kv : transform<typename JsonType::JsonDict>())
-						buffer += "\"" + kv.first + "\": " + kv.second.to_string() + ", ";
+						buffer = buffer + "\"" + kv.first + "\": " + kv.second.__str__() + ", ";
 
 					buffer.pop_back(), buffer.pop_back();
 					buffer += "}\n";
 				}
 
-				return buffer;
+				return buffer.c_str();
 			}
 
 			// 尾部添加一个Json对象，需要当前Json对象为JsonArray类型

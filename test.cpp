@@ -4,6 +4,6 @@
 
 int main()
 {
-	ayr::AString<char> str = "Hello, world! ";
-	ayr::print(str + "This is a test.");
+	ayr::AString<char> str = "asddf";
+	ayr::print(ayr::AString("<<").join({"123", "abc", "efj"}));
 }

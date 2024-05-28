@@ -8,13 +8,13 @@ namespace ayr
 	class Object
 	{
 	public:
-		// 转换为 string 类型
-		virtual std::string __str__() const
+		// 转换为 字符串 类型
+		virtual const char* __str__() const
 		{
 			std::stringstream stream;
 			stream << std::hex << this;
 
-			return std::format(R"(<{} 0x{}>)", typeid(*this).name(), stream.str());
+			return std::format(R"(<{} 0x{}>)", typeid(*this).name(), stream.str()).c_str();
 		}
 
 		// hash 编码
