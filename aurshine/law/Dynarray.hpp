@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Array.hpp"
 
 namespace ayr
@@ -20,7 +20,7 @@ namespace ayr
 		Dynarray(const Dynarray& other) : Dynarray() { *this = other; }
 
 		Dynarray(Dynarray&& other) : Dynarray() { swap(other); }
-		
+
 		~Dynarray() { release(); }
 
 		Dynarray& operator= (Dynarray&& other) { swap(other); return *this; }
@@ -30,7 +30,7 @@ namespace ayr
 			relloc(other.capacity_);
 			this->size_ = other.size_;
 			this->capacity_ = other.capacity_;
-			this->fill(other.arr_, this->size_);
+			this->fill(other.begin(), other.end());
 			return *this;
 		}
 

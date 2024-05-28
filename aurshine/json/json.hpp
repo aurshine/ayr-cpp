@@ -4,10 +4,10 @@
 #include <vector>
 #include <map>
 #include <memory>
-#include <cassert>
 #include <functional>
-#include "json_trait.hpp"
-#include "../law/law.hpp"
+
+#include <json/json_trait.hpp>
+#include <law/law.hpp>
 
 
 namespace ayr
@@ -86,7 +86,7 @@ namespace ayr
 			operator T() const { return *reinterpret_cast<T*>(this->json_item); }
 
 			// 转换为字符串
-			const char* __str__() const override
+			std::string __str__() const override
 			{
 				std::string buffer;
 				if (json_type == GetJsonTypeEnum<typename JsonType::JsonInt>::ID)
@@ -118,7 +118,7 @@ namespace ayr
 					buffer += "}\n";
 				}
 
-				return buffer.c_str();
+				return buffer;
 			}
 
 			// 尾部添加一个Json对象，需要当前Json对象为JsonArray类型

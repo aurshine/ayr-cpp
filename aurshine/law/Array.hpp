@@ -3,8 +3,9 @@
 #include <functional>
 #include <iterator>
 #include <string>
+#include <ranges>
 
-#include "printer.hpp"
+#include <law/printer.hpp>
 
 
 namespace ayr
@@ -17,7 +18,7 @@ namespace ayr
 	{
 		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}]", x, lbound, rbound));
 	};
-	
+
 	template<typename T>
 	class Array : public Object
 	{
@@ -30,7 +31,7 @@ namespace ayr
 
 		Array(T* raw_arr, c_size size__) : arr_(raw_arr), size_(size__) {}
 
-		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.size()); }
+		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
 
 		Array(const Array& other) : Array(other.size_) { fill(other); }
 
@@ -70,42 +71,44 @@ namespace ayr
 		void fill(const T& fill_val, c_size pos = 0)
 		{
 			assert_insize(pos, 0, size_);
-			for (c_size i = pos; i < size_; ++i)
-				arr_[i] = fill_val;
+
+			while (pos < size_) arr_[pos++] = fill_val;
 		}
 
-		// 以指针填充size__个元素
-		void fill(const T* fill_arr, c_size size__, c_size pos = 0)
+		// 以迭代器填充元素
+		template<typename It>
+		void fill(It begin, It end, c_size pos = 0)
 		{
-			assert_insize(pos, 0, size_);
-			c_size min_size = std::min(size__, size_ + pos);
-			for (c_size i = pos; i < min_size; ++i)
-				arr_[i] = fill_arr[i - pos];
+			while (pos < size_ && begin != end)
+			{
+				arr_[pos++] = *begin;
+				++begin;
+			}
 		}
 
-		// 以指针填充size__个元素, 未填满使用默认值
-		void fill(const T* fill_arr, c_size size__, const T& default_, c_size pos = 0)
+		// 以迭代器填充元素, 未填满使用默认值
+		template<typename It>
+		void fill(It begin, It end, const T& default_, c_size pos = 0)
 		{
-			fill(fill_arr, size__, pos);
-			if (size_ - pos - size__ > 0)
-				fill(default_, size_ - pos - size__);
+			while (pos < size_ && begin != end)
+			{
+				arr_[pos++] = *begin;
+				++begin;
+			}
+
+			fill(default_, pos);
 		}
 
 		// 以Array对象填充元素
 		void fill(const Array& other, c_size pos = 0)
 		{
-			assert_insize(pos, 0, size_);
-			c_size min_size = std::min(size_, other.size_ + pos);
-			for (c_size i = pos; i < min_size; ++i)
-				arr_[i] = other.arr_[i - pos];
+			fill(other.begin(), other.end(), pos);
 		}
 
 		// 以Array对象填充元素, 未填满使用默认值
 		void fill(const Array& other, const T& default_, c_size pos = 0)
 		{
-			fill(other, pos);
-			if (size_ - pos - other.size_ > 0)
-				fill(default_, size_ - pos - other.size_);
+			fill(other.begin(), other.end(), default_, pos);
 		}
 
 		// 寻找元素返回下标
@@ -114,8 +117,8 @@ namespace ayr
 			assert_insize(pos, 0, size_ - 1);
 
 			while (pos < size_ && arr_[pos] != find_item) ++pos;
-			
-			return -1? (pos == size_): pos;
+
+			return -1 ? (pos == size_) : pos;
 		}
 
 		// 寻找满足条件的值
@@ -152,7 +155,7 @@ namespace ayr
 
 			l = (l + size_) % size_;
 			if (r != size_) r = (r + size_) % size_;
-			
+
 			c_size ret_size = r - l;
 			if (ret_size < 0) ret_size = (ret_size + size_) % size_;
 			Array<T> ret(ret_size);
@@ -193,7 +196,7 @@ namespace ayr
 
 			return size_ - other.size_;
 		}
-		
+
 		// 容器大小
 		c_size size() const { return size_; }
 
