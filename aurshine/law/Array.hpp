@@ -19,6 +19,11 @@ namespace ayr
 		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}]", x, lbound, rbound));
 	};
 
+	void assert_insize(c_size x, c_size lbound, c_size rbound, const char* msg)
+	{
+		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}] {}", x, lbound, rbound, msg));
+	};
+
 	template<typename T>
 	class Array : public Object
 	{
@@ -226,7 +231,6 @@ namespace ayr
 
 		const std::reverse_iterator<T*> rend() const { return arr_ - 1; }
 
-	protected:
 		// 先释放再分配
 		virtual void relloc(c_size size__)
 		{

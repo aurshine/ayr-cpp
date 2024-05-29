@@ -2,12 +2,25 @@
 #include "law/Array.hpp"
 #include "law/String.hpp"
 #include "law/Dynarray.hpp"
+#include <vector>
+
 
 int main()
 {
 	using namespace ayr;
+	int N = 1000000;
+	DynArray<int> da;
+	std::vector<int> v;
 
-	Dynarray<int> a{ 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+	auto start = clock();
+	for (int i = 0; i < N; ++i)
+		da.append(i);
 
-	print(Dynarray<int>(a));
+	print(clock() - start);
+
+	start = clock();
+	for (int i = 0; i < N; ++i)
+		v.push_back(i);
+
+	print(clock() - start);
 }

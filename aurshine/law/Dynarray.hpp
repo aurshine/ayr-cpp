@@ -1,79 +1,146 @@
 ﻿#pragma once
-#include "Array.hpp"
+#include <array>
+
+#include <law/Array.hpp>
 
 namespace ayr
 {
+	constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
+	
+	// 2^x
+	constexpr size_t _exp2(int x) { return 1ull << x; }
+
+	constexpr std::array<c_size, DYNARRAY_BLOCK_SIZE> make_exp()
+	{
+		std::array<c_size, DYNARRAY_BLOCK_SIZE> a;
+		for (int i = 0; i < DYNARRAY_BLOCK_SIZE; ++i)
+			a[i] = _exp2(i);
+		return a;
+	}
+
+	// EXP[i] 第i位为1其余位为0
+	constexpr static std::array<c_size, DYNARRAY_BLOCK_SIZE> EXP2 = make_exp();
+
 	template<typename T>
-	class Dynarray : public Array<T>
+	class DynArray: Object
 	{
 	public:
-		Dynarray() : Array<T>(), capacity_(0) { }
+		DynArray() : dynarray_(EXP2.size()), size_(0), occupies_size_(0) {}
+		
+		// 容器存储的数据长度
+		c_size size() const { return size_; }
 
-		Dynarray(c_size size__) : Dynarray() { relloc(size__); }
+		// 容器已经占用的块
+		c_size occupy_size() const { return occupies_size_; }
 
-		Dynarray(const T& fill_, c_size size__) : Array<T>(fill_, size__), capacity_(size__) {}
+		bool contains(const T& item) const { return find(item) != -1; }
 
-		Dynarray(T* raw_arr, c_size size__) : Array<T>(raw_arr, size__), capacity_(size__) {}
-
-		Dynarray(const std::initializer_list<T>& init_list) : Array<T>(init_list), capacity_(init_list.size()) {}
-
-		Dynarray(const Dynarray& other) : Dynarray() { *this = other; }
-
-		Dynarray(Dynarray&& other) : Dynarray() { swap(other); }
-
-		~Dynarray() { release(); }
-
-		Dynarray& operator= (Dynarray&& other) { swap(other); return *this; }
-
-		Dynarray& operator= (const Dynarray& other)
+		c_size find(const T& item) const 
 		{
-			relloc(other.capacity_);
-			this->size_ = other.size_;
-			this->capacity_ = other.capacity_;
-			this->fill(other.begin(), other.end());
-			return *this;
+			for (c_size i = 0; i < size_; ++i)
+				if (operator[](i) == item)
+					return i;
+			return -1;
 		}
 
-		void swap(Dynarray& other)
+		T& operator[] (c_size index)
 		{
-			std::swap(this->arr_, other.arr_);
-			std::swap(this->size_, other.size_);
-			std::swap(this->capacity_, other.capacity_);
+			assert_insize(index, -size_, size_ - 1, "[]");
+
+			index = (index + size_) % size_;
+
+			return __at__(index);
 		}
 
-		void swap(Dynarray&& other) { swap(other); }
+		const T& operator[] (c_size index) const
+		{
+			assert_insize(index, -size_, size_ - 1, "const []");
 
-		void append()
+			index = (index + size_) % size_;
+
+			return __at__(index);
+		}
+		
+		void append(const T& item)
+		{
+			if (!((size_ + 1) & size_))
+				__wakeup__();
+
+			__at__(size_) = item;
+			++size_;
+		}
+
+		void del()
 		{
 
 		}
 
-		void insert()
+		std::string __str__() const
 		{
+			std::stringstream stream;
+			stream << "<DynArray> [";
+			for (c_size i = 0; i < size_; ++i)
+			{
+				if (i) stream << ", ";
+				stream << __at__(i);
+			}
+			stream << "]";
 
+			return stream.str();
 		}
 
-		void remove()
+		cmp_t __cmp__(const DynArray& other) const
 		{
+			for (c_size i = 0; i < std::min(occupies_size_, other.occupies_size_); ++i)
+			{
+				c_size res = dynarray_[i].__cmp__(other.dynarray_[i]);
+				if (res) return res;
+			}
 
+			return occupies_size_ - other.occupies_size_;
 		}
+
 	protected:
-		void relloc(c_size size__) override
+		// 内部函数，对index范围不做检查
+		T& __at__(c_size index)
 		{
-			assert_insize(size__, 0, MAX_ALLOC);
-			release();
-			if (size__) this->arr_ = new T[size__]{};
-			this->capacity_ = size__;
-			this->size_ = 0;
+			++ index;
+			c_size l = 0, r = occupies_size_ - 1;
+
+			while (l < r)
+			{
+				c_size mid = l + r >> 1;
+				if (index <= EXP2[mid]) r = mid;
+				else l = mid + 1;
+			}
+
+			return dynarray_[l][EXP2[l] - index];
 		}
 
-		void release() override
+		const T& __at__(c_size index) const
 		{
-			delete[] this->arr_;
-			this->arr_ = nullptr;
-			this->capacity_ = this->size_ = 0;
+			++index;
+			c_size l = 0, r = occupies_size_ - 1;
+
+			while (l < r)
+			{
+				c_size mid = l + r >> 1;
+				if (index <= EXP2[mid]) r = mid;
+				else l = mid + 1;
+			}
+			return dynarray_[l][EXP2[l] - index];
 		}
 
-		c_size capacity_;
+		void __wakeup__()
+		{
+			occupies_size_++;
+			assert_insize(occupies_size_, 1, EXP2.size() - 1, "__wakeup__");
+			dynarray_[occupies_size_ - 1].relloc(EXP2[occupies_size_ - 1]);
+		}
+
+	private:
+		Array<Array<T>> dynarray_;
+
+		c_size size_, occupies_size_;
 	};
 }
