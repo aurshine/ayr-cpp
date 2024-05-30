@@ -2,7 +2,8 @@
 #include <iostream>
 #include <format>
 #include <mutex>
-#include "object.hpp"
+
+#include <law/object.hpp>
 
 namespace ayr
 {

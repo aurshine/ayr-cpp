@@ -3,7 +3,6 @@
 #include <functional>
 #include <iterator>
 #include <string>
-#include <ranges>
 
 #include <law/printer.hpp>
 
@@ -28,6 +27,10 @@ namespace ayr
 	class Array : public Object
 	{
 	public:
+		using iterator = T*;
+
+		using const_iterator = const T*;
+
 		Array() : arr_(nullptr), size_(0) {}
 
 		Array(c_size size__) : Array() { relloc(size__); }
@@ -215,21 +218,21 @@ namespace ayr
 		bool contains(const T& item) const { return find(item) != -1; }
 
 		// 迭代器
-		T* begin() { return arr_; }
+		iterator begin() { return arr_; }
 
-		T* end() { return arr_ + size_; }
+		iterator end() { return arr_ + size_; }
 
-		const T* begin() const { return arr_; }
+		const_iterator begin() const { return arr_; }
 
-		const T* end() const { return arr_ + size_; }
+		const_iterator end() const { return arr_ + size_; }
 
-		std::reverse_iterator<T*> rbegin() { return arr_ + size_ - 1; }
+		std::reverse_iterator<iterator> rbegin() { return arr_ + size_ - 1; }
 
-		std::reverse_iterator<T*> rend() { return arr_ - 1; }
+		std::reverse_iterator<iterator> rend() { return arr_ - 1; }
 
-		const std::reverse_iterator<T*> rbegin() const { return arr_ + size_ - 1; }
+		std::reverse_iterator<const_iterator> rbegin() const { return arr_ + size_ - 1; }
 
-		const std::reverse_iterator<T*> rend() const { return arr_ - 1; }
+		std::reverse_iterator<const_iterator> rend() const { return arr_ - 1; }
 
 		// 先释放再分配
 		virtual void relloc(c_size size__)
@@ -252,4 +255,13 @@ namespace ayr
 
 		c_size size_;
 	};
+
+	template<typename T, size_t N, typename F>
+	inline constexpr std::array<T, N> make_stl_array(const F& constexpr_func)
+	{
+		std::array<T, N> a;
+		for (int i = 0; i < N; ++i)
+			a[i] = constexpr_func(i);
+		return a;
+	}
 }

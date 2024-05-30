@@ -1,26 +1,33 @@
 ﻿#include "law/implemented.hpp"
 #include "law/Array.hpp"
 #include "law/String.hpp"
-#include "law/Dynarray.hpp"
+
 #include <vector>
 
+#include "law/Dynarray.hpp"
+#include "law/timer.hpp"
+
+using namespace ayr;
+int N = 1e2;
+DynArray<std::string> da;
+std::vector<std::string> v;
+
+void t1()
+{
+	for (int i = 0; i < N; ++i)
+		da.append("hello world");
+}
+
+void t2()
+{
+	for (int i = 0; i < N; ++i)
+		v.push_back("hello world");
+}
 
 int main()
 {
-	using namespace ayr;
-	int N = 1000000;
-	DynArray<int> da;
-	std::vector<int> v;
+	Astring as;
+	as = "aba";
 
-	auto start = clock();
-	for (int i = 0; i < N; ++i)
-		da.append(i);
-
-	print(clock() - start);
-
-	start = clock();
-	for (int i = 0; i < N; ++i)
-		v.push_back(i);
-
-	print(clock() - start);
+	print(as.split("aba"));
 }

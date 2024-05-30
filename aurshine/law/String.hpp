@@ -1,7 +1,9 @@
 ﻿#pragma once
 #include <cstring>
-#include "printer.hpp"
-#include "Array.hpp"
+
+#include <law/printer.hpp>
+#include <law/Array.hpp>
+#include <law/DynArray.hpp>
 
 
 namespace ayr
@@ -16,7 +18,7 @@ namespace ayr
 
 		AString(CharT* str) : astring_(str, strlen(str)) {}
 
-		AString(const CharT* str) : astring_(strlen(str)) { astring_.fill(str, size()); }
+		AString(const CharT* str) : astring_(strlen(str)) { astring_.fill(str, str + size()); }
 
 		AString(const AString& other) : astring_(other.astring_) {}
 
@@ -40,7 +42,7 @@ namespace ayr
 
 		const CharT& operator[] (c_size index) const { return astring_[index]; }
 
-		c_size size() const { return astring_.size(); }
+		c_size size() const { return astring_.size_; }
 
 		CharT* ptr() { return astring_.ptr(); }
 
@@ -66,7 +68,8 @@ namespace ayr
 			assert_insize(pos, 0, size() - 1);
 			
 			if (size() - pos < other.size()) return -1;
-			for (c_size i = pos; i + other.size() < size(); ++i)
+
+			for (c_size i = pos; i + other.size() <= size(); ++i)
 			{
 				bool flag = true;
 				for (c_size j = 0; j < other.size(); ++j)
@@ -80,6 +83,24 @@ namespace ayr
 			}
 
 			return -1;
+		}
+
+		DynArray<c_size> find_all(const AString& other, c_size pos = 0) const
+		{
+			DynArray<c_size> ret;
+
+			while (pos < size())
+			{
+				pos = find(other, pos);
+				if (pos != -1)
+				{
+					ret.append(pos);
+					pos += other.size();
+				}
+				else break;
+			}
+
+			return ret;
 		}
 
 		AString slice(c_size l, c_size r) const
@@ -191,17 +212,65 @@ namespace ayr
 
 		AString replace(const AString& old_, const AString& new_) const
 		{
+			DynArray<c_size> poses = find_all(old_);
 
+			Array<CharT> temp(size() + (new_.size() - old_.size()) * poses.size());
+			
+			// 当前走到原字符串的位置 以及 临时字符串的长度
+			c_size cur_pos = 0, temp_length = 0;
+			for (c_size i = 0; i < poses.size(); ++i)
+			{
+				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + poses[i], temp_length);
+				temp_length += poses[i] - cur_pos;
+				
+				temp.fill(new_.astring_.arr_, new_.astring_.arr_ + new_.size(), temp_length);
+				temp_length += new_.size();
+
+				cur_pos = poses[i] + old_.size();
+			}
+
+			if (cur_pos < size()) 
+				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + size(), temp_length);
+
+			AString ret;
+			ret.astring_.swap(temp);
+			return ret;
 		}
 
 		Array<AString> split() const
 		{
+			DynArray<AString> das;
 
+			c_size i = 0;
+			while (i < size())
+			{
+				while (i < size() && isspace(astring_[i])) ++i;
+				c_size j = i + 1;
+				while (j < size() && !isspace(astring_[j])) ++j;
+				das.append(slice(i, j));
+				i = j;
+			}
+
+			return das.to_array();
 		}
 
 		Array<AString> split(const AString& other) const
 		{
+			DynArray<AString> das;
+			c_size last_pos = 0;
 
+			for (auto pos: find_all(other))
+			{
+				if (last_pos != pos)
+					das.append(slice(last_pos, pos));
+				
+				last_pos = pos + other.size();
+			}
+
+			if (last_pos < size()) 
+				das.append(slice(last_pos, size()));
+
+			return das.to_array();
 		}
 
 		CharT* begin() { return astring_.begin(); }
