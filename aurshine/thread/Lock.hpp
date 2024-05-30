@@ -1,42 +1,44 @@
-#pragma once
+﻿#pragma once
 #include <atomic>
 #include <thread>
 
-class Lock
+namespace ayr
 {
-public:
-	Lock(const Lock&) = delete;
-
-	Lock& operator= (const Lock&) = delete;
-
-	Lock() :hold(false) {}
-
-	void lock()
+	class Lock
 	{
-		assert(is_owner_thread());
-		while (hold.exchange(true))
-			hold.wait(true);
+	public:
+		Lock(const Lock&) = delete;
 
-		owner_id = std::this_thread::get_id();
-	}
+		Lock& operator= (const Lock&) = delete;
 
-	void unlock()
-	{
-		if (is_owner_thread())
+		Lock() : hold(false) {}
+
+		void lock()
+		{
+			bool expected = false;
+
+			// 当hold和expected相等时才会将true写入hold
+			// 当compare_exchange_strong返回false时，说明获得当前锁
+			while (hold.compare_exchange_strong(expected, true))
+			{
+				expected = false;
+				hold.wait(true);
+			}
+		}
+
+		void unlock()
 		{
 			hold.store(false);
 			hold.notify_one();
-			owner_id = std::thread::id{};
 		}
-	}
 
-	bool is_owner_thread() const
-	{
-		return std::this_thread::get_id() == owner_id;
-	}
-
-private:
-	std::atomic<bool> hold;
-
-	std::thread::id owner_id;
-};
+		bool try_lock()
+		{
+			bool expected = false;
+			return hold.compare_exchange_strong(expected, true);
+		}
+	private:
+		// 锁是否被持有， true表示被持有，false表示未被持有
+		std::atomic<bool> hold;
+	};
+}

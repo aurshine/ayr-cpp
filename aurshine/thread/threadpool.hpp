@@ -3,7 +3,8 @@
 #include <condition_variable>
 #include <queue>
 #include <functional>
-#include "../law/object.hpp"
+
+#include <law/object.hpp>
 
 namespace ayr
 {
@@ -11,6 +12,10 @@ namespace ayr
 	class ThreadPool : public Object
 	{
 	public:
+		ThreadPool(const ThreadPool& pool) = delete;
+
+		ThreadPool& operator= (const ThreadPool& pool) = delete;
+
 		/*
 		* 线程池构造函数，传入线程池的线程数量
 		*/
@@ -47,10 +52,6 @@ namespace ayr
 				if (t.joinable())
 					t.join();
 		}
-
-		ThreadPool(const ThreadPool& pool) = delete;
-
-		ThreadPool& operator= (const ThreadPool& pool) = delete;
 
 		template<class Func, class ...Args>
 		void push(Func&& func, Args&& ...args)
