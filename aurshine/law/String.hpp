@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <cstring>
 
+#include <law/object.hpp>
 #include <law/printer.hpp>
 #include <law/Array.hpp>
 #include <law/DynArray.hpp>
@@ -54,9 +55,14 @@ namespace ayr
 
 		int __cmp__(const AString& other) const { return astring_.__cmp__(other.astring_); }
 
-		std::basic_string<CharT> __str__() const override
+		const char* __str__() const override
 		{
-			return std::basic_string<CharT>(astring_.ptr(), astring_.ptr() + size());
+			std::memcpy(__str__buffer__, astring_.arr_,
+				std::min(sizeof(decltype(CharT)) * astring_.size_, 
+						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
+			);
+			
+			return __str__buffer__;
 		}
 
 		c_size find(const CharT& ch, c_size pos = 0) const { return astring_.find(ch, pos); }

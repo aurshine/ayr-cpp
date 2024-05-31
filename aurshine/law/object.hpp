@@ -5,20 +5,32 @@
 
 namespace ayr
 {
+	// container size type 
 	using c_size = int64_t;
+	// compare type
 	using cmp_t = int64_t;
+
+	// __str__ 方法返回值的缓存最大长度
+	constexpr static const size_t __STR_BUFFER_SIZE__ = 128;
+	// __str__ 方法返回值的缓存
+	static char __str__buffer__[__STR_BUFFER_SIZE__]{};
 
 
 	class Object
 	{
 	public:
 		// 转换为 字符串 类型
-		virtual std::string __str__() const
+		virtual const char* __str__() const
 		{
-			std::stringstream stream;
-			stream << std::hex << this;
+			std::stringstream addr;
+			addr << std::hex << this;
 
-			return std::format(R"(<{} 0x{}>)", typeid(*this).name(), stream.str());
+			auto&& str = std::format(R"(<{} 0x{}>)", typeid(*this).name(), addr.str());
+			std::memcpy(__str__buffer__, str.c_str(), 
+				std::min(sizeof(decltype(__str__buffer__)) * str.size(),
+						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
+			);
+			return __str__buffer__;
 		}
 
 		// hash 编码

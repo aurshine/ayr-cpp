@@ -130,7 +130,7 @@ namespace ayr
 		}
 
 		// 容器的字符串形式
-		std::string __str__() const
+		const char* __str__() const
 		{
 			std::stringstream stream;
 			stream << "<DynArray> [";
@@ -141,7 +141,14 @@ namespace ayr
 			}
 			stream << "]";
 
-			return stream.str();
+			auto&& str = stream.str();
+
+			std::memcpy(__str__buffer__, str.c_str(), 
+				std::min(sizeof(decltype(str)) * str.size(), 
+						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
+			);
+
+			return __str__buffer__;
 		}
 
 		// 容器的比较方式

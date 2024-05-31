@@ -175,7 +175,7 @@ namespace ayr
 		}
 
 		// 输出的字符串形式
-		std::string __str__() const override
+		const char* __str__() const override
 		{
 			std::stringstream stream;
 			stream << "[";
@@ -185,7 +185,15 @@ namespace ayr
 				stream << arr_[i];
 			}
 			stream << "]";
-			return stream.str();
+
+			auto&& str = stream.str();
+
+			std::memcpy(__str__buffer__, str.c_str(), 
+				std::min(sizeof(decltype(str)) * str.size(), 
+						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
+			);
+
+			return __str__buffer__;
 		}
 
 		// 比较逻辑

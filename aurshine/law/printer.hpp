@@ -1,12 +1,38 @@
 ﻿#pragma once
+#include <cstring>
 #include <iostream>
 #include <format>
 #include <mutex>
+#include <source_location>
 
 #include <law/object.hpp>
 
 namespace ayr
 {
+	class CString : public Object
+	{
+	public:
+		CString(const char* str_) 
+			:str(nullptr)
+		{
+			size_t len = std::strlen(str_);
+			str = new char[len + 1];
+			memcpy(str, str_, len);
+		}
+		
+		cmp_t __cmp__(const CString& other) const
+		{
+			for (size_t i = 0; str[i]; ++ i)
+				if (str[i] != other.str[i])
+					return str[i] - other.str[i];
+			return 0;
+		}
+
+		~CString() { delete[] str; }
+
+		char* str;
+	};
+
 	template<class Ostream>
 	class Printer : public Object
 	{
@@ -112,26 +138,39 @@ namespace ayr
 #define ayr_error ColorPrinter<std::ostream>(&std::cout, ayr::Color::RED)
 
 
-	inline void _warn_assert(bool condition, const std::string& msg)
+inline void warn_assert(bool condition, const std::string& msg, const std::source_location& loc = std::source_location::current())
+{
+	if (!condition)
 	{
-		{
-			if (!condition)
-				ayr_warner(msg);
-		}
+		ayr_warner(
+			std::format("file: {}  column: {} line: {} function_name: {} \n"\
+						"error: {}",
+			loc.file_name(), 
+			loc.column(), 
+			loc.line(), 
+			loc.function_name(), 
+			msg)
+		);
 	}
+}
 
 
-	inline void _error_assert(bool condition, const std::string& msg)
+inline void error_assert(bool condition, const std::string& msg, const std::source_location& loc = std::source_location::current())
+{
+	if (!condition)
 	{
-		if (!condition)
-		{
-			ayr_error(msg);
-			exit(-1);
-		}
-	}
+		ayr_error(
+			std::format("file: {}  column: {}  line: {}  function_name: {}\n"\
+						"error: {}",
+			loc.file_name(), 
+			loc.column(), 
+			loc.line(), 
+			loc.function_name(), 
+			msg)
+		);
 
-	// 打印警告信息,继续向下执行
-#define warn_assert(condition, info) _warn_assert(condition, std::format("{} [{}]\nINFORMATION: {}", __FILE__, __LINE__, info))
-	// 打印错误信息，并退出
-#define error_assert(condition, info) _error_assert(condition, std::format("{} [{}]\nINFORMATION: {}", __FILE__, __LINE__, info))
+		exit(-1);
+	}
+}
+
 }
