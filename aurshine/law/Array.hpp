@@ -178,7 +178,7 @@ namespace ayr
 		const char* __str__() const override
 		{
 			std::stringstream stream;
-			stream << "[";
+			stream << "<Array> [";
 			for (c_size i = 0; i < size_; ++i)
 			{
 				if (i) stream << ", ";
@@ -186,14 +186,9 @@ namespace ayr
 			}
 			stream << "]";
 
-			auto&& str = stream.str();
-
-			std::memcpy(__str__buffer__, str.c_str(), 
-				std::min(sizeof(decltype(str)) * str.size(), 
-						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
-			);
-
-			return __str__buffer__;
+			memcpy__str_buffer__(stream.str());
+			
+			return __str_buffer__;
 		}
 
 		// 比较逻辑

@@ -141,14 +141,9 @@ namespace ayr
 			}
 			stream << "]";
 
-			auto&& str = stream.str();
+			memcpy__str_buffer__(stream.str());
 
-			std::memcpy(__str__buffer__, str.c_str(), 
-				std::min(sizeof(decltype(str)) * str.size(), 
-						sizeof(decltype(__str__buffer__)) * __STR_BUFFER_SIZE__)
-			);
-
-			return __str__buffer__;
+			return __str_buffer__;
 		}
 
 		// 容器的比较方式

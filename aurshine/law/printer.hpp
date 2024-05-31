@@ -1,38 +1,13 @@
 ﻿#pragma once
-#include <cstring>
 #include <iostream>
 #include <format>
-#include <mutex>
 #include <source_location>
 
 #include <law/object.hpp>
+#include <law/CString.hpp>
 
 namespace ayr
 {
-	class CString : public Object
-	{
-	public:
-		CString(const char* str_) 
-			:str(nullptr)
-		{
-			size_t len = std::strlen(str_);
-			str = new char[len + 1];
-			memcpy(str, str_, len);
-		}
-		
-		cmp_t __cmp__(const CString& other) const
-		{
-			for (size_t i = 0; str[i]; ++ i)
-				if (str[i] != other.str[i])
-					return str[i] - other.str[i];
-			return 0;
-		}
-
-		~CString() { delete[] str; }
-
-		char* str;
-	};
-
 	template<class Ostream>
 	class Printer : public Object
 	{
@@ -40,56 +15,48 @@ namespace ayr
 		Printer(Ostream* ostream): Printer("\n", " ", ostream) {}
 
 		template<class T1, class T2>
-		Printer(T1&& end_word, T2&& sep_word, Ostream* ostream)
-			: end_word(std::forward<T1>(end_word)),
-			sep_word(std::forward<T2>(sep_word)),
-			ostream(ostream){}
+		Printer(T1&& ew, T2&& sw, Ostream* ostream)
+			: ew_(std::forward<T1>(ew)), sw_(std::forward<T2>(sw)), ostream(ostream){}
 
-		// 可变形参
-		template<class T, class ...Args>
-		void operator() (const T& object, const Args& ...args)
-		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			*ostream << object << " ";
-			this->operator()(args...);
-		}
+		
+		template<typename T>
+		void operator()(const T& object) const { __print__(object); __print__(ew_); }
 
-		// 单一形参
-		template<class T>
-		void operator() (const T& object)
-		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			*ostream << object << this->end_word;
-		}
+		template<typename T, typename... Args>
+		void operator()(const T& object, const Args&... args) const { __print__(object, args...); __print__(ew_); }
+
 
 		// 设置输出结束符
 		template<class T>
-		void set_end_word(T&& end_word)
-		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			this->end_word = std::forward<T>(end_word);
-		}
+		void set_end_word(T&& ew) const { ew_ = std::forward<T>(ew); }
 
 		// 设置输出分隔符
 		template<class T>
-		void set_sep_word(T&& end_word)
+		void set_sep_word(T&& ew) const { sw_ = std::forward<T>(ew); }
+
+	protected:
+		// 单一形参
+		template<class T>
+		void __print__(const T& object) const { *ostream << object; }
+
+		// 可变形参
+		template<class T, class ...Args>
+		void __print__(const T& object, const Args& ...args) const 
 		{
-			std::lock_guard<std::recursive_mutex> lock(this->mutex);
-			this->sep_word = std::forward<T>(end_word);
+			*ostream << object << sw_;
+			__print__(args...);
 		}
 
 	private:
-		std::string end_word;
+		CString ew_; // 结束符
 
-		std::string sep_word;
-
-		std::recursive_mutex mutex;
+		CString sw_; // 分隔符
 
 		Ostream* ostream;
 	};
 
 
-	class Color : Object
+	class Color : Ayr
 	{
 	public:
 		constexpr static const char* CLOSE = "\033[0m";
@@ -116,26 +83,40 @@ namespace ayr
 	class ColorPrinter : public Printer<Ostream>
 	{
 	public:
-		ColorPrinter(Ostream* ostream, const char* color)
-			: Printer<Ostream>("", " ", ostream)
-		{
-			this->operator()(color);
-			this->set_end_word("\n");
+		ColorPrinter(Ostream* ostream, const char* color=Color::WHITE)
+			: Printer<Ostream>(ostream), color_(color){}
+
+		~ColorPrinter() = default;
+
+		template<typename T>
+		void operator()(const T& object) const 
+		{ 
+			opencolor();
+			Printer<Ostream>::operator()(object);
+			closecolor();
 		}
 
-		~ColorPrinter()
+		template<typename T, typename... Args>
+		void operator()(const T& object, const Args&... args) const 
 		{
-			this->set_end_word("");
-			this->operator()(Color::CLOSE);
+			opencolor();
+			Printer<Ostream>::operator()(object, args...);
+			closecolor();
 		}
+
+		void opencolor() const { this->__print__(color_); }
+
+		void closecolor() const { this->__print__(Color::CLOSE); }
+
+	private:
+		const char* color_;
 	};
 
 	static Printer<std::ostream> print(&std::cout);
 
-	// 标准输出流 黄色 打印
-#define ayr_warner ColorPrinter<std::ostream>(&std::cout, ayr::Color::YELLOW)
-	// 标准输出流 红色 打印
-#define ayr_error ColorPrinter<std::ostream>(&std::cout, ayr::Color::RED)
+	static ColorPrinter<std::ostream> ayr_warner(&std::cout, Color::YELLOW);
+
+	static ColorPrinter<std::ostream> ayr_error(&std::cout, Color::RED);
 
 
 inline void warn_assert(bool condition, const std::string& msg, const std::source_location& loc = std::source_location::current())
