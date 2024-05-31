@@ -5,8 +5,26 @@
 #include <law/_ayr.h>
 
 
+
+template<ayr::Char T>
+struct std::hash<T*>
+{
+	size_t operator()(const T* c_str) const noexcept
+	{
+		static size_t P = 1331;
+		size_t hash_value = 0;
+		for (size_t i = 0; c_str[i] != '\0'; i++)
+			hash_value = hash_value * P + c_str[i];
+
+		return hash_value;
+	}
+};
+
 namespace ayr
 {
+	
+
+
 	// c ·ç¸ñ×Ö·û´®·â×°
 	class CString: public Ayr
 	{
@@ -50,9 +68,15 @@ namespace ayr
 			return *this;
 		}
 
+		char& operator[] (size_t index) { return str[index]; }
+
+		const char& operator[] (size_t index) const { return str[index]; }
+
 		size_t size() const { return strlen(str); }
 
 		const char* __str__() const { return str; }
+		
+		size_t __hash__() const { return std::hash<char*>()(str); }
 
 		cmp_t __cmp__(const CString& other) const
 		{

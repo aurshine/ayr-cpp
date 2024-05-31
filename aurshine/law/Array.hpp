@@ -175,7 +175,7 @@ namespace ayr
 		}
 
 		// 输出的字符串形式
-		const char* __str__() const override
+		const char* __str__() const
 		{
 			std::stringstream stream;
 			stream << "<Array> [";

@@ -13,7 +13,7 @@ namespace ayr
 	{
 	public:
 		// 转换为 字符串 类型
-		virtual const char* __str__() const
+		const char* __str__() const
 		{
 			std::stringstream addr;
 			addr << std::hex << this;
@@ -25,7 +25,7 @@ namespace ayr
 		}
 
 		// hash 编码
-		virtual size_t __hash__() const { return std::hash<std::string>{}(this->__str__()); }
+		size_t __hash__() const { return std::hash<std::string>{}(this->__str__()); }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }
@@ -62,7 +62,11 @@ namespace ayr
 
 	template<DerivedAyr T1, typename T2>
 	bool operator!= (const T1& one, const T2& other) { return one.__cmp__(other) != 0; }
-
-	template<DerivedAyr T>
-	size_t hash(const T& one) { return one.__hash__(); }
 }
+
+
+template<ayr::DerivedAyr T>
+struct std::hash<T>
+{
+	size_t operator()(const T& one) const { return one.__hash__(); }
+};

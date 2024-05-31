@@ -1,24 +1,28 @@
 ﻿#pragma once
-#include <cstring>
-
-#include <law/printer.hpp>
 #include <law/Array.hpp>
+#include <law/CString.hpp>
 #include <law/DynArray.hpp>
+#include <law/printer.hpp>
+
 
 
 namespace ayr
 {
-	template<typename CharT>
+	template<Char T>
 	class AString : public Object
 	{
 	public:
 		AString() {}
 
-		AString(const CharT& ch, c_size size_ = 1) : astring_(ch, size_) {}
+		AString(const T& ch, c_size size_ = 1) : astring_(ch, size_) {}
 
-		AString(CharT* str) : astring_(str, strlen(str)) {}
+		AString(T* str) : astring_(str, strlen(str)) {}
 
-		AString(const CharT* str) : astring_(strlen(str)) { astring_.fill(str, str + size()); }
+		AString(const T* str) : astring_(strlen(str)) { astring_.fill(str, str + size()); }
+
+		AString(const CString& c_str) : AString(c_str.str) {}
+
+		AString(CString&& c_str) : AString(c_str.str) { c_str.str = nullptr; }
 
 		AString(const AString& other) : astring_(other.astring_) {}
 
@@ -38,21 +42,23 @@ namespace ayr
 			return *this;
 		}
 
-		CharT& operator[] (c_size index) { return astring_[index]; }
+		T& operator[] (c_size index) { return astring_[index]; }
 
-		const CharT& operator[] (c_size index) const { return astring_[index]; }
+		const T& operator[] (c_size index) const { return astring_[index]; }
 
 		c_size size() const { return astring_.size_; }
 
-		CharT* ptr() { return astring_.ptr(); }
+		T* ptr() { return astring_.ptr(); }
 
-		const CharT* ptr() const { return astring_.ptr(); }
+		const T* ptr() const { return astring_.ptr(); }
 
-		bool contains(const CharT& ch) const { return astring_.contains(ch); }
+		bool contains(const T& ch) const { return astring_.contains(ch); }
 
 		bool contains(const AString& other) const { return find(other, 0) != -1; }
 
 		int __cmp__(const AString& other) const { return astring_.__cmp__(other.astring_); }
+
+		size_t __hash__() const { return std::hash<T*>(astring_.arr_); }
 
 		const char* __str__() const override
 		{
@@ -60,9 +66,9 @@ namespace ayr
 			return __str_buffer__;
 		}
 
-		c_size find(const CharT& ch, c_size pos = 0) const { return astring_.find(ch, pos); }
+		c_size find(const T& ch, c_size pos = 0) const { return astring_.find(ch, pos); }
 
-		c_size find(const std::function<bool(const CharT&)>& check, c_size pos = 0) const { return astring_.find(check, pos); }
+		c_size find(const std::function<bool(const T&)>& check, c_size pos = 0) const { return astring_.find(check, pos); }
 
 		c_size find(const AString& other, c_size pos = 0) const
 		{
@@ -115,7 +121,7 @@ namespace ayr
 		AString operator+(const AString& other) const
 		{
 			AString result{};
-			Array<CharT> temp(astring_.size() + other.astring_.size());
+			Array<T> temp(astring_.size() + other.astring_.size());
 			temp.fill(astring_);
 			temp.fill(other.astring_, astring_.size());
 			result.astring_ = std::move(temp);
@@ -193,7 +199,7 @@ namespace ayr
 			for (c_size i = 0; i < join_strs.size(); ++i)
 				ret_size += join_strs[i].size();
 				
-			Array<CharT> result(ret_size);
+			Array<T> result(ret_size);
 			for (c_size i = 0, j = 0; i < join_strs.size(); ++i)
 			{
 				if (i != 0)
@@ -215,7 +221,7 @@ namespace ayr
 		{
 			DynArray<c_size> poses = find_all(old_);
 
-			Array<CharT> temp(size() + (new_.size() - old_.size()) * poses.size());
+			Array<T> temp(size() + (new_.size() - old_.size()) * poses.size());
 			
 			// 当前走到原字符串的位置 以及 临时字符串的长度
 			c_size cur_pos = 0, temp_length = 0;
@@ -274,23 +280,23 @@ namespace ayr
 			return das.to_array();
 		}
 
-		CharT* begin() { return astring_.begin(); }
+		T* begin() { return astring_.begin(); }
 
-		CharT* end() { return astring_.end(); }
+		T* end() { return astring_.end(); }
 
-		const CharT* begin() const { return astring_.begin(); }
+		const T* begin() const { return astring_.begin(); }
 
-		const CharT* end() const { return astring_.end(); }
+		const T* end() const { return astring_.end(); }
 
-		std::reverse_iterator<CharT*> rbegin() { return astring_.rbegin(); }
+		std::reverse_iterator<T*> rbegin() { return astring_.rbegin(); }
 
-		std::reverse_iterator<CharT*> rend() { return astring_.rend(); }
+		std::reverse_iterator<T*> rend() { return astring_.rend(); }
 
-		const std::reverse_iterator<CharT*> rbegin() const { return astring_.rbegin(); }
+		const std::reverse_iterator<T*> rbegin() const { return astring_.rbegin(); }
 
-		const std::reverse_iterator<CharT*> rend() const { return astring_.rend(); }
+		const std::reverse_iterator<T*> rend() const { return astring_.rend(); }
 	private:
-		Array<CharT> astring_;
+		Array<T> astring_;
 	};
 
 	using Astring = AString<char>;
