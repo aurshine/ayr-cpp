@@ -1,21 +1,36 @@
 ﻿#include <vector>
-
-#include <thread/Lock.hpp>
-#include <law/Dynarray.hpp>
-#include <law/timer.hpp>
+#include <string>
 #include <law/Array.hpp>
-#include <law/AString.hpp>
-#include <law/CString.hpp>
+#include <law/DynArray.hpp>
+#include <law/timer.hpp>
 
-#include <unordered_map>
-using namespace ayr;
+ayr::DynArray<std::string> das;
+std::vector<std::string> vs;
+
+constexpr int N = 100000;
+
+void test_das()
+{
+	for (int i = 0; i < N; ++i)
+	{
+		das.append("hello");
+	}
+}
+
+void test_vs()
+{
+	for (int i = 0; i < N; ++i)
+	{
+		vs.push_back("hello");
+	}
+}
 
 int main()
 {
-	std::unordered_map<CString, int> map;
-	map["hello"] = 1;
-	map["world"] = 2;
-	map["world"] = 3;
-	map["world"] = 4;
-	print(map["world"]);
+	auto tm = ayr::Timer();
+
+	tm(test_das);
+	tm(test_vs);
+
+	return 0;
 }
