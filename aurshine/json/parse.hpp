@@ -1,15 +1,17 @@
-﻿#include "json.hpp"
+﻿#include <json/json.hpp>
+#include <law/AString.hpp>
+
 
 namespace ayr
 {
 	namespace json
 	{
 		// 解析字符串
-		Json parse(const std::string& json_str, size_t& start);
+		Json parse(const Astring& json_str, size_t& start);
 
 
 		// 从 start 开始跳过所有空白符，即返回第一个非空白符的下标或 json_str 的长度
-		size_t jump_blank(const std::string& json_str, size_t start)
+		size_t jump_blank(const Astring& json_str, size_t start)
 		{
 			while (start < json_str.size() && isspace(json_str[start]))	++start;
 			return start;
@@ -17,14 +19,14 @@ namespace ayr
 
 
 		// 从 start 开始跳到第一个空白符, 即返回第一个空白符的下标或 json_str 的长度
-		size_t jump2blank(const std::string& json_str, size_t start)
+		size_t jump2blank(const Astring& json_str, size_t start)
 		{
 			while (start < json_str.size() && !isspace(start)) ++start;
 			return start;
 		}
 
 		// 解析 str
-		Json parse_str(const std::string& json_str, size_t& start)
+		Json parse_str(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
 
@@ -35,16 +37,17 @@ namespace ayr
 
 			error_assert(json_str[end] == '"', "error parse for object not String");
 
-			Json ret = Json(json_str.substr(start, end - start));
+			Json ret = Json(json_str.slice(start, end));
+
 			start = end + 1;
 			return ret;
 		}
 
-		Json parse_array(const std::string& json_str, size_t& start)
+		Json parse_array(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
 			error_assert(json_str[start] == '[', "error parse for object not Array by [");
-			typename JsonType::JsonArray arr;
+			JsonType::JsonArray arr;
 
 			++start;
 			while (json_str[start] != ']')
@@ -52,8 +55,8 @@ namespace ayr
 				start = jump_blank(json_str, start);
 
 				Json j = parse(json_str, start);
-
-				arr.emplace_back(std::move(j));
+				arr.append(j);
+				
 				start = jump_blank(json_str, start);
 
 				if (json_str[start] == ',')
@@ -71,7 +74,7 @@ namespace ayr
 			return Json(std::move(arr));
 		}
 
-		Json parse_dict(const std::string& json_str, size_t& start)
+		Json parse_dict(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
 			error_assert(json_str[start] == '{', "error parse for object not Dict");
@@ -105,7 +108,7 @@ namespace ayr
 			return Json(std::move(dict));
 		}
 
-		Json parse_num(const std::string& json_str, size_t& start)
+		Json parse_num(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
 			error_assert(isdigit(json_str[start]), "error parse for object not Number");
@@ -120,14 +123,15 @@ namespace ayr
 				++end;
 			}
 
-			Json ret = float_flag ? Json(atof(json_str.substr(start, end - start).c_str())) : Json(atoll(json_str.substr(start, end - start).c_str()));
+			Json ret = float_flag ? Json(make_float(atof(json_str.slice(start, end).__str__()))) 
+									: Json(make_int(atoll(json_str.slice(start, end).__str__())));
 
 
 			start = end;
 			return ret;
 		}
 
-		Json parse(const std::string& json_str, size_t& start)
+		Json parse(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
 
@@ -143,7 +147,7 @@ namespace ayr
 				return parse_num(json_str, start);
 			else
 			{
-				std::string str = json_str.substr(start, 4);
+				Astring str = json_str.slice(start, start + 4);
 				start += 4;
 				if (str == "null")
 					return Json();
@@ -152,13 +156,12 @@ namespace ayr
 				else if (str == "false")
 					return Json(false);
 				else
-					error_assert(false, str.c_str());
-
+					error_assert(false, str);
 			}
 
 		}
 
-		Json parse(const std::string& json_str)
+		Json parse(const Astring& json_str)
 		{
 			size_t start = 0;
 			return parse(json_str, start);

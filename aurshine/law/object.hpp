@@ -4,7 +4,7 @@
 #include <typeinfo>
 
 #include <law/_ayr.h>
-#include <law/CString.hpp>
+#include <law/_str_buffer.hpp>
 
 
 namespace ayr

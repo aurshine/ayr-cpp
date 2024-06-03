@@ -39,6 +39,8 @@ namespace ayr
 		template<class T>
 		void __print__(const T& object) const { *ostream << object; }
 
+		void __print__(const bool& object) const {*ostream << (object? "true" : "false"); }
+
 		// 可变形参
 		template<class T, class ...Args>
 		void __print__(const T& object, const Args& ...args) const 
@@ -119,35 +121,37 @@ namespace ayr
 	static ColorPrinter<std::ostream> ayr_error(&std::cout, Color::RED);
 
 
-inline void warn_assert(bool condition, const std::string& msg, const std::source_location& loc = std::source_location::current())
+template<typename T>
+inline void warn_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 {
 	if (!condition)
 	{
 		ayr_warner(
 			std::format("file: {}  column: {} line: {} function_name: {} \n"\
-						"error: {}",
+						"error: ",
 			loc.file_name(), 
 			loc.column(), 
 			loc.line(), 
-			loc.function_name(), 
-			msg)
+			loc.function_name()),
+			msg
 		);
 	}
 }
 
 
-inline void error_assert(bool condition, const std::string& msg, const std::source_location& loc = std::source_location::current())
+template<typename T>
+inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 {
 	if (!condition)
 	{
 		ayr_error(
 			std::format("file: {}  column: {}  line: {}  function_name: {}\n"\
-						"error: {}",
+						"error: ",
 			loc.file_name(), 
 			loc.column(), 
 			loc.line(), 
-			loc.function_name(), 
-			msg)
+			loc.function_name()),
+			msg
 		);
 
 		exit(-1);

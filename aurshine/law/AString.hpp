@@ -26,20 +26,25 @@ namespace ayr
 
 		AString(const AString& other) : astring_(other.astring_) {}
 
-		AString(AString&& other) : astring_(std::move(other.astring_)) {}
+		AString(AString&& other) : AString() { swap(other); }
 
 		~AString() {}
 
 		AString& operator=(const AString& other)
 		{
-			astring_ = other.astring_;
+			if (this != &other) astring_ = other.astring_;
 			return *this;
 		}
 
 		AString& operator=(AString&& other)
 		{
-			astring_ = std::move(other.astring_);
+			if (this != &other) astring_ = std::move(other.astring_);
 			return *this;
+		}
+
+		void swap(AString& other)
+		{
+			astring_.swap(other.astring_);
 		}
 
 		T& operator[] (c_size index) { return astring_[index]; }
@@ -60,9 +65,9 @@ namespace ayr
 
 		size_t __hash__() const { return std::hash<T*>(astring_.arr_); }
 
-		const char* __str__() const override
+		const char* __str__() const
 		{
-			memcpy__str__buffer__(astring_.arr_, astring_.size_);
+			memcpy__str_buffer__(astring_.arr_, astring_.size_);
 			return __str_buffer__;
 		}
 

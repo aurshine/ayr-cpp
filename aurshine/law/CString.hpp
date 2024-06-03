@@ -2,8 +2,7 @@
 #include <cstring>
 #include <string>
 
-#include <law/_ayr.h>
-
+#include <law/object.hpp>
 
 
 template<ayr::Char T>
@@ -22,9 +21,6 @@ struct std::hash<T*>
 
 namespace ayr
 {
-	
-
-
 	// c 风格字符串封装
 	class CString: public Ayr
 	{
@@ -88,21 +84,4 @@ namespace ayr
 
  		char* str;
 	};
-
-	// __str__ 方法返回值的缓存最大长度
-	constexpr static const size_t __STR_BUFFER_SIZE__ = 128;
-	// __str__ 方法返回值的缓存
-	static char __str_buffer__[__STR_BUFFER_SIZE__]{};
-
-	inline void memcpy__str_buffer__(const char* str, size_t len)
-	{
-		size_t cpy_size = std::min(len, __STR_BUFFER_SIZE__ - 1);
-		std::memcpy(__str_buffer__, str, cpy_size);
-		__str_buffer__[cpy_size] = '\0';
-	}
-
-	inline void memcpy__str_buffer__(const std::string& str)
-	{
-		memcpy__str_buffer__(str.c_str(), str.size());
-	}
 }

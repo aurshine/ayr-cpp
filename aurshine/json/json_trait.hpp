@@ -2,6 +2,9 @@
 #include <concepts>
 #include <type_traits>
 
+#include <law/AString.hpp>
+#include <law/DynArray.hpp>
+
 namespace ayr
 {
 	namespace json
@@ -18,9 +21,9 @@ namespace ayr
 
 			using JsonBool = bool;
 
-			using JsonStr = std::string;
+			using JsonStr = Astring;
 
-			using JsonArray = std::vector<Json>;
+			using JsonArray = DynArray<Json>;
 
 			using JsonDict = std::map<JsonStr, Json>;
 
@@ -43,17 +46,17 @@ namespace ayr
 		concept JsonTypeConcept = JsonTypeStrictConcept<std::remove_cvref_t<T>>;
 
 		// 严格类型获得Json类型的枚举值
-		template<JsonTypeStrictConcept T> struct GetJsonTypeEnumStrict { constexpr static int8_t ID = -1; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonInt> { constexpr static int8_t ID = 0; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonFloat> { constexpr static int8_t ID = 1; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonBool> { constexpr static int8_t ID = 2; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonStr> { constexpr static int8_t ID = 3; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonArray> { constexpr static int8_t ID = 4; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonDict> { constexpr static int8_t ID = 5; };
-		template<> struct GetJsonTypeEnumStrict<typename JsonType::JsonNull> { constexpr static int8_t ID = 6; };
+		template<JsonTypeStrictConcept T> struct GetJsonTypeIDStrict { constexpr static int8_t ID = -1; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonInt> { constexpr static int8_t ID = 0; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonFloat> { constexpr static int8_t ID = 1; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonBool> { constexpr static int8_t ID = 2; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonStr> { constexpr static int8_t ID = 3; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonArray> { constexpr static int8_t ID = 4; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonDict> { constexpr static int8_t ID = 5; };
+		template<> struct GetJsonTypeIDStrict<typename JsonType::JsonNull> { constexpr static int8_t ID = 6; };
 
 		// 可接受const reference volatile 修饰符获得Json类型的枚举值
 		template<JsonTypeConcept T>
-		struct GetJsonTypeEnum { constexpr static int8_t ID = GetJsonTypeEnumStrict<std::remove_cvref_t<T>>::ID; };
+		struct GetJsonTypeID { constexpr static int8_t ID = GetJsonTypeIDStrict<std::remove_cvref_t<T>>::ID; };
 	}
 }

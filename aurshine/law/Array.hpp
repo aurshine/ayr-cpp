@@ -13,15 +13,8 @@ namespace ayr
 
 
 	// 检查 x 在[l, r] 区间
-	void assert_insize(c_size x, c_size lbound, c_size rbound)
-	{
-		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}]", x, lbound, rbound));
-	};
+#define assert_insize(x, lbound, rbound) error_assert((x) >= (lbound) && (x) <= (rbound), std::format("{} out of range [{}, {}]", (x), (lbound), (rbound)))
 
-	void assert_insize(c_size x, c_size lbound, c_size rbound, const char* msg)
-	{
-		error_assert(x >= lbound && x <= rbound, std::format("{} out of range [{}, {}] {}", x, lbound, rbound, msg));
-	};
 
 	template<typename T>
 	class Array : public Object
@@ -159,7 +152,8 @@ namespace ayr
 		// 切片，[l, r)
 		Array slice(c_size l, c_size r) const
 		{
-			assert_insize(l, -size_, size_), assert_insize(r, -size_, size_);
+			assert_insize(l, -size_, size_);
+			assert_insize(r, -size_, size_);
 
 			l = (l + size_) % size_;
 			if (r != size_) r = (r + size_) % size_;

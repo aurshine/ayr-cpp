@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <array>
+#include <cmath>
 #include <utility>
 
 #include <law/Array.hpp>
@@ -11,7 +12,7 @@ namespace ayr
 	
 
 	// EXP[i] 第i位为1其余位为0
-	constexpr static auto EXP2 = make_stl_array<size_t, DYNARRAY_BLOCK_SIZE>([](int x) { return 1ull << x; });
+	constexpr static auto EXP2 = make_stl_array<c_size, DYNARRAY_BLOCK_SIZE>([](int x) { return 1ll << x; });
 
 
 	// 动态数组迭代器
@@ -34,7 +35,7 @@ namespace ayr
 		
 		DynArray(const DynArray& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 
-		DynArray(DynArray&& other) : dynarray_(std::move(other.dynarray_)), size_(other.size_), occupies_size_(other.occupies_size_) {}
+		DynArray(DynArray&& other) : DynArray() { swap(other); }
 
 		DynArray& operator=(const DynArray& other)
 		{
@@ -46,10 +47,15 @@ namespace ayr
 
 		DynArray& operator=(DynArray&& other)
 		{
-			dynarray_ = std::move(other.dynarray_);
-			size_ = other.size_;
-			occupies_size_ = other.occupies_size_;
+			if (this != &other) swap(other);
 			return *this;
+		}
+
+		void swap(DynArray& other)
+		{
+			dynarray_.swap(other.dynarray_);
+			std::swap(size_, other.size_);
+			std::swap(occupies_size_, other.occupies_size_);
 		}
 
 		// 容器存储的数据长度
@@ -188,7 +194,7 @@ namespace ayr
 				if (index >= EXP2[mid]) l = mid;
 				else r = mid - 1;
 			}
-
+			
 			return dynarray_.arr_[l].arr_[index - EXP2[l]];
 		}
 
@@ -213,6 +219,7 @@ namespace ayr
 		{
 			occupies_size_++;
 			assert_insize(occupies_size_, 1, EXP2.size() - 1, "__wakeup__");
+			
 			dynarray_[occupies_size_ - 1].relloc(EXP2[occupies_size_ - 1]);
 		}
 
