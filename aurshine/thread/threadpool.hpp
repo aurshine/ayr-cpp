@@ -5,6 +5,8 @@
 #include <functional>
 
 #include <law/object.hpp>
+#include <law/Array.hpp>
+
 
 namespace ayr
 {
@@ -65,7 +67,7 @@ namespace ayr
 
 
 	private:
-		std::vector<std::thread> threads;
+		std::Array<std::thread> threads;
 
 		std::queue<std::function<void()>> tasks;
 
