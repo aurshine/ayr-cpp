@@ -100,11 +100,7 @@ namespace ayr
 			}
 
 			template<JsonTypeConcept T>
-			operator T() const 
-			{
-				check_type<T>();
-				return *reinterpret_cast<T*>(this->json_item); 
-			}
+			operator T() const { return transform<T>(); }
 
 			// 转换为字符串
 			const char* __str__() const

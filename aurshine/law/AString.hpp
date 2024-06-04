@@ -9,6 +9,10 @@
 namespace ayr
 {
 	template<Char T>
+	class SubString;
+	
+
+	template<Char T>
 	class AString : public Object
 	{
 	public:
@@ -115,12 +119,22 @@ namespace ayr
 			return ret;
 		}
 
+		// 切片[l, r]
 		AString slice(c_size l, c_size r) const
 		{
 			AString ret;
 			ret.astring_.swap(astring_.slice(l, r));
 
 			return ret;
+		}
+
+		// 切片[l, r]
+		SubString<T> subslice(c_size l, c_size r)
+		{
+			assert_insize(l, 0, size_ - 1);
+			assert_insize(r, 0, size_ - 1);
+
+			return SubString(astring_.arr_ + l, r - l + 1);
 		}
 
 		AString operator+(const AString& other) const

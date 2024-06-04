@@ -149,17 +149,22 @@ namespace ayr
 			return arr_[index];
 		}
 
-		// 切片，[l, r)
+		// 切片[l, r]
+		// 特殊的 arr = [1, 2, 3, 4] => arr.slice(2, 1) = [3, 4, 1, 2]
 		Array slice(c_size l, c_size r) const
 		{
-			assert_insize(l, -size_, size_);
-			assert_insize(r, -size_, size_);
+			assert_insize(l, -size_, size_ - 1);
+			assert_insize(r, -size_, size_ - 1);
 
 			l = (l + size_) % size_;
 			if (r != size_) r = (r + size_) % size_;
 
-			c_size ret_size = r - l;
-			if (ret_size < 0) ret_size = (ret_size + size_) % size_;
+			c_size ret_size = r - l + 1;
+			if (ret_size < 0)
+				ret_size = (ret_size + size_) % size_;
+			else if (ret_size == 0)
+				ret_size = size_;
+			
 			Array<T> ret(ret_size);
 
 			for (c_size i = 0; i < ret.size_; ++i)

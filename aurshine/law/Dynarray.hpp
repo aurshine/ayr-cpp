@@ -177,14 +177,6 @@ namespace ayr
 
 		iterator end() { return iterator(this, size_); }
 
-		const_iterator begin() const { return iterator(this); }
-
-		const_iterator end() const { return iterator(this, size_); }
-
-		std::reverse_iterator<iterator> rbegin() { return iterator(this, size_ - 1); }
-
-		std::reverse_iterator<iterator> rend() { return iterator(this, -1); }
-
 		std::reverse_iterator<const_iterator> rbegin() const { return iterator(this, size_ - 1); }
 
 		std::reverse_iterator<const_iterator> rend() const { return iterator(this, -1); }
