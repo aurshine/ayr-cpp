@@ -105,6 +105,14 @@ namespace ayr
 			__at__(size_ ++) = item;
 		}
 
+		void append(T&& item)
+		{
+			if (!((size_ + 1) & size_))
+				__wakeup__();
+
+			__at__(size_++) = std::move(item);
+		}
+
 		// 移除最后一个元素并返回
 		T pop()
 		{
