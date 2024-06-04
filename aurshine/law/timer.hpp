@@ -7,8 +7,10 @@
 
 namespace ayr
 {
+	// 保存年月日
 	struct YearMonthDay { int year, month, day; };
 
+	// 1970_01_01距离现在的天数
 	class Date: public Object 
 	{
 	public:
@@ -62,11 +64,14 @@ namespace ayr
 			return { year, month, day };
 		}
 
-		std::string to_string() const
+		const char* __str__() const
 		{
 			YearMonthDay ymd = year_month_day();
 
-			return std::format("{:04d}-{:02d}-{:02d}", ymd.year, ymd.month, ymd.day);
+			auto&& str = std::format("{:04d}-{:02d}-{:02d}", ymd.year, ymd.month, ymd.day);
+
+			memcpy__str_buffer__(str.c_str(), str.size());
+			return __str_buffer__;
 		}
 
 		cmp_t __cmp__(const Date& date) const

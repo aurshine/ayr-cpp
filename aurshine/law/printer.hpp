@@ -8,6 +8,14 @@
 
 namespace ayr
 {
+	// 可输出的类型约束概念
+	template<typename T>
+	concept Printable = requires(T t, std::ostream & os)
+	{
+		{os << t} -> std::same_as<std::ostream&>;
+	};
+
+
 	template<class Ostream>
 	class Printer : public Object
 	{
@@ -19,30 +27,30 @@ namespace ayr
 			: ew_(std::forward<T1>(ew)), sw_(std::forward<T2>(sw)), ostream(ostream){}
 
 		
-		template<typename T>
+		template<Printable T>
 		void operator()(const T& object) const { __print__(object); __print__(ew_); }
 
-		template<typename T, typename... Args>
+		template<Printable T, Printable... Args>
 		void operator()(const T& object, const Args&... args) const { __print__(object, args...); __print__(ew_); }
 
 
 		// 设置输出结束符
-		template<class T>
+		template<typename T>
 		void set_end_word(T&& ew) const { ew_ = std::forward<T>(ew); }
 
 		// 设置输出分隔符
-		template<class T>
+		template<typename T>
 		void set_sep_word(T&& ew) const { sw_ = std::forward<T>(ew); }
 
 	protected:
 		// 单一形参
-		template<class T>
+		template<Printable T>
 		void __print__(const T& object) const { *ostream << object; }
 
 		void __print__(const bool& object) const {*ostream << (object? "true" : "false"); }
 
 		// 可变形参
-		template<class T, class ...Args>
+		template<Printable T, Printable ...Args>
 		void __print__(const T& object, const Args& ...args) const 
 		{
 			*ostream << object << sw_;
@@ -84,31 +92,32 @@ namespace ayr
 	template<class Ostream>
 	class ColorPrinter : public Printer<Ostream>
 	{
+		using super = Printer<Ostream>;
 	public:
 		ColorPrinter(Ostream* ostream, const char* color=Color::WHITE)
 			: Printer<Ostream>(ostream), color_(color){}
 
 		~ColorPrinter() = default;
 
-		template<typename T>
+		template<Printable T>
 		void operator()(const T& object) const 
 		{ 
 			opencolor();
-			Printer<Ostream>::operator()(object);
+			super::operator()(object);
 			closecolor();
 		}
 
-		template<typename T, typename... Args>
+		template<Printable T, Printable... Args>
 		void operator()(const T& object, const Args&... args) const 
 		{
 			opencolor();
-			Printer<Ostream>::operator()(object, args...);
+			super::operator()(object, args...);
 			closecolor();
 		}
 
-		void opencolor() const { this->__print__(color_); }
+		void opencolor() const { super::__print__(color_); }
 
-		void closecolor() const { this->__print__(Color::CLOSE); }
+		void closecolor() const { super::__print__(Color::CLOSE); }
 
 	private:
 		const char* color_;
@@ -121,7 +130,7 @@ namespace ayr
 	static ColorPrinter<std::ostream> ayr_error(&std::cout, Color::RED);
 
 
-template<typename T>
+template<Printable T>
 inline void warn_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 {
 	if (!condition)
@@ -139,7 +148,7 @@ inline void warn_assert(bool condition, const T& msg, const std::source_location
 }
 
 
-template<typename T>
+template<Printable T>
 inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 {
 	if (!condition)
@@ -153,7 +162,6 @@ inline void error_assert(bool condition, const T& msg, const std::source_locatio
 			loc.function_name()),
 			msg
 		);
-
 		exit(-1);
 	}
 }

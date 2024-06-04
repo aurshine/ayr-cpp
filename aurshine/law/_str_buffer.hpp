@@ -7,7 +7,7 @@
 namespace ayr
 {
 	// __str__ 方法返回值的缓存最大长度
-	constexpr static const int __STR_BUFFER_SIZE__ = 128;
+	constexpr static const int __STR_BUFFER_SIZE__ = 1024;
 	// __str__ 方法返回值的缓存
 	static char __str_buffer__[__STR_BUFFER_SIZE__]{};
 
