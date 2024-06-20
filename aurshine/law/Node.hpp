@@ -20,7 +20,7 @@ namespace ayr
 
 	// BiNode¿‡–Õ∏≈ƒÓ‘º ¯
 	template<typename T>
-	concept BiNodeTypeConcept = NodeTypeConcept<T> && requires (T a, const T & b, T&& c) {{ a.prev };};
+	concept BiNodeTypeConcept = NodeTypeConcept<T> && requires (T a) {{ a.prev };};
 
 
 	template<typename T>
@@ -65,6 +65,7 @@ namespace ayr
 
 		SampleNode* next;
 	};
+
 
 	template<typename T>
 	class BiSampleNode : Object
@@ -111,6 +112,7 @@ namespace ayr
 		BiSampleNode* prev, * next;
 	};
 
+
 	template<NodeTypeConcept Node>
 	class NodeCreator : Object
 	{
@@ -126,6 +128,4 @@ namespace ayr
 	private:
 		DynArray<Node> nodes_;
 	};
-
-
 }

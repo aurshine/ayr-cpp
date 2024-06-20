@@ -3,7 +3,7 @@
 #include <string>
 #include <chrono>
 
-#include <law/object.hpp>
+#include <law/Wrapper.hpp>
 
 namespace ayr
 {
@@ -108,19 +108,30 @@ namespace ayr
 
 	int Date::MONTHS[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-	class Timer : public Object
+
+	class Timer : public Wrapper
 	{
 	public:
 		Timer() = default;
 
-		template<typename F>
-		void operator() (const F& func)
+		void befor_function() override
 		{
-			auto start = std::chrono::high_resolution_clock::now();
-			func();
-			auto end = std::chrono::high_resolution_clock::now();
-			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-			std::cout << "Time elapsed: " << duration << " microseconds" << std::endl;
+			start_time = std::chrono::high_resolution_clock::now();
 		}
+
+		void after_function() override
+		{
+			std::cout << "pass time: " << get_pass_time() << " microseconds" << std::endl;
+		}
+
+		long long get_pass_time() const
+		{
+			auto end_time = std::chrono::high_resolution_clock::now();
+			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
+			return duration;
+		}
+
+	private:
+		std::chrono::steady_clock::time_point start_time;
 	};
 }
