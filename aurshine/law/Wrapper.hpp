@@ -7,7 +7,7 @@
 
 namespace ayr
 {
-	class Wrapper : public Object
+	class ReturnWrapper : public Object
 	{
 	public:
 		virtual void befor_function() {}
@@ -22,6 +22,23 @@ namespace ayr
 			after_function();
 
 			return ret;
+		}
+	};
+
+
+	class VoidWrapper : public Object
+	{
+	public:
+		virtual void befor_function() {}
+
+		virtual void after_function() {}
+
+		template<typename F, typename ...Args>
+		void operator()(F&& func, Args&&... args)
+		{
+			befor_function();
+			func(std::forward<Args>(args)...);
+			after_function();
 		}
 	};
 }

@@ -109,7 +109,7 @@ namespace ayr
 	int Date::MONTHS[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 
-	class Timer : public Wrapper
+	class Timer : public VoidWrapper
 	{
 	public:
 		Timer() = default;
@@ -121,7 +121,7 @@ namespace ayr
 
 		void after_function() override
 		{
-			std::cout << "pass time: " << get_pass_time() << " microseconds" << std::endl;
+			print(std::format("pass time: {} microseconds", get_pass_time()));
 		}
 
 		long long get_pass_time() const
