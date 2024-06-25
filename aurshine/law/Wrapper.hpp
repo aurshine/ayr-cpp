@@ -7,7 +7,7 @@
 
 namespace ayr
 {
-	class ReturnWrapper : public Object
+	class Wrapper : public Object
 	{
 	public:
 		virtual void befor_function() {}
