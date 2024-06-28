@@ -21,4 +21,11 @@ namespace ayr
 	{
 		{ t() };
 	};
+
+	template<typename T>
+	concept Hashable = requires(T t1, T t2)
+	{
+		{ std::hash<T>()(t1) };
+		{t1 == t2};
+	};
 }

@@ -23,28 +23,29 @@ namespace ayr
 	concept BiNodeTypeConcept = NodeTypeConcept<T> && requires (T a) {{ a.prev };};
 
 
+	// 简单节点类型，值能前向移动
 	template<typename T>
-	class SampleNode: Object
+	class SimpleNode: public Object
 	{
 	public:
-		SampleNode() : value(), next(nullptr) {}
+		SimpleNode() : value(), next(nullptr) {}
 
-		SampleNode(const T& value) : value(value), next(nullptr) {}
+		SimpleNode(const T& value) : value(value), next(nullptr) {}
 
-		SampleNode(T&& value) : value(std::move(value)), next(nullptr) {}
+		SimpleNode(T&& value) : value(std::move(value)), next(nullptr) {}
 
-		SampleNode(const SampleNode& other) : value(other.value), next(nullptr) {}
+		SimpleNode(const SimpleNode& other) : value(other.value), next(nullptr) {}
 
-		SampleNode(SampleNode&& other) : value(std::move(other.value)), next(other.next) { other.next = nullptr; }
+		SimpleNode(SimpleNode&& other) : value(std::move(other.value)), next(other.next) { other.next = nullptr; }
 
-		SampleNode& operator=(const SampleNode& other)
+		SimpleNode& operator=(const SimpleNode& other)
 		{
 			value = other.value;
 			next = nullptr;
 			return *this;
 		}
 
-		SampleNode& operator=(SampleNode&& other)
+		SimpleNode& operator=(SimpleNode&& other)
 		{
 			value = std::move(other.value);
 			next = other.next;
@@ -55,33 +56,41 @@ namespace ayr
 		const char* __str__() const
 		{
 			std::stringstream stream;
-			stream << "<Node> " << value;
+			stream << "<Node  " << value << ">";
 			
 			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
 			return __str_buffer__;
 		}
 
+		cmp_t __cmp__(const SimpleNode& other)
+		{
+			if (value < other.value) return -1;
+			if (value > other.value) return 1;
+			return 0;
+		}
+
 		T value;
 
-		SampleNode* next;
+		SimpleNode* next;
 	};
 
 
+	// 双向节点类型，值能前后移动
 	template<typename T>
-	class BiSampleNode : Object
+	class BiSimpleNode : public Object
 	{
 	public:
-		BiSampleNode() : value(), prev(nullptr), next(nullptr) {}
+		BiSimpleNode() : value(), prev(nullptr), next(nullptr) {}
 
-		BiSampleNode(const T& value) : value(value), prev(nullptr), next(nullptr) {}
+		BiSimpleNode(const T& value) : value(value), prev(nullptr), next(nullptr) {}
 
-		BiSampleNode(T&& value) : value(std::move(value)), prev(nullptr), next(nullptr) {}
+		BiSimpleNode(T&& value) : value(std::move(value)), prev(nullptr), next(nullptr) {}
 
-		BiSampleNode(const BiSampleNode& other) : value(other.value), prev(nullptr), next(nullptr) {}
+		BiSimpleNode(const BiSimpleNode& other) : value(other.value), prev(nullptr), next(nullptr) {}
 
-		BiSampleNode(BiSampleNode&& other) : value(std::move(other.value)), prev(other.prev), next(other.next) { other.prev = other.next = nullptr; }
+		BiSimpleNode(BiSimpleNode&& other) : value(std::move(other.value)), prev(other.prev), next(other.next) { other.prev = other.next = nullptr; }
 
-		BiSampleNode& operator=(const BiSampleNode& other)
+		BiSimpleNode& operator=(const BiSimpleNode& other)
 		{
 			value = other.value;
 			prev = nullptr;
@@ -89,7 +98,7 @@ namespace ayr
 			return *this;
 		}
 
-		BiSampleNode& operator=(BiSampleNode&& other)
+		BiSimpleNode& operator=(BiSimpleNode&& other)
 		{
 			value = std::move(other.value);
 			prev = other.prev;
@@ -101,31 +110,13 @@ namespace ayr
 		const char* __str__() const
 		{
 			std::stringstream stream;
-			stream << "<BiNode> " << value;
+			stream << "<BiNode  " << value << ">";
 
-			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
-			return __str_buffer__;
+			return memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
 		}
 
 		T value;
 
-		BiSampleNode* prev, * next;
-	};
-
-
-	template<NodeTypeConcept Node>
-	class NodeCreator : Object
-	{
-	public:
-		template<typename... Args>
-		Node* create(Args&& ... args)
-		{
-			nodes_.append(Node(std::forward<Args>(args)...));
-
-			return &nodes_[-1];
-		}
-
-	private:
-		DynArray<Node> nodes_;
+		BiSimpleNode* prev, * next;
 	};
 }

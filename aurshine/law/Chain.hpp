@@ -1,22 +1,25 @@
 #pragma once
 #include <law/Node.hpp>
+#include <law/ayr_memory.hpp>
 
 
 namespace ayr
 {
+	// Á´µü´úÆ÷
 	template<NodeTypeConcept Node>
 	class ChainIterator;
 
+	// Ë«ÏòÁ´µü´úÆ÷
 	template<BiNodeTypeConcept BiNode>
 	class BiChainIterator;
 
 
-	template<NodeTypeConcept Node, typename Creator = NodeCreator<Node>>
-	class SampleChain : public Object
+	template<NodeTypeConcept Node, typename C = Creator<Node>>
+	class SimpleChain : public Object
 	{
 		friend class ChainIterator<Node>;
 	public:
-		SampleChain() : head_(nullptr), tail_(nullptr), size_(0) {}
+		SimpleChain() : head_(nullptr), tail_(nullptr), size_(0) {}
 
 		c_size size() const { return size_; }
 
@@ -85,9 +88,9 @@ namespace ayr
 			stream << "<Chain> [";
 			for (auto& current : *this)
 			{
-				stream << *current;
-				if (current->next != nullptr)
-					stream << " ->";
+				stream << current.value;
+				if (current.next != nullptr)
+					stream << " -> ";
 			}
 			stream << "]";
 
@@ -95,7 +98,7 @@ namespace ayr
 			return __str_buffer__;
 		}
 
-		ChainIterator<Node> begin() const { return ChainIterator<Node>{head_}; }
+		ChainIterator<Node> begin() const { return ChainIterator<Node>{this->head_}; }
 
 		ChainIterator<Node> end() const { return ChainIterator<Node>{nullptr}; }
 
@@ -104,18 +107,19 @@ namespace ayr
 
 		c_size size_;
 
-		Creator creator_;
+		C creator_;
 	};
 
 
-	template<BiNodeTypeConcept BiNode, typename Creator = NodeCreator<BiNode>>
-	class BiSampleChain : public SampleChain<BiNode, Creator>
+	template<BiNodeTypeConcept BiNode, typename C = Creator<BiNode>>
+	class BiSimpleChain : public SimpleChain<BiNode, C>
 	{
 		friend class BiChainIterator<BiNode>;
 
-		using super = SampleChain<BiNode, Creator>;
+		using super = SimpleChain<BiNode, C>;
+
 	public:
-		BiSampleChain() : SampleChain<BiNode, Creator>() {}
+		BiSimpleChain() : SimpleChain<BiNode, Creator>() {}
 
 		template<typename... Args>
 		void append(Args&& ...args)
@@ -130,18 +134,32 @@ namespace ayr
 			}
 
 			super::tail_ = new_node;
-			super::size_++;
+			++ super::size_;
 		}
 
+		template<typename... Args>
+		void prepend(Args&& ...args)
+		{
+			BiNode* new_node = super::creator_.create(std::forward<Args>(args)...);
+			if (super::size_ == 0)
+				super::tail_ = new_node;
+			else
+			{
+				new_node->next = super::head_;
+				super::head_->prev = new_node;
+			}
+			super::head_ = new_node;
+			++super::size_;
+		}
 		const char* __str__() const
 		{
 			std::stringstream stream;
 			stream << "<BiChain> [";
 			for (auto& current : *this)
 			{
-				stream << *current;
-				if (current->next != nullptr)
-					stream << " <->";
+				stream << current.value;
+				if (current.next != nullptr)
+					stream << " <--> ";
 			}
 			stream << "]";
 
@@ -149,11 +167,11 @@ namespace ayr
 			return __str_buffer__;
 		}
 
-		BiChainIterator<BiNode> begin() const { return BiChainIterator<BiNode>{this->head_}; }
+		BiChainIterator<BiNode> begin() const { return BiChainIterator<BiNode>{super::head_}; }
 
 		BiChainIterator<BiNode> end() const { return BiChainIterator<BiNode>{nullptr}; }
 	
-		std::reverse_iterator<BiChainIterator<BiNode>> rbegin() const { return BiChainIterator<BiNode>{this->tail_}; }
+		std::reverse_iterator<BiChainIterator<BiNode>> rbegin() const { return BiChainIterator<BiNode>{super::tail_}; }
 
 		std::reverse_iterator<BiChainIterator<BiNode>> rend() const { return BiChainIterator<BiNode>{nullptr}; }
 	};
@@ -161,7 +179,7 @@ namespace ayr
 
 	// Chainµü´úÆ÷
 	template<NodeTypeConcept Node>
-	class ChainIterator : Object
+	class ChainIterator : public Object
 	{
 	public:
 		ChainIterator(Node* node=nullptr) : current_(node) {}
@@ -223,9 +241,9 @@ namespace ayr
 
 
 	template<typename T>
-	using Chain = SampleChain<SampleNode<T>, NodeCreator<SampleNode<T>>>;
+	using Chain = SimpleChain<SimpleNode<T>, Creator<SimpleNode<T>>>;
 
 
 	template<typename T>
-	using BiChain = BiSampleChain<BiSampleNode<T>, NodeCreator<BiSampleNode<T>>>;
+	using BiChain = BiSimpleChain<BiSimpleNode<T>, Creator<BiSimpleNode<T>>>;
 }
