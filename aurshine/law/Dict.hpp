@@ -29,6 +29,10 @@ namespace ayr
 
 		KeyValue(KeyValue&& other) : key(std::move(other.key)), value(std::move(other.value)) {}
 		
+		size_t key_hash() const { return std::hash<K>()(key); }
+
+		bool key_equals(const K& other) const { return key == other; }
+
 
 		KeyValue& operator=(const KeyValue& other)
 		{
@@ -45,8 +49,7 @@ namespace ayr
 			return *this;
 		}
 
-		size_t key_hash() const { return std::hash<K>()(key); }
-
+		
 
 		K key;
 
@@ -65,7 +68,7 @@ namespace ayr
 	public:
 		Dict(c_size bucket_size): bucket_(bucket_size) {}
 
-		Dict(): Dict(131) {}
+		Dict(): Dict(31) {}
 
 
 	protected:
