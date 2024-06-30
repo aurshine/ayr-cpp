@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <law/object.hpp>
 #include <law/ayr_concepts.hpp>
 #include <law/Array.hpp>
@@ -6,7 +6,7 @@
 
 namespace ayr
 {
-	// ÓÃÓÚÈ¡Ä£µÄÖÊÊı³£Êı
+	// ç”¨äºå–æ¨¡çš„è´¨æ•°å¸¸æ•°
 	constexpr size_t HASH_PRIME_1 = 1331, HASH_PRIME_2 = 10007;
 
 
@@ -17,9 +17,9 @@ namespace ayr
 	};
 
 
-	// ¼üÖµ¶Ô
+	// é”®å€¼å¯¹
 	template<Hashable K, typename V>
-	struct KeyValue: public Object
+	struct KeyValue : public Object
 	{
 		KeyValue(const K& key, const V& value) : key(key), value(value) {}
 
@@ -28,7 +28,7 @@ namespace ayr
 		KeyValue(const KeyValue& other) : key(other.key), value(other.value) {}
 
 		KeyValue(KeyValue&& other) : key(std::move(other.key)), value(std::move(other.value)) {}
-		
+
 		size_t key_hash() const { return std::hash<K>()(key); }
 
 		bool key_equals(const K& other) const { return key == other; }
@@ -41,7 +41,7 @@ namespace ayr
 			return *this;
 		}
 
-		
+
 		KeyValue& operator=(KeyValue&& other)
 		{
 			key = std::move(other.key);
@@ -49,36 +49,143 @@ namespace ayr
 			return *this;
 		}
 
-		
 
 		K key;
 
 		V value;
 	};
 
-
-	// ¹şÏ£×Öµä
 	template<Hashable K, typename V>
-	class Dict: public Object
+	KeyValue<K, V> mk_kv(const K& key, const V& value) { return KeyValue(key, value); }
+
+
+	template<typename V>
+	struct ValueInplace : public Object
+	{
+		ValueInplace(V* v_ptr) : value_ptr(v_ptr) {}
+
+		void check_nullptr() const
+		{
+			if (value_ptr == nullptr)
+				error_assert(false, "ValueError: value is not exist");
+		}
+
+		V* operator-> ()
+		{
+			check_nullptr();
+			return value_ptr;
+		}
+
+		const V* operator-> () const
+		{
+			check_nullptr();
+			return value_ptr;
+		}
+
+
+		V& operator* ()
+		{
+			check_nullptr();
+			return *value_ptr;
+		}
+
+
+		const V& operator* () const
+		{
+			check_nullptr();
+			return *value_ptr;
+		}
+
+
+		operator V() const
+		{
+			check_nullptr();
+			return *value_ptr;
+		}
+
+		ValueInplace& operator=(const V& other)
+		{
+			check_nullptr();
+			*value_ptr = other;
+			return *this;
+		}
+
+		V* value_ptr;
+	};
+
+
+	// å“ˆå¸Œå­—å…¸
+	template<Hashable K, typename V>
+	class Dict : public Object
 	{
 		using Bucket_t = Array<KeyValue<K, V>*>;
 
 		using KV_t = KeyValue<K, V>;
 
 	public:
-		Dict(c_size bucket_size): bucket_(bucket_size) {}
+		Dict(c_size bucket_size) : bucket_(bucket_size) {}
 
-		Dict(): Dict(31) {}
+		Dict() : Dict(31) {}
+
+		Dict(std::initializer_list<KV_t>&& kv_list)
+			: bucket_(kv_list.size() * 3 / 2)
+		{
+			for (auto&& kv : kv_list)
+			{
+				KeyValue<K, V>* kv_ptr = new KeyValue<K, V>(std::move(kv));
+
+			}
+		}
+
+		~Dict() { release(); }
+
+
+		const V& operator[](const K& key) const
+		{
+			size_t hash_v = std::hash<K>()(key);
+			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
+			for (size_t i = 0; i < bucket_.size(); ++i)
+			{
+				c_size index = (index1 + i * idnex2) % bucket_.size();
+				if (bucket_[index] == nullptr)
+					break;
+
+				if (bucket_[index]->key_equals(key))
+					return bucket_[index]->value;
+			}
+
+			error_assert(false, std::format("KeyError: key {} not found in dict"), key);
+			return None<V>;
+		}
+
+
+		V& operator[](const K& key)
+		{
+			size_t hash_v = std::hash<K>()(key);
+			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
+			for (size_t i = 0; i < bucket_.size(); ++i)
+			{
+				c_size index = (index1 + i * idnex2) % bucket_.size();
+				if (bucket_[index] == nullptr)
+					break;
+
+				if (bucket_[index]->key_equals(key))
+					return bucket_[index]->value;
+			}
+
+			error_assert(false, std::format("KeyError: key {} not found in dict"), key);
+			return None<V>;
+		}
 
 
 	protected:
-		// ¼ÆËãhashÖµ¶ÔÓ¦µÄÍ°ÏÂ±ê£¬Èç¹ûËùÓĞ¶ÔÓ¦ÏÂ±ê±»Õ¼ÓÃ£¬·µ»Ø-1
-		size_t calc_index(size_t hash_v, const Bucket_t& bucket) const
+		// è®¡ç®—hashå€¼å¯¹åº”çš„æ¡¶ä¸‹æ ‡ï¼Œå¦‚æœæ‰€æœ‰å¯¹åº”ä¸‹æ ‡è¢«å ç”¨ï¼Œè¿”å›-1
+		c_size calc_empty_index_or_failure(size_t hash_v, const Bucket_t& bucket) const
 		{
 			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
 			for (size_t i = 0; i < bucket.size(); ++i)
 			{
-				size_t index = (index1 + i * idnex2) % bucket.size();
+				c_size index = (index1 + i * idnex2) % bucket.size();
 				if (bucket[index] == nullptr)
 					return index;
 			}
@@ -86,39 +193,61 @@ namespace ayr
 			return -1;
 		}
 
-		// ÒÆ¶¯ÔªËØµ½ĞÂµÄÍ°£¬Èç¹ûÊ§°Ü£¬·µ»Øfalse
+
+		// ç§»åŠ¨å…ƒç´ åˆ°æ–°çš„æ¡¶ï¼Œå¦‚æœå¤±è´¥ï¼Œè¿”å›false
 		bool move_bucket(const Bucket_t& old_bucket, Bucket_t& new_bucket)
 		{
-			for (auto&& ptr_kv : old_bucket)
+			for (auto&& kv_ptr : old_bucket)
 			{
-				if (ptr_kv == nullptr)
+				if (kv_ptr == nullptr)
 					continue;
 
-				size_t index = calc_index(ptr_kv->key_hash(), new_bucket);
+				c_size index = calc_empty_index_or_failure(kv_ptr->key_hash(), new_bucket);
 
 				if (index == -1)
 					return false;
 
-				new_bucket[index] = ptr_kv;
+				new_bucket[index] = kv_ptr;
 			}
 
 			return true;
 		}
 
 
-		// Í°À©Èİ
+		// æ¡¶æ‰©å®¹
 		void expend_bucket(c_size new_size)
 		{
 			Bucket_t new_bucket = Bucket_t(new_size, nullptr);
 
-			// Ã»ÕÒµ½¿ÕÏĞÎ»ÖÃ£¬µİ¹éÀ©Èİ
+			// æ²¡æ‰¾åˆ°ç©ºé—²ä½ç½®ï¼Œé€’å½’æ‰©å®¹
 			if (!move_bucket(bucket_, new_bucket))
 			{
 				new_bucket.release();
-				expend_bucket(new_size + std::min(131, new_size));
+				expend_bucket(new_size + std::min<c_size>(131, new_size));
 			}
 		}
 
+
+		c_size calc_empty_index(size_t hash_v) const
+		{
+			while (true)
+			{
+				c_size index = calc_empty_index_or_failure(hash_v, bucket_);
+				if (index == -1)
+					expend_bucket(bucket_.size() * 2);
+				else
+					return index;
+			}
+		}
+
+
+		// é‡Šæ”¾å†…å­˜
+		void release()
+		{
+			for (auto&& kv_ptr : bucket_)
+				if (kv_ptr != nullptr)
+					delete kv_ptr;
+		}
 
 		Bucket_t bucket_;
 

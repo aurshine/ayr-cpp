@@ -1,15 +1,15 @@
-#pragma once
+ï»¿#pragma once
 #include <law/Node.hpp>
 #include <law/ayr_memory.hpp>
 
 
 namespace ayr
 {
-	// Á´µü´úÆ÷
+	// é“¾è¿­ä»£å™¨
 	template<NodeTypeConcept Node>
 	class ChainIterator;
 
-	// Ë«ÏòÁ´µü´úÆ÷
+	// åŒå‘é“¾è¿­ä»£å™¨
 	template<BiNodeTypeConcept BiNode>
 	class BiChainIterator;
 
@@ -53,7 +53,7 @@ namespace ayr
 			index = (index + size_) % size_;
 
 			Node* current = head_;
-			while (index --) current = current->next;
+			while (index--) current = current->next;
 
 			return *current;
 		}
@@ -66,7 +66,7 @@ namespace ayr
 			index = (index + size_) % size_;
 
 			Node* current = head_;
-			while (index --) current = current->next;
+			while (index--) current = current->next;
 
 			return *current;
 		}
@@ -103,7 +103,7 @@ namespace ayr
 		ChainIterator<Node> end() const { return ChainIterator<Node>{nullptr}; }
 
 	protected:
-		Node* head_, *tail_;
+		Node* head_, * tail_;
 
 		c_size size_;
 
@@ -119,7 +119,7 @@ namespace ayr
 		using super = SimpleChain<BiNode, C>;
 
 	public:
-		BiSimpleChain() : SimpleChain<BiNode, Creator>() {}
+		BiSimpleChain() : SimpleChain<BiNode, C>() {}
 
 		template<typename... Args>
 		void append(Args&& ...args)
@@ -134,7 +134,7 @@ namespace ayr
 			}
 
 			super::tail_ = new_node;
-			++ super::size_;
+			++super::size_;
 		}
 
 		template<typename... Args>
@@ -170,19 +170,19 @@ namespace ayr
 		BiChainIterator<BiNode> begin() const { return BiChainIterator<BiNode>{super::head_}; }
 
 		BiChainIterator<BiNode> end() const { return BiChainIterator<BiNode>{nullptr}; }
-	
+
 		std::reverse_iterator<BiChainIterator<BiNode>> rbegin() const { return BiChainIterator<BiNode>{super::tail_}; }
 
 		std::reverse_iterator<BiChainIterator<BiNode>> rend() const { return BiChainIterator<BiNode>{nullptr}; }
 	};
 
 
-	// Chainµü´úÆ÷
+	// Chainè¿­ä»£å™¨
 	template<NodeTypeConcept Node>
 	class ChainIterator : public Object
 	{
 	public:
-		ChainIterator(Node* node=nullptr) : current_(node) {}
+		ChainIterator(Node* node = nullptr) : current_(node) {}
 
 		ChainIterator(const ChainIterator& other) : current_(other.current_) {}
 
@@ -212,7 +212,7 @@ namespace ayr
 	};
 
 
-	// BiChainµü´úÆ÷
+	// BiChainè¿­ä»£å™¨
 	template<BiNodeTypeConcept BiNode>
 	class BiChainIterator : public ChainIterator<BiNode>
 	{
