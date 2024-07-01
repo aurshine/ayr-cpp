@@ -9,7 +9,7 @@ namespace ayr
 {
 	// 动态数组块的数量
 	constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
-	
+
 
 	// EXP[i] 第i位为1其余位为0
 	constexpr static auto EXP2 = make_stl_array<c_size, DYNARRAY_BLOCK_SIZE>([](int x) { return 1ll << x; });
@@ -22,7 +22,7 @@ namespace ayr
 
 	// 动态数组
 	template<typename T>
-	class DynArray: Object
+	class DynArray : Object
 	{
 	public:
 		friend class DynArrayIterator<T>;
@@ -32,7 +32,7 @@ namespace ayr
 		using const_iterator = const DynArrayIterator<T>;
 
 		DynArray() : dynarray_(EXP2.size()), size_(0), occupies_size_(0) {}
-		
+
 		DynArray(const DynArray& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 
 		DynArray(DynArray&& other) : DynArray() { swap(other); }
@@ -68,7 +68,7 @@ namespace ayr
 		bool contains(const T& item) const { return find(item) != -1; }
 
 		// 查找item的下标，不存在返回-1
-		c_size find(const T& item) const 
+		c_size find(const T& item) const
 		{
 			for (c_size i = 0; i < size_; ++i)
 				if (__at__(i) == item)
@@ -85,7 +85,7 @@ namespace ayr
 
 			return __at__(index);
 		}
-		
+
 		// 获取指定下标的元素，可以传入负数
 		const T& operator[] (c_size index) const
 		{
@@ -95,14 +95,14 @@ namespace ayr
 
 			return __at__(index);
 		}
-		
+
 		// 追加元素
 		void append(const T& item)
 		{
 			if (!((size_ + 1) & size_))
 				__wakeup__();
 
-			__at__(size_ ++) = item;
+			__at__(size_++) = item;
 		}
 
 		void append(T&& item)
@@ -130,7 +130,7 @@ namespace ayr
 
 			for (c_size i = index; i < size_ - 1; ++i)
 				__at__(i) = __at__(i + 1);
-			-- size_;
+			--size_;
 
 			return ret;
 		}
@@ -194,7 +194,7 @@ namespace ayr
 				if (index >= EXP2[mid]) l = mid;
 				else r = mid - 1;
 			}
-			
+
 			return dynarray_.arr_[l].arr_[index - EXP2[l]];
 		}
 
@@ -218,8 +218,7 @@ namespace ayr
 		void __wakeup__()
 		{
 			occupies_size_++;
-			assert_insize(occupies_size_, 1, EXP2.size() - 1, "__wakeup__");
-			
+
 			dynarray_[occupies_size_ - 1].relloc(EXP2[occupies_size_ - 1]);
 		}
 
@@ -234,8 +233,8 @@ namespace ayr
 	class DynArrayIterator : public Object
 	{
 	public:
-		DynArrayIterator(const DynArray<T>* dynarray, c_size cur=0) : dynarray_(const_cast<DynArray<T>*>(dynarray)), cur_(cur) {}
-		
+		DynArrayIterator(const DynArray<T>* dynarray, c_size cur = 0) : dynarray_(const_cast<DynArray<T>*>(dynarray)), cur_(cur) {}
+
 		DynArrayIterator(const DynArrayIterator<T>& other) : dynarray_(other.dynarray_), cur_(other.cur_) {}
 
 		DynArrayIterator& operator==(const DynArrayIterator<T>& other) const
@@ -257,7 +256,7 @@ namespace ayr
 			++cur_;
 			return *this;
 		}
-		
+
 		DynArrayIterator operator--(int)
 		{
 			auto temp = *this;
@@ -300,7 +299,7 @@ namespace ayr
 			return dynarray_ - other.dynarray_;
 		}
 
-		bool operator!=(const DynArrayIterator<T>& other) const {return __cmp__(other) != 0;}
+		bool operator!=(const DynArrayIterator<T>& other) const { return __cmp__(other) != 0; }
 
 	private:
 		DynArray<T>* dynarray_;

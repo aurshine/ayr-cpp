@@ -164,7 +164,7 @@ namespace ayr
 				ret_size = (ret_size + size_) % size_;
 			else if (ret_size == 0)
 				ret_size = size_;
-			
+
 			Array<T> ret(ret_size);
 
 			for (c_size i = 0; i < ret.size_; ++i)
@@ -186,7 +186,7 @@ namespace ayr
 			stream << "]";
 
 			memcpy__str_buffer__(stream.str());
-			
+
 			return __str_buffer__;
 		}
 

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <law/object.hpp>
-#include <law/ayr_concepts.hpp>
+#include <law/ayr_concepts.hpp>s
 #include <law/Array.hpp>
 #include <law/Chain.hpp>
 
@@ -8,7 +8,7 @@
 namespace ayr
 {
 	// 用于取模的质数常数
-	constexpr size_t HASH_PRIME_1 = 1331, HASH_PRIME_2 = 10007;
+	constexpr size_t HASH_PRIME_1 = 131, HASH_PRIME_2 = 1007;
 
 
 	template<ayr::DerivedAyr T>
@@ -75,29 +75,33 @@ namespace ayr
 		Dict() : Dict(31) {}
 
 		Dict(std::initializer_list<KV_t>&& kv_list)
-			: bucket_(kv_list.size() * 3 / 2)
+			: bucket_(kv_list.size() * 1.4)
 		{
 			for (auto&& kv : kv_list)
 				this->operator[](kv.key) = kv.value;
 		}
-		
+
 
 		V& operator[](const K& key)
 		{
-			size_t index = get_short_index(key);
+			if (load_factor() >= 0.7)
+				expend();
+
+			size_t index = get_index_from_bucket(bucket_, hasher_(key));
 
 			for (auto&& kv : bucket_[index])
 				if (kv.key_equals(key))
 					return kv.value;
 
 			bucket_[index].prepend(KV_t(key));
+			++size_;
 			return bucket_[index][0].value;
 		}
 
 
 		const V& operator[](const K& key) const
 		{
-			size_t index = get_index_from_bucket(bucket_, std::hash<K>()(key));
+			size_t index = get_index_from_bucket(bucket_, hasher_(key));
 
 			for (auto&& kv : bucket_[index])
 				if (kv.key_equals(key))
@@ -110,7 +114,7 @@ namespace ayr
 
 		bool contains(const K& key) const
 		{
-			size_t index = get_index_from_bucket(bucket_, std::hash<K>()(key));
+			size_t index = get_index_from_bucket(bucket_, hasher_(key));
 
 			for (auto&& kv : bucket_[index])
 				if (kv.key_equals(key))
@@ -133,50 +137,39 @@ namespace ayr
 
 	private:
 		// 通过哈希值获取对应桶的索引
-		static size_t get_index_from_bucket(const Bucket_t& bucket, size_t hash_v) noexcept
+		size_t get_index_from_bucket(const Bucket_t& bucket, size_t hash_v) noexcept
 		{
-			size_t index = qmi(hash_v % HASH_PRIME_1, hash_v % HASH_PRIME_2, bucket.size());
+			size_t index = ((hash_v % HASH_PRIME_1) ^ (hash_v % HASH_PRIME_2) << 8) % bucket.size();
 
 			return index;
 		}
 
-
-		// 调整桶的大小，使得每个桶的元素个数不超过longest
-		size_t get_short_index(const K& key, size_t longest = 7)
-		{
-			size_t index = 0, hash_v = std::hash<K>()(key);
-			while (true)
-			{
-				index = get_index_from_bucket(bucket_, hash_v);
-				if (bucket_[index].size() <= longest)
-					break;
-				expend();
-			}
-
-			return index;
-		}
 
 		// 将from中的元素移动到to中
-		static void move_bucket(Bucket_t& from, Bucket_t& to) noexcept
+		void move_bucket(Bucket_t& from, Bucket_t& to) noexcept
 		{
 			for (auto& chain : from)
 				for (auto& kv : chain)
 				{
-					size_t index = get_index_from_bucket(to, kv.key_hash());
+					size_t index = get_index_from_bucket(to, hasher_(kv.key));
 					to[index].prepend(std::move(kv));
 				}
 		}
 
+		double load_factor() const { return size_ / (double)bucket_.size(); }
 
 		// 扩容
 		void expend()
 		{
-			Bucket_t new_bucket = Bucket_t(std::max(bucket_size() * 3 / 2, bucket_size() + 13));
+			Bucket_t new_bucket = Bucket_t(bucket_size() * 2);
 			move_bucket(bucket_, new_bucket);
 			bucket_ = std::move(new_bucket);
 		}
 
+		c_size size_;
 
 		mutable Bucket_t bucket_;
+
+		std::hash<K> hasher_;
 	};
 }

@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <format>
 #include <string>
 #include <chrono>
@@ -7,11 +7,11 @@
 
 namespace ayr
 {
-	// ±£´æÄêÔÂÈÕ
+	// ä¿å­˜å¹´æœˆæ—¥
 	struct YearMonthDay { int year, month, day; };
 
-	// 1970_01_01¾àÀëÏÖÔÚµÄÌìÊı
-	class Date: public Object 
+	// 1970_01_01è·ç¦»ç°åœ¨çš„å¤©æ•°
+	class Date : public Object
 	{
 	public:
 		Date(int _day_from_1970_01_01_ = 0) : day_from_1970_01_01_(_day_from_1970_01_01_) {}
@@ -154,6 +154,6 @@ namespace ayr
 	private:
 		std::chrono::steady_clock::time_point start_time;
 
-		size_t dvd = 1;
+		long long dvd = 1;
 	};
 }
