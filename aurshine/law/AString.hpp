@@ -67,7 +67,7 @@ namespace ayr
 
 		int __cmp__(const AString& other) const { return astring_.__cmp__(other.astring_); }
 
-		size_t __hash__() const { return std::hash<T*>(astring_.arr_); }
+		size_t __hash__() const { return char_hash(astring_.arr_); }
 
 		const char* __str__() const
 		{

@@ -17,6 +17,9 @@ namespace ayr
 	template<NodeTypeConcept Node, typename C = Creator<Node>>
 	class SimpleChain : public Object
 	{
+	public:
+		using Value_t = typename Node::Value_t;
+
 		friend class ChainIterator<Node>;
 	public:
 		SimpleChain() : head_(nullptr), tail_(nullptr), size_(0) {}
@@ -45,39 +48,39 @@ namespace ayr
 			size_++;
 		}
 
-		Node& operator[](c_size index)
+		Value_t& operator[](c_size index)
 		{
 			assert_insize(index, -size_, size_ - 1);
-			if (index == -1)	return *tail_;
+			if (index == -1)	return tail_->value;
 
 			index = (index + size_) % size_;
 
 			Node* current = head_;
 			while (index--) current = current->next;
 
-			return *current;
+			return current->value;
 		}
 
-		const Node& operator[](c_size index) const
+		const Value_t& operator[](c_size index) const
 		{
 			assert_insize(index, -size_, size_ - 1);
-			if (index == -1)	return *tail_;
+			if (index == -1)	return tail_->value;
 
 			index = (index + size_) % size_;
 
 			Node* current = head_;
 			while (index--) current = current->next;
 
-			return *current;
+			return current->value;
 		}
 
-		Array<Node> to_array() const
+		Array<Value_t> to_array() const
 		{
-			Array<Node> ret(size_);
+			Array<Value_t> ret(size_);
 
 			c_size pos = 0;
 			for (auto& current : *this)
-				ret[pos++] = current;
+				ret[pos++] = current->value;
 
 			return ret;
 		}
@@ -119,7 +122,7 @@ namespace ayr
 		using super = SimpleChain<BiNode, C>;
 
 	public:
-		BiSimpleChain() : SimpleChain<BiNode, C>() {}
+		BiSimpleChain(): super() {}
 
 		template<typename... Args>
 		void append(Args&& ...args)
@@ -182,13 +185,16 @@ namespace ayr
 	class ChainIterator : public Object
 	{
 	public:
+		using Value_t = typename Node::Value_t;
+
+	public:
 		ChainIterator(Node* node = nullptr) : current_(node) {}
 
 		ChainIterator(const ChainIterator& other) : current_(other.current_) {}
 
-		Node& operator*() const { return *current_; }
+		Value_t& operator*() const { return current_->value; }
 
-		Node* operator->() const { return current_; }
+		Value_t* operator->() const { return &current_->value; }
 
 		ChainIterator& operator++()
 		{
@@ -217,9 +223,12 @@ namespace ayr
 	class BiChainIterator : public ChainIterator<BiNode>
 	{
 	public:
-		BiChainIterator(BiNode* node = nullptr) : ChainIterator<BiNode>(node) {}
+		using super = ChainIterator<BiNode>;
 
-		BiChainIterator(const BiChainIterator& other) : ChainIterator<BiNode>(other) {}
+	public:
+		BiChainIterator(BiNode* node = nullptr) : super(node) {}
+
+		BiChainIterator(const BiChainIterator& other) : super(other) {}
 
 		BiChainIterator& operator--()
 		{

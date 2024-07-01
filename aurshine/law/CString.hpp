@@ -5,10 +5,10 @@
 #include <law/object.hpp>
 
 
-template<ayr::Char T>
-struct std::hash<T*>
+namespace ayr
 {
-	size_t operator()(const T* c_str) const noexcept
+	template<typename T>
+	size_t char_hash(const T& c_str) noexcept
 	{
 		static size_t P = 1331;
 		size_t hash_value = 0;
@@ -16,15 +16,15 @@ struct std::hash<T*>
 			hash_value = hash_value * P + c_str[i];
 
 		return hash_value;
-	}
-};
+	};
 
-namespace ayr
-{
+
 	// c ·ç¸ñ×Ö·û´®·â×°
 	class CString: public Ayr
 	{
 	public:
+		CString(): str(nullptr) {}
+
 		CString(const char* str_)
 			:str(nullptr)
 		{
@@ -72,7 +72,7 @@ namespace ayr
 
 		const char* __str__() const { return str; }
 		
-		size_t __hash__() const { return std::hash<char*>()(str); }
+		size_t __hash__() const { return char_hash(str); }
 
 		cmp_t __cmp__(const CString& other) const
 		{

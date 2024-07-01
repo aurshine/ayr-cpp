@@ -15,6 +15,7 @@ namespace ayr
 		{ a = std::move(c) } -> std::same_as<T&>;
 		{ T(std::move(c)) } -> std::same_as<T>;
 		{ a.next };
+		{a.value};
 	};
 
 
@@ -27,6 +28,9 @@ namespace ayr
 	template<typename T>
 	class SimpleNode: public Object
 	{
+	public:
+		using Value_t = T;
+
 	public:
 		SimpleNode() : value(), next(nullptr) {}
 
@@ -79,6 +83,9 @@ namespace ayr
 	template<typename T>
 	class BiSimpleNode : public Object
 	{
+	public:
+		using Value_t = T;
+
 	public:
 		BiSimpleNode() : value(), prev(nullptr), next(nullptr) {}
 

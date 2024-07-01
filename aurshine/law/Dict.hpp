@@ -2,6 +2,7 @@
 #include <law/object.hpp>
 #include <law/ayr_concepts.hpp>
 #include <law/Array.hpp>
+#include <law/Chain.hpp>
 
 
 namespace ayr
@@ -21,6 +22,10 @@ namespace ayr
 	template<Hashable K, typename V>
 	struct KeyValue : public Object
 	{
+		KeyValue() {};
+
+		KeyValue(const K& key) : key(key) {}
+
 		KeyValue(const K& key, const V& value) : key(key), value(value) {}
 
 		KeyValue(K&& key, V&& value) : key(std::move(key)), value(std::move(value)) {}
@@ -54,9 +59,6 @@ namespace ayr
 
 		V value;
 	};
-
-	template<Hashable K, typename V>
-	KeyValue<K, V> mk_kv(const K& key, const V& value) { return KeyValue(key, value); }
 
 
 	template<typename V>
@@ -118,9 +120,9 @@ namespace ayr
 	template<Hashable K, typename V>
 	class Dict : public Object
 	{
-		using Bucket_t = Array<KeyValue<K, V>*>;
-
 		using KV_t = KeyValue<K, V>;
+
+		using Bucket_t = Array<BiChain<KV_t>>;
 
 	public:
 		Dict(c_size bucket_size) : bucket_(bucket_size) {}
@@ -131,126 +133,105 @@ namespace ayr
 			: bucket_(kv_list.size() * 3 / 2)
 		{
 			for (auto&& kv : kv_list)
-			{
-				KeyValue<K, V>* kv_ptr = new KeyValue<K, V>(std::move(kv));
-
-			}
+				this->operator[](kv.key) = kv.value;
 		}
+		
 
-		~Dict() { release(); }
+		V& operator[](const K& key)
+		{
+			size_t index = get_short_index(key);
+
+			for (auto&& kv : bucket_[index])
+				if (kv.key_equals(key))
+					return kv.value;
+
+			bucket_[index].prepend(KV_t(key));
+			return bucket_[index][0].value;
+		}
 
 
 		const V& operator[](const K& key) const
 		{
-			size_t hash_v = std::hash<K>()(key);
-			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
-			for (size_t i = 0; i < bucket_.size(); ++i)
-			{
-				c_size index = (index1 + i * idnex2) % bucket_.size();
-				if (bucket_[index] == nullptr)
-					break;
+			size_t index = get_index_from_bucket(bucket_, std::hash<K>()(key));
 
-				if (bucket_[index]->key_equals(key))
-					return bucket_[index]->value;
-			}
+			for (auto&& kv : bucket_[index])
+				if (kv.key_equals(key))
+					return kv.value;
 
-			error_assert(false, std::format("KeyError: key {} not found in dict"), key);
+			error_assert(false, "KeyError: key not found in dict");
 			return None<V>;
 		}
 
 
-		V& operator[](const K& key)
+		bool contains(const K& key) const
 		{
-			size_t hash_v = std::hash<K>()(key);
-			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
-			for (size_t i = 0; i < bucket_.size(); ++i)
-			{
-				c_size index = (index1 + i * idnex2) % bucket_.size();
-				if (bucket_[index] == nullptr)
-					break;
+			size_t index = get_index_from_bucket(bucket_, std::hash<K>()(key));
 
-				if (bucket_[index]->key_equals(key))
-					return bucket_[index]->value;
-			}
+			for (auto&& kv : bucket_[index])
+				if (kv.key_equals(key))
+					return true;
 
-			error_assert(false, std::format("KeyError: key {} not found in dict"), key);
-			return None<V>;
+			return false;
 		}
 
 
-	protected:
-		// 计算hash值对应的桶下标，如果所有对应下标被占用，返回-1
-		c_size calc_empty_index_or_failure(size_t hash_v, const Bucket_t& bucket) const
+		Dict setdefault(const K& key, const V& default_value)
 		{
-			size_t index1 = hash_v % HASH_PRIME_1, idnex2 = hash_v % HASH_PRIME_2;
-			for (size_t i = 0; i < bucket.size(); ++i)
-			{
-				c_size index = (index1 + i * idnex2) % bucket.size();
-				if (bucket[index] == nullptr)
-					return index;
-			}
+			if (!contains(key))
+				this->operator[](key) = default_value;
 
-			return -1;
+			return *this;
 		}
 
 
-		// 移动元素到新的桶，如果失败，返回false
-		bool move_bucket(const Bucket_t& old_bucket, Bucket_t& new_bucket)
+		c_size bucket_size() const { return bucket_.size(); }
+
+	private:
+		// 通过哈希值获取对应桶的索引
+		static size_t get_index_from_bucket(const Bucket_t& bucket, size_t hash_v) noexcept
 		{
-			for (auto&& kv_ptr : old_bucket)
-			{
-				if (kv_ptr == nullptr)
-					continue;
+			size_t index = qmi(hash_v % HASH_PRIME_1, hash_v % HASH_PRIME_2, bucket.size());
 
-				c_size index = calc_empty_index_or_failure(kv_ptr->key_hash(), new_bucket);
-
-				if (index == -1)
-					return false;
-
-				new_bucket[index] = kv_ptr;
-			}
-
-			return true;
+			return index;
 		}
 
 
-		// 桶扩容
-		void expend_bucket(c_size new_size)
+		// 调整桶的大小，使得每个桶的元素个数不超过longest
+		size_t get_short_index(const K& key, size_t longest = 7)
 		{
-			Bucket_t new_bucket = Bucket_t(new_size, nullptr);
-
-			// 没找到空闲位置，递归扩容
-			if (!move_bucket(bucket_, new_bucket))
-			{
-				new_bucket.release();
-				expend_bucket(new_size + std::min<c_size>(131, new_size));
-			}
-		}
-
-
-		c_size calc_empty_index(size_t hash_v) const
-		{
+			size_t index = 0, hash_v = std::hash<K>()(key);
 			while (true)
 			{
-				c_size index = calc_empty_index_or_failure(hash_v, bucket_);
-				if (index == -1)
-					expend_bucket(bucket_.size() * 2);
-				else
-					return index;
+				index = get_index_from_bucket(bucket_, hash_v);
+				if (bucket_[index].size() <= longest)
+					break;
+				expend();
 			}
+
+			return index;
 		}
 
-
-		// 释放内存
-		void release()
+		// 将from中的元素移动到to中
+		static void move_bucket(Bucket_t& from, Bucket_t& to) noexcept
 		{
-			for (auto&& kv_ptr : bucket_)
-				if (kv_ptr != nullptr)
-					delete kv_ptr;
+			for (auto& chain : from)
+				for (auto& kv : chain)
+				{
+					size_t index = get_index_from_bucket(to, kv.key_hash());
+					to[index].prepend(std::move(kv));
+				}
 		}
 
-		Bucket_t bucket_;
 
-		c_size size_ = 0;
+		// 扩容
+		void expend()
+		{
+			Bucket_t new_bucket = Bucket_t(std::max(bucket_size() * 3 / 2, bucket_size() + 13));
+			move_bucket(bucket_, new_bucket);
+			bucket_ = std::move(new_bucket);
+		}
+
+
+		mutable Bucket_t bucket_;
 	};
 }
