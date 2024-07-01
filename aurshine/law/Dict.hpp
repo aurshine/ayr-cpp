@@ -61,61 +61,6 @@ namespace ayr
 	};
 
 
-	template<typename V>
-	struct ValueInplace : public Object
-	{
-		ValueInplace(V* v_ptr) : value_ptr(v_ptr) {}
-
-		void check_nullptr() const
-		{
-			if (value_ptr == nullptr)
-				error_assert(false, "ValueError: value is not exist");
-		}
-
-		V* operator-> ()
-		{
-			check_nullptr();
-			return value_ptr;
-		}
-
-		const V* operator-> () const
-		{
-			check_nullptr();
-			return value_ptr;
-		}
-
-
-		V& operator* ()
-		{
-			check_nullptr();
-			return *value_ptr;
-		}
-
-
-		const V& operator* () const
-		{
-			check_nullptr();
-			return *value_ptr;
-		}
-
-
-		operator V() const
-		{
-			check_nullptr();
-			return *value_ptr;
-		}
-
-		ValueInplace& operator=(const V& other)
-		{
-			check_nullptr();
-			*value_ptr = other;
-			return *this;
-		}
-
-		V* value_ptr;
-	};
-
-
 	// 哈希字典
 	template<Hashable K, typename V>
 	class Dict : public Object

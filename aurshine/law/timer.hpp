@@ -114,6 +114,19 @@ namespace ayr
 	public:
 		Timer() = default;
 
+		Timer(const CString& sec_option)
+		{
+			if (sec_option == "s")
+				dvd = 1000000;
+			else if (sec_option == "ms")
+				dvd = 1000;
+			else if (sec_option == "us")
+				dvd = 1;
+			else
+				error_assert(false, std::format("ValueError: invalid option for Timer(sec_option)"));
+		}
+
+
 		void befor_function() override
 		{
 			start_time = std::chrono::high_resolution_clock::now();
@@ -121,17 +134,26 @@ namespace ayr
 
 		void after_function() override
 		{
-			print(std::format("pass time: {} microseconds", get_pass_time()));
+			CString sign = "us";
+			if (dvd == 1000)
+				sign = "ms";
+			else if (dvd == 1000000)
+				sign = "s";
+			else if (dvd == 1)
+				sign = "us";
+			print(std::format("pass time: {}", get_pass_time()), sign);
 		}
 
 		long long get_pass_time() const
 		{
 			auto end_time = std::chrono::high_resolution_clock::now();
 			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-			return duration;
+			return duration / dvd;
 		}
 
 	private:
 		std::chrono::steady_clock::time_point start_time;
+
+		size_t dvd = 1;
 	};
 }
