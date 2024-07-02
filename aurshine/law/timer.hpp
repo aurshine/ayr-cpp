@@ -112,7 +112,7 @@ namespace ayr
 	class Timer : public VoidWrapper
 	{
 	public:
-		Timer() = default;
+		Timer() : dvd(100) {};
 
 		Timer(const CString& sec_option)
 		{
@@ -127,12 +127,12 @@ namespace ayr
 		}
 
 
-		void befor_function() override
+		void start() override
 		{
 			start_time = std::chrono::high_resolution_clock::now();
 		}
 
-		void after_function() override
+		void stop() override
 		{
 			CString sign = "us";
 			if (dvd == 1000)
@@ -154,6 +154,6 @@ namespace ayr
 	private:
 		std::chrono::steady_clock::time_point start_time;
 
-		long long dvd = 1;
+		long long dvd;
 	};
 }

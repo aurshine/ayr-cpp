@@ -10,16 +10,16 @@ namespace ayr
 	class Wrapper : public Object
 	{
 	public:
-		virtual void befor_function() {}
+		virtual void start() {}
 
-		virtual void after_function() {}
+		virtual void stop() {}
 
 		template<typename F, typename ...Args>
 		auto operator()(F&& func, Args&&... args)
 		{
-			befor_function();
+			start();
 			auto ret = func(std::forward<Args>(args)...);
-			after_function();
+			stop();
 
 			return ret;
 		}
@@ -29,16 +29,16 @@ namespace ayr
 	class VoidWrapper : public Object
 	{
 	public:
-		virtual void befor_function() {}
+		virtual void start() {}
 
-		virtual void after_function() {}
+		virtual void stop() {}
 
 		template<typename F, typename ...Args>
 		void operator()(F&& func, Args&&... args)
 		{
-			befor_function();
+			start();
 			func(std::forward<Args>(args)...);
-			after_function();
+			stop();
 		}
 	};
 }
