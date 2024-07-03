@@ -14,7 +14,36 @@ namespace ayr
 	// EXP[i] 第i位为1其余位为0
 	constexpr static auto EXP2 = make_stl_array<c_size, DYNARRAY_BLOCK_SIZE>([](int x) { return 1ll << x; });
 
+	
+	struct _BlockCache: public Object
+	{
+		constexpr static auto INDEX_CACHE_SIZE = EXP2[16];
 
+		static c_size __get_block_id__(c_size index)
+		{
+			++index;
+			c_size l = 0;
+			while (index >> l) ++l;
+			--l;
+
+			return l;
+		}
+
+		static c_size get(c_size index)
+		{
+			static auto INDEX_CACHE_IN_BLOCK = make_ayr_array<c_size>(INDEX_CACHE_SIZE, [](int x) {
+				return __get_block_id__(x);
+				});
+
+			if (index < INDEX_CACHE_SIZE)
+				return INDEX_CACHE_IN_BLOCK[index];
+
+			return __get_block_id__(index);
+		}
+	};
+	
+	
+	
 	// 动态数组迭代器
 	template <typename T>
 	class DynArrayIterator;
@@ -186,14 +215,9 @@ namespace ayr
 		T& __at__(c_size index)
 		{
 			++index;
-			c_size l = 0, r = occupies_size_ - 1;
-			// 二分查找下标
-			while (l < r)
-			{
-				c_size mid = l + r + 1 >> 1;
-				if (index >= EXP2[mid]) l = mid;
-				else r = mid - 1;
-			}
+			c_size l = 0;
+			while (index >> l) ++l;
+			--l;
 
 			return dynarray_.arr_[l].arr_[index - EXP2[l]];
 		}
@@ -202,14 +226,9 @@ namespace ayr
 		const T& __at__(c_size index) const
 		{
 			++index;
-			c_size l = 0, r = occupies_size_ - 1;
-			// 二分查找下标
-			while (l < r)
-			{
-				c_size mid = l + r + 1 >> 1;
-				if (index >= EXP2[mid]) l = mid;
-				else r = mid - 1;
-			}
+			c_size l = 0;
+			while (index >> l) ++l;
+			--l;
 
 			return dynarray_.arr_[l].arr_[index - EXP2[l]];
 		}

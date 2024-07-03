@@ -258,6 +258,7 @@ namespace ayr
 		c_size size_;
 	};
 
+	// 
 	template<typename T, size_t N, typename F>
 	inline constexpr std::array<T, N> make_stl_array(const F& constexpr_func)
 	{
@@ -265,5 +266,15 @@ namespace ayr
 		for (int i = 0; i < N; ++i)
 			a[i] = constexpr_func(i);
 		return a;
+	}
+
+	template<typename T, typename F>
+	inline Array<T> make_ayr_array(c_size size, const F& func)
+	{
+		Array<T> arr(size);
+		for (c_size i = 0; i < size; ++i)
+			arr[i] = func(i);
+
+		return arr;
 	}
 }
