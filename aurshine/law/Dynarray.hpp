@@ -126,20 +126,20 @@ namespace ayr
 		}
 
 		// 追加元素
-		void append(const T& item)
+		T& append(const T& item)
 		{
 			if (!((size_ + 1) & size_))
 				__wakeup__();
 
-			__at__(size_++) = item;
+			return __at__(size_++) = item;
 		}
 
-		void append(T&& item)
+		T& append(T&& item)
 		{
 			if (!((size_ + 1) & size_))
 				__wakeup__();
 
-			__at__(size_++) = std::move(item);
+			return __at__(size_++) = std::move(item);
 		}
 
 		// 移除最后一个元素并返回
@@ -219,7 +219,7 @@ namespace ayr
 			while (index >> l) ++l;
 			--l;
 
-			return dynarray_.arr_[l].arr_[index - EXP2[l]];
+			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
 		}
 
 		// 对index范围不做检查
@@ -230,7 +230,7 @@ namespace ayr
 			while (index >> l) ++l;
 			--l;
 
-			return dynarray_.arr_[l].arr_[index - EXP2[l]];
+			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
 		}
 
 		// 唤醒一个新的块
