@@ -114,7 +114,7 @@ namespace ayr
 	public:
 		Timer() : dvd(100) {};
 
-		Timer(const CString& sec_option)
+		Timer(const CString& sec_option): dvd(0)
 		{
 			if (sec_option == "s")
 				dvd = 1000000;
@@ -132,9 +132,10 @@ namespace ayr
 			start_time = std::chrono::high_resolution_clock::now();
 		}
 
+
 		void stop() override
 		{
-			CString sign = "us";
+			CString sign = "";
 			if (dvd == 1000)
 				sign = "ms";
 			else if (dvd == 1000000)
