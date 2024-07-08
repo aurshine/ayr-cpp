@@ -16,9 +16,9 @@ namespace ayr
 		template<typename... Args>
 		T* create(Args&& ... args)
 		{
-			created_values_.append(T(std::forward<Args>(args)...));
+			T& newval = created_values_.append(T(std::forward<Args>(args)...));
 
-			return &created_values_[-1];
+			return &newval;
 		}
 
 	private:

@@ -141,14 +141,14 @@ namespace ayr
 				sign = "s";
 			else if (dvd == 1)
 				sign = "us";
-			print(std::format("pass time: {}", get_pass_time()), sign);
+			print(std::format("pass time: {:.2f}", get_pass_time()), sign);
 		}
 
-		long long get_pass_time() const
+		double get_pass_time() const
 		{
 			auto end_time = std::chrono::high_resolution_clock::now();
 			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-			return duration / dvd;
+			return 1.0 * duration / dvd;
 		}
 
 	private:

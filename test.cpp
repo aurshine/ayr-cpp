@@ -6,31 +6,34 @@
 #include <unordered_map>
 using namespace ayr;
 
-void f1(Timer& timer)
-{
-	Dict<std::string, int> dict;
-	for (int i = 0; i < 10000; ++i)
-		dict[std::format("key{}", i)] = i;
-	for (int i = 0; i < 10000; ++i)
-		dict[std::format("key{}", i)];
+const int N = 1e7;
+DynArray<int> arr;
+std::vector<int> vec;
+
+void f1()
+{	
+	for (int i = 0; i < N; ++i)
+		arr.append(i);
+	for (int i = 0; i < N; ++i)
+		arr[i];
 }
 
 void f2()
 {
-	std::unordered_map<std::string, int> map;
-	for (int i = 0; i < 10000; ++i)
-		map[std::format("key{}", i)] = i;
-	for (int i = 0; i < 10000; ++i)
-		map[std::format("key{}", i)];
-
+	for (int i = 0; i < N; ++i)
+		vec.push_back(i);
+	for (int i = 0; i < N; ++i)
+		vec[i];
 }
 
 
 int main()
 {
-	Timer timer("ms");
+	Timer timer("us");
+	_BlockCache::get(0);
 
-	timer(f1, timer);
+	timer(f1);
 	timer(f2);
+	
 	return 0;
 }

@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include <array>
-#include <cmath>
 #include <utility>
 
 #include <law/Array.hpp>
+#include <law/bunit.hpp>
+
 
 namespace ayr
 {
@@ -11,34 +11,20 @@ namespace ayr
 	constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
 
 
-	// EXP[i] 第i位为1其余位为0
-	constexpr static auto EXP2 = make_stl_array<c_size, DYNARRAY_BLOCK_SIZE>([](int x) { return 1ll << x; });
-
-	
 	struct _BlockCache: public Object
 	{
-		constexpr static auto INDEX_CACHE_SIZE = EXP2[16];
-
-		static c_size __get_block_id__(c_size index)
-		{
-			++index;
-			c_size l = 0;
-			while (index >> l) ++l;
-			--l;
-
-			return l;
-		}
+		constexpr static auto CACHE_INDEX_BOUND = 0xffff;
 
 		static c_size get(c_size index)
 		{
-			static auto INDEX_CACHE_IN_BLOCK = make_ayr_array<c_size>(INDEX_CACHE_SIZE, [](int x) {
-				return __get_block_id__(x);
+			static auto INDEX_CACHE_IN_BLOCK = make_array<c_size>(CACHE_INDEX_BOUND + 1, [](c_size& x) {
+				return highbit_index(x + 1);
 				});
+			
+			if (index ^ CACHE_INDEX_BOUND)
+				return highbit_index(index + 1);
 
-			if (index < INDEX_CACHE_SIZE)
-				return INDEX_CACHE_IN_BLOCK[index];
-
-			return __get_block_id__(index);
+			return INDEX_CACHE_IN_BLOCK[index];
 		}
 	};
 	
@@ -214,22 +200,16 @@ namespace ayr
 		// 对index范围不做检查
 		T& __at__(c_size index)
 		{
+			c_size l = _BlockCache::get(index);
 			++index;
-			c_size l = 0;
-			while (index >> l) ++l;
-			--l;
-
 			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
 		}
 
 		// 对index范围不做检查
 		const T& __at__(c_size index) const
 		{
+			c_size l = _BlockCache::get(index);
 			++index;
-			c_size l = 0;
-			while (index >> l) ++l;
-			--l;
-
 			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
 		}
 

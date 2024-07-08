@@ -3,6 +3,8 @@
 #include <functional>
 #include <iterator>
 #include <string>
+#include <array>
+
 
 #include <law/printer.hpp>
 
@@ -11,10 +13,12 @@ namespace ayr
 {
 	constexpr static c_size MAX_ALLOC = LLONG_MAX;
 
-
+#ifdef AYR_DEBUG
 	// 检查 x 在[l, r] 区间
 #define assert_insize(x, lbound, rbound) error_assert((x) >= (lbound) && (x) <= (rbound), std::format("{} out of range [{}, {}]", (x), (lbound), (rbound)))
-
+#else
+#define assert_insize(x, lbound, rbound)
+#endif
 
 	template<typename T>
 	class Array : public Object
@@ -258,7 +262,44 @@ namespace ayr
 		c_size size_;
 	};
 
-	// 
+
+	class Range : public Object
+	{
+	public:
+		Range(c_size start, c_size end, c_size step = 1): _start(start), _end(end), _step(step) {}
+
+		Range(c_size end): Range(0, end, 1) {}
+
+		class RangeIterator
+		{
+		public:
+			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
+
+			c_size operator*() const { return current_; }
+
+			RangeIterator& operator++()
+			{
+				current_ += step_;
+			
+				return *this;
+			}
+
+			bool operator!=(const RangeIterator& other) const { return current_ != other.current_; }
+
+			cmp_t __cmp__(const RangeIterator& other) const { return current_ - other.current_; }
+
+		private:
+			c_size current_, step_;
+		};
+
+		RangeIterator begin() const { return RangeIterator(_start, _step); }
+
+		RangeIterator end() const { return RangeIterator(_start + (_end - _start + _step - 1) / _step * _step, _step); }
+	private:
+		c_size _start, _end, _step;
+	};
+
+
 	template<typename T, size_t N, typename F>
 	inline constexpr std::array<T, N> make_stl_array(const F& constexpr_func)
 	{
@@ -268,8 +309,9 @@ namespace ayr
 		return a;
 	}
 
+
 	template<typename T, typename F>
-	inline Array<T> make_ayr_array(c_size size, const F& func)
+	inline Array<T> make_array(c_size size, const F& func)
 	{
 		Array<T> arr(size);
 		for (c_size i = 0; i < size; ++i)
