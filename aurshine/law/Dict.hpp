@@ -18,6 +18,41 @@ namespace ayr
 	};
 
 
+	inline constexpr uint64_t decode_fixed32(const char* ptr)
+	{
+		return ((static_cast<uint64_t>(static_cast<uint8_t>(ptr[0]))) |
+			(static_cast<uint64_t>(static_cast<uint8_t>(ptr[1])) << 8) |
+			(static_cast<uint64_t>(static_cast<uint8_t>(ptr[2])) << 16) |
+			(static_cast<uint64_t>(static_cast<uint8_t>(ptr[3])) << 24));
+	}
+
+
+	inline constexpr hash_t bytes_hash(const char* data, size_t n, uint32_t seed)
+	{
+		constexpr hash_t m = 0xc6a4a793;
+		constexpr hash_t r = 24;
+		const char* end = data + n;
+		hash_t h = seed ^ (n * m);
+
+		while (data < end)
+		{
+			hash_t w = decode_fixed32(data);
+			data += 4;
+			h = (h + w) * m;
+			h ^= (h >> 16);
+		}
+
+		int dis = end - data;
+		while (dis--)
+		{
+			h += static_cast<uint8_t>(data[dis - 1] << (dis - 1) * 8);
+		}
+		h *= m;
+		h ^= (h >> r);
+		return h;
+	}
+
+
 	// 键值对
 	template<Hashable K, typename V>
 	struct KeyValue : public Object
@@ -70,12 +105,12 @@ namespace ayr
 		using Bucket_t = Array<BiChain<KV_t>>;
 
 	public:
-		Dict(c_size bucket_size) : bucket_(bucket_size) {}
+		Dict(c_size bucket_size) : bucket_(bucket_size), size_(0), hasher_() {}
 
 		Dict() : Dict(31) {}
 
 		Dict(std::initializer_list<KV_t>&& kv_list)
-			: bucket_(kv_list.size() * 1.4)
+			: bucket_(kv_list.size() / 0.7)
 		{
 			for (auto&& kv : kv_list)
 				this->operator[](kv.key) = kv.value;

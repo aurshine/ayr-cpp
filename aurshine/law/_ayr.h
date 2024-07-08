@@ -13,6 +13,9 @@ namespace ayr
 	// compare type
 	using cmp_t = int64_t;
 
+	// hash type
+	using hash_t = uint64_t;
+
 	constexpr char __NONE__ = '\0';
 
 	// 空值

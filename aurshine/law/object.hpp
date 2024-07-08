@@ -27,7 +27,7 @@ namespace ayr
 
 
 		// hash 编码
-		size_t __hash__() const { return std::hash<std::string>{}(this->__str__()); }
+		hash_t __hash__() const { return std::hash<std::string>{}(this->__str__()); }
 
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
