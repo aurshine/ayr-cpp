@@ -10,7 +10,7 @@ namespace ayr
 {
 	template<Char T>
 	class SubString;
-	
+
 
 	template<Char T>
 	class AString : public Object
@@ -18,9 +18,9 @@ namespace ayr
 	public:
 		AString() {}
 
-		AString(const T& ch, c_size size_ = 1) : astring_(ch, size_) {}
+		AString(c_size size_, const T& ch) : astring_(size_, ch) {}
 
-		AString(T* str) : astring_(str, strlen(str)) {}
+		AString(T* str) : astring_(strlen(str), str) {}
 
 		AString(const T* str) : astring_(strlen(str)) { astring_.fill(str, str + size()); }
 
@@ -82,7 +82,7 @@ namespace ayr
 		c_size find(const AString& other, c_size pos = 0) const
 		{
 			assert_insize(pos, 0, size() - 1);
-			
+
 			if (size() - pos < other.size()) return -1;
 
 			for (c_size i = pos; i + other.size() <= size(); ++i)
@@ -94,7 +94,7 @@ namespace ayr
 						flag = false;
 						break;
 					}
-				
+
 				if (flag) return i;
 			}
 
@@ -162,7 +162,7 @@ namespace ayr
 		bool endwith(const AString& other) const
 		{
 			if (size() < other.size())	return false;
-			for (c_size i = other.size() - 1; i >= 0; -- i)
+			for (c_size i = other.size() - 1; i >= 0; --i)
 				if (astring_[i] != other.astring_[i])
 					return false;
 
@@ -191,8 +191,8 @@ namespace ayr
 		{
 			c_size l = 0, r = size();
 			while (l < r && isspace(astring_[l])) l++;
-			while (r > l && isspace(astring_[r - 1])) r --;
-			
+			while (r > l && isspace(astring_[r - 1])) r--;
+
 			return slice(l, r);
 		}
 
@@ -211,13 +211,13 @@ namespace ayr
 
 			return slice(l, r);
 		}
-		
+
 		AString join(const Array<AString>& join_strs) const
 		{
 			c_size ret_size = (join_strs.size() - 1) * size();
 			for (c_size i = 0; i < join_strs.size(); ++i)
 				ret_size += join_strs[i].size();
-				
+
 			Array<T> result(ret_size);
 			for (c_size i = 0, j = 0; i < join_strs.size(); ++i)
 			{
@@ -241,21 +241,21 @@ namespace ayr
 			DynArray<c_size> poses = find_all(old_);
 
 			Array<T> temp(size() + (new_.size() - old_.size()) * poses.size());
-			
+
 			// 当前走到原字符串的位置 以及 临时字符串的长度
 			c_size cur_pos = 0, temp_length = 0;
 			for (c_size i = 0; i < poses.size(); ++i)
 			{
 				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + poses[i], temp_length);
 				temp_length += poses[i] - cur_pos;
-				
+
 				temp.fill(new_.astring_.arr_, new_.astring_.arr_ + new_.size(), temp_length);
 				temp_length += new_.size();
 
 				cur_pos = poses[i] + old_.size();
 			}
 
-			if (cur_pos < size()) 
+			if (cur_pos < size())
 				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + size(), temp_length);
 
 			AString ret;
@@ -285,15 +285,15 @@ namespace ayr
 			DynArray<AString> das;
 			c_size last_pos = 0;
 
-			for (auto pos: find_all(other))
+			for (auto pos : find_all(other))
 			{
 				if (last_pos != pos)
 					das.append(slice(last_pos, pos));
-				
+
 				last_pos = pos + other.size();
 			}
 
-			if (last_pos < size()) 
+			if (last_pos < size())
 				das.append(slice(last_pos, size()));
 
 			return das.to_array();

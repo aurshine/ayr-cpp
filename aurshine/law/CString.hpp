@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #include <cstring>
 #include <string>
 
@@ -7,23 +7,50 @@
 
 namespace ayr
 {
-	template<typename T>
-	size_t char_hash(const T& c_str) noexcept
+	inline constexpr uint32_t decode_fixed32(const char* ptr)
 	{
-		static size_t P = 1331;
-		size_t hash_value = 0;
-		for (size_t i = 0; c_str[i] != '\0'; i++)
-			hash_value = hash_value * P + c_str[i];
+		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(ptr);
 
-		return hash_value;
-	};
+		return (
+			static_cast<uint32_t>(buffer[0]) |
+			(static_cast<uint32_t>(buffer[1]) << 8) |
+			(static_cast<uint32_t>(buffer[2]) << 16) |
+			(static_cast<uint32_t>(buffer[3]) << 24)
+			);
+	}
 
 
-	// c ∑Á∏Ò◊÷∑˚¥Æ∑‚◊∞
-	class CString: public Ayr
+	inline constexpr hash_t bytes_hash(const char* data, size_t n, uint32_t seed = 0xbc9f1d34)
+	{
+		constexpr hash_t m = 0xc6a4a793;
+		constexpr hash_t r = 24;
+		const char* end = data + n;
+		hash_t h = seed ^ (n * m);
+
+		while (data < end)
+		{
+			hash_t w = decode_fixed32(data);
+			data += 4;
+			h = (h + w) * m;
+			h ^= (h >> 16);
+		}
+
+		int dis = end - data;
+		while (dis--)
+		{
+			h += static_cast<uint8_t>(data[dis - 1] << (dis - 1) * 8);
+		}
+		h *= m;
+		h ^= (h >> r);
+		return h;
+	}
+
+
+	// c È£éÊ†ºÂ≠óÁ¨¶‰∏≤Â∞ÅË£Ö
+	class CString : public Ayr
 	{
 	public:
-		CString(): str(nullptr) {}
+		CString() : str(nullptr) {}
 
 		CString(const char* str_)
 			:str(nullptr)
@@ -43,7 +70,7 @@ namespace ayr
 		{
 			if (this == &other)
 				return *this;
-			
+
 			auto o_str_len = other.size();
 			if (size() < o_str_len)
 			{
@@ -58,7 +85,7 @@ namespace ayr
 		CString& operator=(CString&& other)
 		{
 			if (this == &other)
-				return *this;	
+				return *this;
 			str = other.str;
 			other.str = nullptr;
 			return *this;
@@ -71,17 +98,17 @@ namespace ayr
 		size_t size() const { return strlen(str); }
 
 		const char* __str__() const { return str; }
-		
-		size_t __hash__() const { return char_hash(str); }
+
+		size_t __hash__() const { return bytes_hash(str, std::strlen(str), 0); }
 
 		cmp_t __cmp__(const CString& other) const
 		{
-			for (size_t i = 0; str[i] || other.str[i]; ++ i)
+			for (size_t i = 0; str[i] || other.str[i]; ++i)
 				if (str[i] != other.str[i])
 					return str[i] - other.str[i];
 			return 0;
 		}
 
- 		char* str;
+		char* str;
 	};
 }

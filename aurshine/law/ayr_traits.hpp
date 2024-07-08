@@ -1,19 +1,33 @@
-#pragma once
+ï»¿#pragma once
 #include <type_traits>
 
 
 namespace ayr
 {
-	// ÅĞ¶ÏArgsµÄËùÓĞÀàĞÍÊÇ·ñ¶¼ÓëTÏàÍ¬
+	// åˆ¤æ–­Argsçš„æ‰€æœ‰ç±»å‹æ˜¯å¦éƒ½ä¸Tç›¸åŒ
 	template<typename T, typename ...Args>
-	constexpr bool is_same = false;
+	constexpr bool issame = false;
 
 	template<typename T>
-	constexpr bool is_same<T, T> = true;
+	constexpr bool issame<T, T> = true;
 
 	template<typename T1, typename T2>
-	constexpr bool is_same<T1, T2> = false;
+	constexpr bool issame<T1, T2> = false;
 
 	template<typename T1, typename T2, typename ...Args>
-	constexpr bool is_same<T1, T2, Args...> = is_same<T1, T2> && is_same<T1, Args...>;
+	constexpr bool issame<T1, T2, Args...> = issame<T1, T2>&& issame<T1, Args...>;
+
+
+	// åˆ¤æ–­Argsæ˜¯å¦åŒ…å«ç±»å‹T
+	template<typename T, typename... Args>
+	constexpr bool isinstance = false;
+
+	template<typename T>
+	constexpr bool isinstance<T, T> = true;
+
+	template<typename T1, typename T2>
+	constexpr bool isinstance<T1, T2> = false;
+
+	template<typename T1, typename T2, typename... Args>
+	constexpr bool isinstance<T1, T2, Args...> = isinstance<T1, T2> || isinstance<T1, Args...>;
 }

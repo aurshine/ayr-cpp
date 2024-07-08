@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <concepts>
 #include <ranges>
 
@@ -7,15 +7,15 @@
 
 namespace ayr
 {
-	// ÅĞ¶ÏTÊÇ·ñÎªcharÀàĞÍ
+	// åˆ¤æ–­Tæ˜¯å¦ä¸ºcharç±»å‹
 	template<typename T>
-	concept Char = is_same<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
+	concept Char = isinstance<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
 
-	// ÅĞ¶ÏTÊÇ·ñÎª¿Éµü´úÀàĞÍ
+	// åˆ¤æ–­Tæ˜¯å¦ä¸ºå¯è¿­ä»£ç±»å‹
 	template<typename T>
 	concept Iteratable = std::ranges::range<T>;
 
-	// ÅĞ¶ÏTÊÇ·ñÎªÎŞĞÎ²ÎµÄ¿Éµ÷ÓÃÀàĞÍ
+	// åˆ¤æ–­Tæ˜¯å¦ä¸ºæ— å½¢å‚çš„å¯è°ƒç”¨ç±»å‹
 	template<typename T>
 	concept Callable = requires(T t)
 	{
@@ -26,6 +26,6 @@ namespace ayr
 	concept Hashable = requires(T t1, T t2)
 	{
 		{ std::hash<T>()(t1) };
-		{t1 == t2};
+		{ t1 == t2 };
 	};
 }

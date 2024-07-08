@@ -32,9 +32,9 @@ namespace ayr
 
 		Array(c_size size__) : Array() { relloc(size__); }
 
-		Array(const T& fill_, c_size size__) : Array(size__) { fill(fill_); }
+		Array(c_size size__, const T& fill_) : Array(size__) { fill(fill_); }
 
-		Array(T* raw_arr, c_size size__) : arr_(raw_arr), size_(size__) {}
+		Array(c_size size__, T* raw_arr) : arr_(raw_arr), size_(size__) {}
 
 		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
 
@@ -266,9 +266,9 @@ namespace ayr
 	class Range : public Object
 	{
 	public:
-		Range(c_size start, c_size end, c_size step = 1): _start(start), _end(end), _step(step) {}
+		Range(c_size start, c_size end, c_size step = 1) : _start(start), _end(end), _step(step) {}
 
-		Range(c_size end): Range(0, end, 1) {}
+		Range(c_size end) : Range(0, end, 1) {}
 
 		class RangeIterator
 		{
@@ -280,7 +280,7 @@ namespace ayr
 			RangeIterator& operator++()
 			{
 				current_ += step_;
-			
+
 				return *this;
 			}
 
