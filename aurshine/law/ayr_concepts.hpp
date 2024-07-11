@@ -23,6 +23,23 @@ namespace ayr
 	};
 
 
+	// 可输出的类型约束概念
+	template<typename T>
+	concept Printable = requires(T t)
+	{
+		{ std::cout << t };
+	};
+
+	template<typename T>
+	concept AyrPrintable = requires(T t)
+	{
+		{ t.__str__() };
+	};
+
+	template<typename T>
+	concept Printable = AyrPrintable<T> || Printable<T>;
+
+	// 可哈希类型约束概念
 	template<typename T>
 	concept AyrLikeHashable = requires(const T & one, const T & other)
 	{
@@ -32,7 +49,7 @@ namespace ayr
 
 
 	template<typename T>
-	concept StdHashable = requires(const T & one, const T& other)
+	concept StdHashable = requires(const T & one, const T & other)
 	{
 		{ std::hash<T>()(one) } -> std::convertible_to<size_t>;
 		{ one == other } -> std::convertible_to<bool>;

@@ -56,7 +56,7 @@ namespace ayr
 		using KV_t = KeyValue<K, V>;
 
 	public:
-		Dict(c_size bucket_size) : bucket_(bucket_size, nullptr), size_(0), hasher_() {}
+		Dict(c_size bucket_size) : bucket_(bucket_size, nullptr), size_(0) {}
 
 		Dict() : Dict(31) {}
 

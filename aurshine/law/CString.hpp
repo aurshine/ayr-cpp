@@ -19,12 +19,12 @@ namespace ayr
 		{
 			size_t len = std::strlen(str_);
 			str = new char[len + 1] {};
-			memcpy(str, str_, len);
+			strncpy(str, str_, len + 1);
 		}
 
 		CString(const CString& other) : CString(other.str) {}
 
-		CString(CString&& other) : str(other.str) { other.str = nullptr; }
+		CString(CString&& other) noexcept : str(other.str) { other.str = nullptr; }
 
 		~CString() { delete[] str; }
 
@@ -33,23 +33,25 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			auto o_str_len = other.size();
+			size_t o_str_len = other.size();
 			if (size() < o_str_len)
 			{
 				delete[] str;
 				str = new char[o_str_len + 1] {};
 			}
 
-			std::memcpy(str, other.str, o_str_len);
+			strncpy(str, other.str, o_str_len + 1);
 			return *this;
 		}
 
-		CString& operator=(CString&& other)
+		CString& operator=(CString&& other) noexcept
 		{
 			if (this == &other)
 				return *this;
+
 			str = other.str;
 			other.str = nullptr;
+
 			return *this;
 		}
 
@@ -61,7 +63,7 @@ namespace ayr
 
 		const char* __str__() const { return str; }
 
-		size_t __hash__() const { return bytes_hash(str, std::strlen(str), 0); }
+		size_t __hash__() const { return bytes_hash(str, std::strlen(str)); }
 
 		cmp_t __cmp__(const CString& other) const
 		{

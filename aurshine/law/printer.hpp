@@ -8,25 +8,17 @@
 
 namespace ayr
 {
-	// 可输出的类型约束概念
-	template<typename T>
-	concept Printable = requires(T t, std::ostream & os)
-	{
-		{os << t} -> std::same_as<std::ostream&>;
-	};
-
-
 	template<class Ostream>
 	class Printer : public Object
 	{
 	public:
-		Printer(Ostream* ostream): Printer("\n", " ", ostream) {}
+		Printer(Ostream* ostream) : Printer("\n", " ", ostream) {}
 
 		template<class T1, class T2>
 		Printer(T1&& ew, T2&& sw, Ostream* ostream)
-			: ew_(std::forward<T1>(ew)), sw_(std::forward<T2>(sw)), ostream(ostream){}
+			: ew_(std::forward<T1>(ew)), sw_(std::forward<T2>(sw)), ostream(ostream) {}
 
-		
+
 		template<Printable T>
 		void operator()(const T& object) const { __print__(object); __print__(ew_); }
 
@@ -47,11 +39,11 @@ namespace ayr
 		template<Printable T>
 		void __print__(const T& object) const { *ostream << object; }
 
-		void __print__(const bool& object) const {*ostream << (object? "true" : "false"); }
+		void __print__(const bool& object) const { *ostream << (object ? "true" : "false"); }
 
 		// 可变形参
 		template<Printable T, Printable ...Args>
-		void __print__(const T& object, const Args& ...args) const 
+		void __print__(const T& object, const Args& ...args) const
 		{
 			__print__(object);
 			__print__(sw_);
@@ -95,21 +87,21 @@ namespace ayr
 	{
 		using super = Printer<Ostream>;
 	public:
-		ColorPrinter(Ostream* ostream, const char* color=Color::WHITE)
-			: Printer<Ostream>(ostream), color_(color){}
+		ColorPrinter(Ostream* ostream, const char* color = Color::WHITE)
+			: Printer<Ostream>(ostream), color_(color) {}
 
 		~ColorPrinter() = default;
 
 		template<Printable T>
-		void operator()(const T& object) const 
-		{ 
+		void operator()(const T& object) const
+		{
 			opencolor();
 			super::operator()(object);
 			closecolor();
 		}
 
 		template<Printable T, Printable... Args>
-		void operator()(const T& object, const Args&... args) const 
+		void operator()(const T& object, const Args&... args) const
 		{
 			opencolor();
 			super::operator()(object, args...);
@@ -131,40 +123,40 @@ namespace ayr
 	static ColorPrinter<std::ostream> ayr_error(&std::cout, Color::RED);
 
 
-template<Printable T>
-inline void warn_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
-{
-	if (!condition)
+	template<Printable T>
+	inline void warn_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 	{
-		ayr_warner(
-			std::format("file: {}  column: {} line: {} function_name: {} \n"\
-						"error: ",
-			loc.file_name(), 
-			loc.column(), 
-			loc.line(), 
-			loc.function_name()),
-			msg
-		);
+		if (!condition)
+		{
+			ayr_warner(
+				std::format("file: {}  column: {} line: {} function_name: {} \n"\
+					"error: ",
+					loc.file_name(),
+					loc.column(),
+					loc.line(),
+					loc.function_name()),
+				msg
+			);
+		}
 	}
-}
 
 
-template<Printable T>
-inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
-{
-	if (!condition)
+	template<Printable T>
+	inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 	{
-		ayr_error(
-			std::format("file: {}  column: {}  line: {}  function_name: {}\n"\
-						"error: ",
-			loc.file_name(), 
-			loc.column(), 
-			loc.line(), 
-			loc.function_name()),
-			msg
-		);
-		exit(-1);
+		if (!condition)
+		{
+			ayr_error(
+				std::format("file: {}  column: {}  line: {}  function_name: {}\n"\
+					"error: ",
+					loc.file_name(),
+					loc.column(),
+					loc.line(),
+					loc.function_name()),
+				msg
+			);
+			exit(-1);
+		}
 	}
-}
 
 }
