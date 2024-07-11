@@ -1,23 +1,11 @@
 ﻿#pragma once
 #include <law/object.hpp>
-#include <law/ayr_concepts.hpp>
+#include <law/hash.hpp>
 #include <law/Array.hpp>
-#include <law/Chain.hpp>
 
 
 namespace ayr
 {
-	// 用于取模的质数常数
-	constexpr size_t HASH_PRIME_1 = 131, HASH_PRIME_2 = 1007;
-
-
-	template<ayr::DerivedAyr T>
-	struct std::hash<T>
-	{
-		size_t operator()(const T& one) const { return one.__hash__(); }
-	};
-
-
 	// 键值对
 	template<Hashable K, typename V>
 	struct KeyValue : public Object
@@ -58,8 +46,6 @@ namespace ayr
 		K key;
 
 		V value;
-
-		int bias = 0;
 	};
 
 
@@ -70,7 +56,7 @@ namespace ayr
 		using KV_t = KeyValue<K, V>;
 
 	public:
-		Dict(c_size bucket_size) : bucket_(bucket_size, 0), size_(0), hasher_() {}
+		Dict(c_size bucket_size) : bucket_(bucket_size, nullptr), size_(0), hasher_() {}
 
 		Dict() : Dict(31) {}
 
@@ -84,13 +70,13 @@ namespace ayr
 
 		V& operator[](const K& key)
 		{
-
+			return None<V>;
 		}
 
 
 		const V& operator[](const K& key) const
 		{
-
+			return None<V>;
 		}
 
 
@@ -109,15 +95,15 @@ namespace ayr
 		}
 
 	private:
-		c_size get_hash_index(const K& key) const { return hasher_(key) % bucket_.size(); }
+		c_size get_hash_index(const K& key) const { return hash(key) % bucket_.size(); }
 
 
 	private:
 		Array<KV_t*> bucket_;
 
-		size_t size_;
+		Array<uint8_t> skip_list_; // 记录每个key离自己原本的位置的距离
 
-		std::hash<K> hasher_;
+		size_t size_;
 
 		C creator_;
 	};

@@ -34,8 +34,6 @@ namespace ayr
 
 		Array(c_size size__, const T& fill_) : Array(size__) { fill(fill_); }
 
-		Array(c_size size__, T* raw_arr) : arr_(raw_arr), size_(size__) {}
-
 		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
 
 		Array(const Array& other) : Array(other.size_) { fill(other); }

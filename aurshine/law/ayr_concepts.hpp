@@ -22,10 +22,22 @@ namespace ayr
 		{ t() };
 	};
 
+
 	template<typename T>
-	concept Hashable = requires(T t1, T t2)
+	concept AyrLikeHashable = requires(const T & one, const T & other)
 	{
-		{ std::hash<T>()(t1) };
-		{ t1 == t2 };
+		{ one.__hash__() } -> std::convertible_to<size_t>;
+		{ one.__cmp__(other) } -> std::convertible_to<cmp_t>;
 	};
+
+
+	template<typename T>
+	concept StdHashable = requires(const T & one, const T& other)
+	{
+		{ std::hash<T>()(one) } -> std::convertible_to<size_t>;
+		{ one == other } -> std::convertible_to<bool>;
+	};
+
+	template<typename T>
+	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
 }

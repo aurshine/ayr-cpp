@@ -3,49 +3,11 @@
 #include <string>
 
 #include <law/object.hpp>
+#include <law/hash.hpp>
 
 
 namespace ayr
 {
-	inline constexpr uint32_t decode_fixed32(const char* ptr)
-	{
-		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(ptr);
-
-		return (
-			static_cast<uint32_t>(buffer[0]) |
-			(static_cast<uint32_t>(buffer[1]) << 8) |
-			(static_cast<uint32_t>(buffer[2]) << 16) |
-			(static_cast<uint32_t>(buffer[3]) << 24)
-			);
-	}
-
-
-	inline constexpr hash_t bytes_hash(const char* data, size_t n, uint32_t seed = 0xbc9f1d34)
-	{
-		constexpr hash_t m = 0xc6a4a793;
-		constexpr hash_t r = 24;
-		const char* end = data + n;
-		hash_t h = seed ^ (n * m);
-
-		while (data < end)
-		{
-			hash_t w = decode_fixed32(data);
-			data += 4;
-			h = (h + w) * m;
-			h ^= (h >> 16);
-		}
-
-		int dis = end - data;
-		while (dis--)
-		{
-			h += static_cast<uint8_t>(data[dis - 1] << (dis - 1) * 8);
-		}
-		h *= m;
-		h ^= (h >> r);
-		return h;
-	}
-
-
 	// c 风格字符串封装
 	class CString : public Ayr
 	{

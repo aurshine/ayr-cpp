@@ -53,7 +53,8 @@ namespace ayr
 		template<Printable T, Printable ...Args>
 		void __print__(const T& object, const Args& ...args) const 
 		{
-			*ostream << object << sw_;
+			__print__(object);
+			__print__(sw_);
 			__print__(args...);
 		}
 
