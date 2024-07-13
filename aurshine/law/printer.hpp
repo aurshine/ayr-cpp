@@ -12,11 +12,10 @@ namespace ayr
 	class Printer : public Object
 	{
 	public:
-		Printer(Ostream* ostream) : Printer("\n", " ", ostream) {}
+		Printer(Ostream& ostream) : Printer("\n", " ", ostream) {}
 
-		template<class T1, class T2>
-		Printer(T1&& ew, T2&& sw, Ostream* ostream)
-			: ew_(std::forward<T1>(ew)), sw_(std::forward<T2>(sw)), ostream(ostream) {}
+		Printer(CString ew, CString sw, Ostream& ostream)
+			: ew_(std::move(ew)), sw_(std::move(sw)), ostream(ostream) {}
 
 
 		template<Printable T>
@@ -27,19 +26,17 @@ namespace ayr
 
 
 		// 设置输出结束符
-		template<typename T>
-		void set_end_word(T&& ew) const { ew_ = std::forward<T>(ew); }
+		void set_end_word(CString ew) const { ew_ = std::move(ew); }
 
 		// 设置输出分隔符
-		template<typename T>
-		void set_sep_word(T&& ew) const { sw_ = std::forward<T>(ew); }
+		void set_sep_word(CString sw) const { sw_ = std::move(sw); }
 
 	protected:
 		// 单一形参
 		template<Printable T>
-		void __print__(const T& object) const { *ostream << object; }
+		void __print__(const T& object) const { ostream << object; }
 
-		void __print__(const bool& object) const { *ostream << (object ? "true" : "false"); }
+		void __print__(const bool& object) const { ostream << (object ? "true" : "false"); }
 
 		// 可变形参
 		template<Printable T, Printable ...Args>
@@ -55,7 +52,7 @@ namespace ayr
 
 		CString sw_; // 分隔符
 
-		Ostream* ostream;
+		Ostream& ostream;
 	};
 
 
@@ -87,7 +84,7 @@ namespace ayr
 	{
 		using super = Printer<Ostream>;
 	public:
-		ColorPrinter(Ostream* ostream, const char* color = Color::WHITE)
+		ColorPrinter(Ostream& ostream, const char* color = Color::WHITE)
 			: Printer<Ostream>(ostream), color_(color) {}
 
 		~ColorPrinter() = default;
@@ -116,11 +113,12 @@ namespace ayr
 		const char* color_;
 	};
 
-	static Printer<std::ostream> print(&std::cout);
 
-	static ColorPrinter<std::ostream> ayr_warner(&std::cout, Color::YELLOW);
+	static Printer<std::ostream> print{ std::cout };
 
-	static ColorPrinter<std::ostream> ayr_error(&std::cout, Color::RED);
+	static ColorPrinter<std::ostream> ayr_warner{ std::cout, Color::YELLOW };
+
+	static ColorPrinter<std::ostream> ayr_error{ std::cout, Color::RED };
 
 
 	template<Printable T>
@@ -158,5 +156,14 @@ namespace ayr
 			exit(-1);
 		}
 	}
+
+
+#define KeyError(msg) error_assert(false, std::format("KeyError: {}", msg))
+
+#define ValueError(msg) error_assert(false, std::format("ValueError: {}", msg))
+
+#define TypeError(msg) error_assert(false, std::format("TypeError: {}", msg))
+
+#define RuntimeError(msg) error_assert(false, std::format("RuntimeError: {}", msg))
 
 }

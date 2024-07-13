@@ -37,7 +37,7 @@ namespace ayr
 		template<typename... Args>
 		void append(Args&& ...args)
 		{
-			Node* new_node = creator_.create(std::forward<Args>(args)...);
+			Node* new_node = creator_(std::forward<Args>(args)...);
 
 			if (size_ == 0)
 				head_ = new_node;
@@ -122,12 +122,12 @@ namespace ayr
 		using super = SimpleChain<BiNode, C>;
 
 	public:
-		BiSimpleChain(): super() {}
+		BiSimpleChain() : super() {}
 
 		template<typename... Args>
 		void append(Args&& ...args)
 		{
-			BiNode* new_node = super::creator_.create(std::forward<Args>(args)...);
+			BiNode* new_node = super::creator_(std::forward<Args>(args)...);
 			if (super::size_ == 0)
 				super::head_ = new_node;
 			else
@@ -143,7 +143,7 @@ namespace ayr
 		template<typename... Args>
 		void prepend(Args&& ...args)
 		{
-			BiNode* new_node = super::creator_.create(std::forward<Args>(args)...);
+			BiNode* new_node = super::creator_(std::forward<Args>(args)...);
 			if (super::size_ == 0)
 				super::tail_ = new_node;
 			else

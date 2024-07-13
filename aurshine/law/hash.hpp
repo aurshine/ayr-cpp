@@ -1,17 +1,17 @@
-#pragma once
+﻿#pragma once
 #include <law/ayr_concepts.hpp>
 
 
 namespace ayr
 {
 	template<Hashable K>
-	hash_t hash_ayr_impl(const K& key, std::true_type) { return key.__hash__(); }
+	inline hash_t ayr_hash_impl(const K& key, std::true_type) { return key.__hash__(); }
 
 	template<Hashable K>
-	hash_t hash_ayr_impl(const K& key, std::false_type) { return std::hash<K>()(key); }
+	inline hash_t ayr_hash_impl(const K& key, std::false_type) { return std::hash<K>()(key); }
 
 	template<Hashable K>
-	hash_t hash(const K& key) {return hash_ayr_impl(key, std::bool_constant<AyrLikeHashable<K>>{});}
+	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key, std::bool_constant<AyrLikeHashable<K>>{}); }
 
 
 	inline uint32_t decode_fixed32(const char* ptr)
@@ -43,10 +43,9 @@ namespace ayr
 		}
 
 		int dis = end - data;
-		while (dis--)
-		{
-			h += static_cast<uint8_t>(data[dis - 1] << (dis - 1) * 8);
-		}
+		for (int i = 0; i < dis; i++)
+			h += static_cast<uint8_t>(data[i]) << (i * 8);
+
 		h *= m;
 		h ^= (h >> r);
 		return h;

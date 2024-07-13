@@ -25,7 +25,7 @@ namespace ayr
 
 	// 可输出的类型约束概念
 	template<typename T>
-	concept Printable = requires(T t)
+	concept StdPrintable = requires(T t)
 	{
 		{ std::cout << t };
 	};
@@ -37,7 +37,7 @@ namespace ayr
 	};
 
 	template<typename T>
-	concept Printable = AyrPrintable<T> || Printable<T>;
+	concept Printable = AyrPrintable<T> || StdPrintable<T>;
 
 	// 可哈希类型约束概念
 	template<typename T>

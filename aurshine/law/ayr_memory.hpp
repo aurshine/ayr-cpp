@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include <type_traits>
 #include <memory>
 
@@ -8,20 +8,17 @@
 
 namespace ayr
 {
-	// ×Ô¶¯¹ÜÀíÄÚ´æ´´½¨½ÚµãÀàĞÍ
+	// è‡ªåŠ¨ç®¡ç†å†…å­˜åˆ›å»ºèŠ‚ç‚¹ç±»å‹
 	template<typename T>
 	class Creator : Object
 	{
 	public:
 		template<typename... Args>
-		T* create(Args&& ... args)
+		T* operator()(Args&& ... args)
 		{
-			T& newval = created_values_.append(T(std::forward<Args>(args)...));
-
-			return &newval;
+			return &created_values.append(T(std::forward<Args>(args)...));
 		}
-
 	private:
-		DynArray<T> created_values_;
+		DynArray<T> created_values;
 	};
 }

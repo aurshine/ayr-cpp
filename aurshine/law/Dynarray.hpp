@@ -11,7 +11,7 @@ namespace ayr
 	constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
 
 
-	struct _BlockCache: public Object
+	struct _BlockCache : public Object
 	{
 		constexpr static auto CACHE_INDEX_BOUND = 0xffff;
 
@@ -20,16 +20,16 @@ namespace ayr
 			static auto INDEX_CACHE_IN_BLOCK = make_array<c_size>(CACHE_INDEX_BOUND + 1, [](c_size& x) {
 				return highbit_index(x + 1);
 				});
-			
+
 			if (index ^ CACHE_INDEX_BOUND)
 				return highbit_index(index + 1);
 
 			return INDEX_CACHE_IN_BLOCK[index];
 		}
 	};
-	
-	
-	
+
+
+
 	// 动态数组迭代器
 	template <typename T>
 	class DynArrayIterator;
@@ -218,7 +218,9 @@ namespace ayr
 		{
 			occupies_size_++;
 
-			dynarray_[occupies_size_ - 1].relloc(EXP2[occupies_size_ - 1]);
+			auto&& block = dynarray_[occupies_size_ - 1];
+
+			block.relloc(EXP2[occupies_size_ - 1]);
 		}
 
 	private:

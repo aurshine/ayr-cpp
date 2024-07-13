@@ -4,7 +4,7 @@
 #include <iterator>
 #include <string>
 #include <array>
-
+#include <memory>
 
 #include <law/printer.hpp>
 
@@ -30,9 +30,9 @@ namespace ayr
 
 		Array() : arr_(nullptr), size_(0) {}
 
-		Array(c_size size__) : Array() { relloc(size__); }
+		Array(c_size size) : Array() { relloc(size); }
 
-		Array(c_size size__, const T& fill_) : Array(size__) { fill(fill_); }
+		Array(c_size size, const T& fill_) : Array(size) { fill(fill_); }
 
 		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
 
@@ -46,7 +46,6 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			release();
 			relloc(other.size_);
 			fill(other);
 			return *this;
@@ -56,7 +55,6 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			release();
 			swap(other);
 
 			return *this;
@@ -140,6 +138,7 @@ namespace ayr
 			assert_insize(index, -size_, size_ - 1);
 
 			index = (index + size_) % size_;
+
 			return arr_[index];
 		}
 
@@ -239,12 +238,12 @@ namespace ayr
 		std::reverse_iterator<const_iterator> rend() const { return arr_ - 1; }
 
 		// 先释放再分配
-		virtual void relloc(c_size size__)
+		virtual void relloc(c_size size)
 		{
-			assert_insize(size__, 0, MAX_ALLOC);
+			assert_insize(size, 0, MAX_ALLOC);
 			release();
-			if (size__) arr_ = new T[size__]{};
-			size_ = size__;
+			if (size) arr_ = new T[size]{};
+			size_ = size;
 		}
 
 		// 释放内存
@@ -255,7 +254,7 @@ namespace ayr
 			size_ = 0;
 		}
 
-		T* arr_;
+		T* arr_ = nullptr;
 
 		c_size size_;
 	};
@@ -317,4 +316,6 @@ namespace ayr
 
 		return arr;
 	}
+
+
 }
