@@ -1,13 +1,13 @@
-#pragma once
-#include <law/printer.hpp>
+ï»¿#pragma once
+#include <law/detail/printer.hpp>
 #include <law/DynArray.hpp>
 
 
 namespace ayr
 {
-	// NodeÀàĞÍ¸ÅÄîÔ¼Êø
+	// Nodeç±»å‹æ¦‚å¿µçº¦æŸ
 	template<typename T>
-	concept NodeTypeConcept = requires (T a, const T & b, T&& c)
+	concept NodeTypeConcept = requires (T a, const T & b, T && c)
 	{
 		{ T() } -> std::same_as<T>;
 		{ a = b } -> std::same_as<T&>;
@@ -15,18 +15,18 @@ namespace ayr
 		{ a = std::move(c) } -> std::same_as<T&>;
 		{ T(std::move(c)) } -> std::same_as<T>;
 		{ a.next };
-		{a.value};
+		{ a.value };
 	};
 
 
-	// BiNodeÀàĞÍ¸ÅÄîÔ¼Êø
+	// BiNodeç±»å‹æ¦‚å¿µçº¦æŸ
 	template<typename T>
-	concept BiNodeTypeConcept = NodeTypeConcept<T> && requires (T a) {{ a.prev };};
+	concept BiNodeTypeConcept = NodeTypeConcept<T> && requires (T a) { { a.prev }; };
 
 
-	// ¼òµ¥½ÚµãÀàĞÍ£¬ÖµÄÜÇ°ÏòÒÆ¶¯
+	// ç®€å•èŠ‚ç‚¹ç±»å‹ï¼Œå€¼èƒ½å‰å‘ç§»åŠ¨
 	template<typename T>
-	class SimpleNode: public Object
+	class SimpleNode : public Object
 	{
 	public:
 		using Value_t = T;
@@ -61,7 +61,7 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "<Node  " << value << ">";
-			
+
 			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
 			return __str_buffer__;
 		}
@@ -79,7 +79,7 @@ namespace ayr
 	};
 
 
-	// Ë«Ïò½ÚµãÀàĞÍ£¬ÖµÄÜÇ°ºóÒÆ¶¯
+	// åŒå‘èŠ‚ç‚¹ç±»å‹ï¼Œå€¼èƒ½å‰åç§»åŠ¨
 	template<typename T>
 	class BiSimpleNode : public Object
 	{

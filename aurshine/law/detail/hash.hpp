@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include <law/ayr_concepts.hpp>
+#include <law/detail/ayr_concepts.hpp>
+#include <law/detail/ayr.h>
 
 
 namespace ayr

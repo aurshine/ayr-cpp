@@ -1,5 +1,4 @@
-#pragma once
-
+﻿#pragma once
 #include <functional>
 
 #include <law/printer.hpp>

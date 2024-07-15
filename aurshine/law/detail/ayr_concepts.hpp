@@ -3,7 +3,7 @@
 #include <concepts>
 #include <ranges>
 
-#include <law/ayr_traits.hpp>
+#include <law/detail/ayr_traits.hpp>
 
 
 namespace ayr

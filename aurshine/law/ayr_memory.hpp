@@ -1,8 +1,6 @@
 ﻿#pragma once
-#include <type_traits>
-#include <memory>
-
-#include <law/printer.hpp>
+#include <law/detail/ayr_memory.hpp>
+#include <law/detail/ayr_traits.hpp>
 #include <law/DynArray.hpp>
 
 

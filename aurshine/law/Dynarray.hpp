@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include <utility>
 
+#include <law/detail/bunit.hpp>
 #include <law/Array.hpp>
-#include <law/bunit.hpp>
 
 
 namespace ayr
@@ -27,7 +27,6 @@ namespace ayr
 			return INDEX_CACHE_IN_BLOCK[index];
 		}
 	};
-
 
 
 	// 动态数组迭代器

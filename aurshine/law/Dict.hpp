@@ -32,7 +32,7 @@ namespace ayr
 		}
 
 
-		KeyValue& operator=(KeyValue&& other)
+		KeyValue& operator=(KeyValue&& other) noexcept
 		{
 			key = std::move(other.key);
 			value = std::move(other.value);
@@ -56,10 +56,12 @@ namespace ayr
 		using Dist_t = uint32_t;
 
 		using SkipList_t = Array<Dist_t>;
-	public:
-		Dict() : Dict(31) {}
 
-		Dict(c_size bucket_size) : bucket_(bucket_size, nullptr), skip_list_(bucket_size, 0), size_(0) {}
+		constexpr static c_size DEF_BUCKET_SIZE = 31;
+	public:
+		Dict() : Dict(DEF_BUCKET_SIZE) {}
+
+		Dict(c_size bucket_size) : bucket_(std::max(bucket_size, DEF_BUCKET_SIZE), nullptr), skip_list_(std::max(bucket_size, DEF_BUCKET_SIZE), 0), size_(0) {}
 
 		Dict(std::initializer_list<KV_t>&& kv_list) : bucket_(kv_list.size() / 0.7)
 		{
@@ -73,7 +75,7 @@ namespace ayr
 		V& operator[](const K& key)
 		{
 			if (!contains(key)) setkv2bucket(creator_(key, V()));
-			
+
 			return get(key);
 		}
 
@@ -145,9 +147,9 @@ namespace ayr
 		bool contains(const K& key) const
 		{
 			c_size start_index = get_hash_index(bucket_, key);
-			
+
 			int loop = size_;
-			while (loop -- && bucket_[start_index] != nullptr)
+			while (loop-- && bucket_[start_index] != nullptr)
 			{
 				if (bucket_[start_index]->key_equals(key))
 					return true;
@@ -179,7 +181,7 @@ namespace ayr
 
 			setkv2bucket_impl(bucket_, skip_list_, kv);
 			++size_;
-		}		
+		}
 	private:
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }
@@ -200,7 +202,7 @@ namespace ayr
 				}
 
 				start_index = (start_index + 1) % bucket.size();
-				++ skipcnt;
+				++skipcnt;
 			}
 
 			bucket[start_index] = kv;

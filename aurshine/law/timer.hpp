@@ -1,8 +1,7 @@
 ﻿#pragma once
-#include <format>
-#include <string>
 #include <chrono>
 
+#include <law/CString.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
@@ -114,7 +113,7 @@ namespace ayr
 	public:
 		Timer() : dvd(100) {};
 
-		Timer(const CString& sec_option): dvd(0)
+		Timer(const CString& sec_option) : dvd(0)
 		{
 			if (sec_option == "s")
 				dvd = 1000000;

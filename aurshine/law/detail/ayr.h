@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <cstdint>
-#include <type_traits>
 #include <cassert>
 
 
@@ -23,6 +22,6 @@ namespace ayr
 	T None = static_cast<T>(*reinterpret_cast<std::remove_reference_t<T>*>(const_cast<char*>(&__NONE__)));
 
 	template<typename T>
-	inline bool is_none(const T& val) {return &val == &None<T>;}
+	inline bool is_none(const T& val) { return &val == &None<T>; }
 
 }

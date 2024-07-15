@@ -1,9 +1,8 @@
 ﻿#pragma once
-#include <law/Array.hpp>
-#include <law/CString.hpp>
+#include <law/detail/Array.hpp>
+#include <law/detail/CString.hpp>
+#include <law/detail/printer.hpp>
 #include <law/DynArray.hpp>
-#include <law/printer.hpp>
-
 
 
 namespace ayr

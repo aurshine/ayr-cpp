@@ -3,14 +3,14 @@
 #include <sstream>
 #include <typeinfo>
 
-#include <law/_ayr.h>
-#include <law/_str_buffer.hpp>
-#include <law/ayr_concepts.hpp>
+#include <law/detail/ayr.h>
+#include <law/detail/str_buffer.hpp>
+#include <law/detail/ayr_concepts.hpp>
 
 
 namespace ayr
 {
-	class Object: public Ayr
+	class Object : public Ayr
 	{
 	public:
 		// 转换为 字符串 类型
