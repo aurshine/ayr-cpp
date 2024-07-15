@@ -93,7 +93,7 @@ namespace ayr
 				start_index = (start_index + 1) % bucket_.size();
 			}
 
-			KeyError("Key not found");
+			KeyError("Key not found in dict");
 			return None<V>;
 		}
 
@@ -159,6 +159,7 @@ namespace ayr
 		}
 
 
+		// 若key不存在, 则添加一个默认值
 		Dict& setdefault(const K& key, const V& default_value)
 		{
 			if (!contains(key))
