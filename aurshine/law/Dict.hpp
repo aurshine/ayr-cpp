@@ -69,16 +69,48 @@ namespace ayr
 
 		friend class DictIterator<K, V>;
 	public:
-		
+
 
 		Dict() : Dict(DEF_BUCKET_SIZE) {}
 
-		Dict(c_size bucket_size) : bucket_(std::max(bucket_size, DEF_BUCKET_SIZE), nullptr), skip_list_(std::max(bucket_size, DEF_BUCKET_SIZE), 0), size_(0) {}
+		Dict(c_size bucket_size) : bucket_(std::max(bucket_size, DEF_BUCKET_SIZE), nullptr), skip_list_(std::max(bucket_size, DEF_BUCKET_SIZE), 0) {}
 
-		Dict(std::initializer_list<KV_t>&& kv_list) : bucket_(kv_list.size() / 0.7)
+		Dict(std::initializer_list<KV_t>&& kv_list) : Dict(kv_list.size() / 0.7)
 		{
-			for (auto&& kv : kv_list) setkv2bucket(creator_(std::move(kv)));
+			for (auto&& kv : kv_list)
+				setkv2bucket(creator_(std::move(kv)));
 		}
+
+		Dict(const Dict& other) : Dict(other.size() / 0.7)
+		{
+			for (auto&& kv : other)
+				setkv2bucket(creator_(kv));
+		}
+
+		Dict(Dict&& other) : Dict(other.size() / 0.7)
+		{
+			for (auto&& kv : other)
+				setkv2bucket(creator_(std::move(kv)));
+		}
+
+
+		Dict& operator=(const Dict& other)
+		{
+			if (this == &other) return *this;
+		}
+
+
+		Dict& operator=(Dict&& other) noexcept
+		{
+			if (this == &other) return *this;
+
+			this->bucket_ = std::move(other.bucket_);
+			this->skip_list_ = std::move(other.skip_list_);
+			this->keys_ = std::move(other.keys_);
+			this->creator_ = std::move(other.creator_);
+			return *this;
+		}
+
 
 		// key-value对的数量
 		size_t size() const { return keys_.size(); }
@@ -116,7 +148,7 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		const V& get(const K& key) const
 		{
-			KV_t *kv = get_kv(key);
+			KV_t* kv = get_kv(key);
 			if (kv != nullptr) return kv->value;
 
 			KeyError("Key not found in dict");
@@ -126,7 +158,7 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则返回default_value
 		V& get(const K& key, V& default_value)
 		{
-			KV_t *kv = get_kv(key);
+			KV_t* kv = get_kv(key);
 			if (kv != nullptr) return kv->value;
 
 			return default_value;
@@ -135,7 +167,7 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则返回default_value
 		const V& get(const K& key, const V& default_value) const
 		{
-			KV_t *kv = get_kv(key);
+			KV_t* kv = get_kv(key);
 			if (kv != nullptr) return kv->value;
 
 			return default_value;
@@ -160,7 +192,7 @@ namespace ayr
 		}
 
 		Iterator begin() { return Iterator(*this, 0); }
-		
+
 		Iterator end() { return Iterator(*this, size()); }
 
 	private:
@@ -235,15 +267,15 @@ namespace ayr
 	{
 		using Dict_t = Dict<K, V>;
 	public:
-		DictIterator(Dict<K, V>& dict) : dict_(dict), index_(0) {}
+		DictIterator(Dict<K, V>& dict, c_size index = 0) : dict_(dict), index_(index) {}
 
 		DictIterator(const DictIterator& other) : dict_(other.dict_), index_(other.index_) {}
 
 		DictIterator(DictIterator&& other) : dict_(other.dict_), index_(other.index_) {}
 
-		Dict_t::KV_t& operator*() const { return *dict_.get_kv(keys_[index_]); }
+		Dict_t::KV_t& operator*() const { return *dict_.get_kv(dict_.keys_[index_]); }
 
-		Dict_t::KV_t* operator->() const { return dict_.get_kv(keys_[index_]); }
+		Dict_t::KV_t* operator->() const { return dict_.get_kv(dict_.keys_[index_]); }
 
 		DictIterator& operator++()
 		{

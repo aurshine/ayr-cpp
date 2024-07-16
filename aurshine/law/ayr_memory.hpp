@@ -11,6 +11,20 @@ namespace ayr
 	class Creator : Object
 	{
 	public:
+		Creator() = default;
+
+		Creator(const Creator&) = delete;
+
+		Creator& operator=(const Creator&) = delete;
+
+		Creator(Creator&& other) noexcept : created_values(std::move(other.created_values)) {};
+
+		Creator& operator=(Creator&& other) noexcept
+		{
+			created_values = std::move(other.created_values);
+			return *this;
+		}
+
 		template<typename... Args>
 		T* operator()(Args&& ... args)
 		{

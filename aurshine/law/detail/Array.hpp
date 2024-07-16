@@ -52,8 +52,9 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			swap(other);
+			release();
 
+			this->swap(other);
 			return *this;
 		}
 

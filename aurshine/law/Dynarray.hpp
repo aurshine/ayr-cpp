@@ -61,7 +61,12 @@ namespace ayr
 
 		DynArray& operator=(DynArray&& other)
 		{
-			if (this != &other) swap(other);
+			if (this == &other)
+				return *this;
+
+			dynarray_ = std::move(other.dynarray_);
+			size_ = other.size_;
+			occupies_size_ = other.occupies_size_;
 			return *this;
 		}
 
