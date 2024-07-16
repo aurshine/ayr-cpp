@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <law/Array.hpp>
-#include <law/hash.hpp>
+#include <law/detail/hash.hpp>
 
 
 namespace ayr
@@ -45,10 +45,16 @@ namespace ayr
 	};
 
 
+	// 字典迭代器
+	template<Hashable K, typename V>
+	class DictIterator;
+
+
 	// 哈希字典
 	template<Hashable K, typename V, typename C = Creator<KeyValue<K, V>>>
 	class Dict : public Object
 	{
+	public:
 		using KV_t = KeyValue<K, V>;
 
 		using Bucket_t = Array<KV_t*>;
@@ -57,8 +63,14 @@ namespace ayr
 
 		using SkipList_t = Array<Dist_t>;
 
+		using Iterator = DictIterator<K, V>;
+
 		constexpr static c_size DEF_BUCKET_SIZE = 31;
+
+		friend class DictIterator<K, V>;
 	public:
+		
+
 		Dict() : Dict(DEF_BUCKET_SIZE) {}
 
 		Dict(c_size bucket_size) : bucket_(std::max(bucket_size, DEF_BUCKET_SIZE), nullptr), skip_list_(std::max(bucket_size, DEF_BUCKET_SIZE), 0), size_(0) {}
@@ -69,7 +81,19 @@ namespace ayr
 		}
 
 		// key-value对的数量
-		size_t size() const { return size_; }
+		size_t size() const { return keys_.size(); }
+
+		// key是否存在于字典中
+		bool contains(const K& key) const { return get_kv(key) != nullptr; }
+
+		// 得到字典中所有的key
+		Array<K> keys() const { return keys_.to_array(); }
+
+		// 内存由该Dict内部管理, 创建一个KV_t对象，返回其指针
+		KV_t* mk_kv(const K& key, const V& value) { return creator_(key, value); }
+
+		// 重载[]运算符, key 必须存在, 否则KeyError
+		const V& operator[](const K& key) const { return get(key); }
 
 		// 重载[]运算符, 若key不存在, 则创建并返回一个默认值
 		V& operator[](const K& key)
@@ -79,21 +103,11 @@ namespace ayr
 			return get(key);
 		}
 
-		// 重载[]运算符, key 必须存在, 否则KeyError
-		const V& operator[](const K& key) const { return get(key); }
-
-
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		V& get(const K& key)
 		{
-			c_size start_index = get_hash_index(bucket_, key);
-			while (bucket_[start_index] != nullptr)
-			{
-				if (bucket_[start_index]->key_equals(key))
-					return bucket_[start_index]->value;
-
-				start_index = (start_index + 1) % bucket_.size();
-			}
+			KV_t* kv = get_kv(key);
+			if (kv != nullptr) return kv->value;
 
 			KeyError("Key not found in dict");
 			return None<V>;
@@ -102,14 +116,8 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		const V& get(const K& key) const
 		{
-			c_size start_index = get_hash_index(bucket_, key);
-			while (bucket_[start_index] != nullptr)
-			{
-				if (bucket_[start_index]->key_equals(key))
-					return bucket_[start_index]->value;
-
-				start_index = (start_index + 1) % bucket_.size();
-			}
+			KV_t *kv = get_kv(key);
+			if (kv != nullptr) return kv->value;
 
 			KeyError("Key not found in dict");
 			return None<V>;
@@ -118,74 +126,62 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则返回default_value
 		V& get(const K& key, V& default_value)
 		{
-			c_size start_index = get_hash_index(bucket_, key);
-			while (bucket_[start_index] != nullptr)
-			{
-				if (bucket_[start_index]->key_equals(key))
-					return bucket_[start_index]->value;
-
-				start_index = (start_index + 1) % bucket_.size();
-			}
+			KV_t *kv = get_kv(key);
+			if (kv != nullptr) return kv->value;
 
 			return default_value;
 		}
 
+		// 获得key对应的value, 若key不存在, 则返回default_value
 		const V& get(const K& key, const V& default_value) const
 		{
-			c_size start_index = get_hash_index(bucket_, key);
-			while (bucket_[start_index] != nullptr)
-			{
-				if (bucket_[start_index]->key_equals(key))
-					return bucket_[start_index]->value;
-
-				start_index = (start_index + 1) % bucket_.size();
-			}
+			KV_t *kv = get_kv(key);
+			if (kv != nullptr) return kv->value;
 
 			return default_value;
 		}
-
-		bool contains(const K& key) const
-		{
-			c_size start_index = get_hash_index(bucket_, key);
-
-			int loop = size_;
-			while (loop-- && bucket_[start_index] != nullptr)
-			{
-				if (bucket_[start_index]->key_equals(key))
-					return true;
-
-				start_index = (start_index + 1) % bucket_.size();
-			}
-
-			return false;
-		}
-
 
 		// 若key不存在, 则添加一个默认值
 		Dict& setdefault(const K& key, const V& default_value)
 		{
-			if (!contains(key))
-				setkv2bucket(creator_(key, default_value));
+			if (!contains(key)) setkv2bucket(creator_(key, default_value));
 
 			return *this;
 		}
 
-		// 内存由该Dict管理, 创建一个KV_t对象，返回其指针
-		KV_t* mk_kv(const K& key, const V& value) { return creator_(key, value); }
-
 		// 向字典中添加元素，不会检查key是否已经存在
 		void setkv2bucket(KV_t* kv)
 		{
-			if (1.0 * size_ / bucket_.size() > 0.6)
-				expand(bucket_.size() * 2);
+			if (1.0 * size() / bucket_.size() > 0.6) expand(bucket_.size() * 2);
 
 			setkv2bucket_impl(bucket_, skip_list_, kv);
-			++size_;
+
+			keys_.append(kv->key);
 		}
+
+		Iterator begin() { return Iterator(*this, 0); }
+		
+		Iterator end() { return Iterator(*this, size()); }
+
 	private:
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }
 
+
+		// 根据key获得存在dict里的KeyValue对象的指针, key不存在返回nullptr
+		KV_t* get_kv(const K& key) const
+		{
+			c_size start_index = get_hash_index(bucket_, key);
+			while (bucket_[start_index] != nullptr)
+			{
+				if (bucket_[start_index]->key_equals(key))
+					return bucket_[start_index];
+
+				start_index = (start_index + 1) % bucket_.size();
+			}
+
+			return nullptr;
+		}
 
 		// 向bucket中添加元素, 并对照更新skip_list
 		void setkv2bucket_impl(Bucket_t& bucket, SkipList_t& skip_list, KV_t* kv)
@@ -228,8 +224,44 @@ namespace ayr
 
 		SkipList_t skip_list_; // 记录每个key离自己原本的位置的距离
 
-		size_t size_;
+		DynArray<K> keys_; // 用于迭代
 
 		C creator_;
+	};
+
+
+	template<Hashable K, typename V>
+	class DictIterator : public Object
+	{
+		using Dict_t = Dict<K, V>;
+	public:
+		DictIterator(Dict<K, V>& dict) : dict_(dict), index_(0) {}
+
+		DictIterator(const DictIterator& other) : dict_(other.dict_), index_(other.index_) {}
+
+		DictIterator(DictIterator&& other) : dict_(other.dict_), index_(other.index_) {}
+
+		Dict_t::KV_t& operator*() const { return *dict_.get_kv(keys_[index_]); }
+
+		Dict_t::KV_t* operator->() const { return dict_.get_kv(keys_[index_]); }
+
+		DictIterator& operator++()
+		{
+			++index_;
+			return *this;
+		}
+
+		DictIterator operator++(int)
+		{
+			DictIterator temp = *this;
+			++index_;
+			return temp;
+		}
+
+		bool operator!=(const DictIterator& other) const { return index_ != other.index_; }
+	private:
+		Dict_t& dict_;
+
+		c_size index_;
 	};
 }

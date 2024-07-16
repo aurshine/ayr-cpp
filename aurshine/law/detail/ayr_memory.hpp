@@ -4,11 +4,11 @@
 namespace ayr
 {
 	template<typename T>
-	inline T* allocate(size_t size) { return ::operator new T[size]; }
+	inline T* allocate(size_t size) { return reinterpret_cast<T*>(::operator new(sizeof(T) * size)); }
 
 	// 释放allocate分配的内存
 	template<typename T>
-	inline void deallocate(T* ptr) { operator delete[] ptr; }
+	inline void deallocate(T* ptr) { ::operator delete[](ptr); }
 
 
 	template<typename T, typename... Args>
