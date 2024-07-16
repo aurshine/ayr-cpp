@@ -195,6 +195,9 @@ namespace ayr
 
 		Iterator end() { return Iterator(*this, size()); }
 
+		const Iterator begin() const { return Iterator(*this, 0); }
+
+		const Iterator end() const { return Iterator(*this, size()); }
 	private:
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }
@@ -273,14 +276,17 @@ namespace ayr
 
 		DictIterator(DictIterator&& other) : dict_(other.dict_), index_(other.index_) {}
 
-		Dict_t::KV_t& operator*() const { return *dict_.get_kv(dict_.keys_[index_]); }
+		Dict_t::KV_t& operator*() { return *dict_.get_kv(dict_.keys_[index_]); }
 
-		Dict_t::KV_t* operator->() const { return dict_.get_kv(dict_.keys_[index_]); }
+		Dict_t::KV_t const& operator*() const { return *dict_.get_kv(dict_.keys_[index_]); }
 
-		DictIterator& operator++()
+		Dict_t::KV_t* operator->() { return dict_.get_kv(dict_.keys_[index_]); }
+
+		Dict_t::KV_t const* operator->() const { return dict_.get_kv(dict_.keys_[index_]); }
+
+		DictIterator operator++()
 		{
-			++index_;
-			return *this;
+			return DictIterator(dict_, index_ + 1);
 		}
 
 		DictIterator operator++(int)
@@ -294,6 +300,6 @@ namespace ayr
 	private:
 		Dict_t& dict_;
 
-		c_size index_;
+		mutable c_size index_;
 	};
 }
