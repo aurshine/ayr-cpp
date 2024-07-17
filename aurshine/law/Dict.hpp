@@ -181,16 +181,6 @@ namespace ayr
 			return *this;
 		}
 
-		// 向字典中添加元素，不会检查key是否已经存在
-		void setkv2bucket(KV_t* kv)
-		{
-			if (1.0 * size() / bucket_.size() > 0.6) expand(bucket_.size() * 2);
-
-			setkv2bucket_impl(bucket_, skip_list_, kv);
-
-			keys_.append(kv->key);
-		}
-
 		Iterator begin() { return Iterator(*this, 0); }
 
 		Iterator end() { return Iterator(*this, size()); }
@@ -238,6 +228,16 @@ namespace ayr
 
 			bucket[start_index] = kv;
 			skip_list[start_index] = skipcnt;
+		}
+
+		// 向字典中添加元素，不会检查key是否已经存在
+		void setkv2bucket(KV_t* kv)
+		{
+			if (1.0 * size() / bucket_.size() > 0.6) expand(bucket_.size() * 2);
+
+			setkv2bucket_impl(bucket_, skip_list_, kv);
+
+			keys_.append(kv->key);
 		}
 
 		void expand(size_t expand_size)
