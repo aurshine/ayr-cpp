@@ -17,7 +17,7 @@ namespace ayr
 
 		static c_size get(c_size index)
 		{
-			static auto INDEX_CACHE_IN_BLOCK = make_array<c_size>(CACHE_INDEX_BOUND + 1, [](c_size& x) {
+			static Array<c_size> INDEX_CACHE_IN_BLOCK = make_array<c_size>(CACHE_INDEX_BOUND + 1, [](c_size& x) {
 				return highbit_index(x + 1);
 				});
 
@@ -29,29 +29,22 @@ namespace ayr
 	};
 
 
-	// 动态数组迭代器
-	template <typename T>
-	class DynArrayIterator;
-
-
 	// 动态数组
 	template<typename T>
-	class DynArray : Object
+	class DynArray: public IndexContainer<DynArray<T>, T>
 	{
+		using self = DynArray<T>;
+
+		using super = IndexContainer<DynArray<T>, T>;
+
 	public:
-		friend class DynArrayIterator<T>;
-
-		using iterator = DynArrayIterator<T>;
-
-		using const_iterator = const DynArrayIterator<T>;
-
 		DynArray() : dynarray_(EXP2.size()), size_(0), occupies_size_(0) {}
 
-		DynArray(const DynArray& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
+		DynArray(const self& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 
-		DynArray(DynArray&& other) : DynArray() { swap(other); }
+		DynArray(self&& other) : self() { swap(other); }
 
-		DynArray& operator=(const DynArray& other)
+		self& operator=(const self& other)
 		{
 			dynarray_ = other.dynarray_;
 			size_ = other.size_;
@@ -59,7 +52,7 @@ namespace ayr
 			return *this;
 		}
 
-		DynArray& operator=(DynArray&& other)
+		self& operator=(self&& other)
 		{
 			if (this == &other)
 				return *this;
@@ -70,7 +63,7 @@ namespace ayr
 			return *this;
 		}
 
-		void swap(DynArray& other)
+		void swap(self& other)
 		{
 			dynarray_.swap(other.dynarray_);
 			std::swap(size_, other.size_);
@@ -158,7 +151,7 @@ namespace ayr
 		Array<T> to_array() const
 		{
 			Array<T> arr(size_);
-			arr.fill(begin(), end());
+			arr.fill(super::begin(), super::end());
 			return arr;
 		}
 
@@ -180,7 +173,7 @@ namespace ayr
 		}
 
 		// 容器的比较方式
-		cmp_t __cmp__(const DynArray& other) const
+		cmp_t __cmp__(const self& other) const
 		{
 			for (c_size i = 0; i < std::min(occupies_size_, other.occupies_size_); ++i)
 			{
@@ -191,14 +184,7 @@ namespace ayr
 			return occupies_size_ - other.occupies_size_;
 		}
 
-		// 迭代器
-		iterator begin() { return iterator(this); }
-
-		iterator end() { return iterator(this, size_); }
-
-		std::reverse_iterator<const_iterator> rbegin() const { return iterator(this, size_ - 1); }
-
-		std::reverse_iterator<const_iterator> rend() const { return iterator(this, -1); }
+		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
 	protected:
 		// 对index范围不做检查
@@ -231,84 +217,5 @@ namespace ayr
 		Array<Array<T>> dynarray_;
 
 		c_size size_, occupies_size_;
-	};
-
-
-	template <typename T>
-	class DynArrayIterator : public Object
-	{
-	public:
-		DynArrayIterator(const DynArray<T>* dynarray, c_size cur = 0) : dynarray_(const_cast<DynArray<T>*>(dynarray)), cur_(cur) {}
-
-		DynArrayIterator(const DynArrayIterator<T>& other) : dynarray_(other.dynarray_), cur_(other.cur_) {}
-
-		DynArrayIterator& operator==(const DynArrayIterator<T>& other) const
-		{
-			this->dynarray_ = other.dynarray_;
-			this->cur_ = other.cur_;
-			return *this;
-		}
-
-		DynArrayIterator operator++(int)
-		{
-			auto temp = *this;
-			++cur_;
-			return temp;
-		}
-
-		DynArrayIterator& operator++()
-		{
-			++cur_;
-			return *this;
-		}
-
-		DynArrayIterator operator--(int)
-		{
-			auto temp = *this;
-			--cur_;
-			return temp;
-		}
-
-		DynArrayIterator& operator--()
-		{
-			++cur_;
-			return *this;
-		}
-
-		DynArrayIterator operator+(c_size n) const { return DynArrayIterator(dynarray_, cur_ + n); }
-
-		DynArrayIterator& operator+=(c_size n)
-		{
-			cur_ += n;
-			return *this;
-		}
-
-		DynArrayIterator operator-(c_size n) const { return DynArrayIterator(dynarray_, cur_ - n); }
-
-		DynArrayIterator& operator-=(c_size n)
-		{
-			cur_ -= n;
-			return *this;
-		}
-
-		T& operator*() const { return dynarray_->operator[](cur_); }
-
-		T* operator->() const { return &dynarray_->operator[](cur_); }
-
-		c_size operator-(const DynArrayIterator<T>& other) const { return cur_ - other.cur_; }
-
-		cmp_t __cmp__(const DynArrayIterator<T>& other) const
-		{
-			if (dynarray_ == other.dynarray_)
-				return cur_ - other.cur_;
-			return dynarray_ - other.dynarray_;
-		}
-
-		bool operator!=(const DynArrayIterator<T>& other) const { return __cmp__(other) != 0; }
-
-	private:
-		DynArray<T>* dynarray_;
-
-		c_size cur_;
 	};
 }

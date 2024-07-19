@@ -4,6 +4,7 @@
 #include <array>
 
 #include <law/detail/printer.hpp>
+#include <law/detail/IndexIterator.hpp>
 
 
 namespace ayr
@@ -18,12 +19,14 @@ namespace ayr
 #endif
 
 	template<typename T>
-	class Array : public Object
+	class Array : public IndexContainer<Array<T>, T>
 	{
-	public:
-		using iterator = T*;
+		using self = Array<T>;
 
-		using const_iterator = const T*;
+	public:
+		/*using iterator = T*;
+
+		using const_iterator = const T*;*/
 
 		Array() : arr_(nullptr), size_(0) {}
 
@@ -33,13 +36,13 @@ namespace ayr
 
 		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
 
-		Array(const Array& other) : Array(other.size_) { fill(other); }
+		Array(const Array& other, std::source_location loc = std::source_location::current()) : Array(other.size_) { print(loc.file_name(), loc.line()); fill(other); }
 
 		Array(Array&& other) : Array() { swap(other); }
 
 		~Array() { release(); }
 
-		Array& operator= (const Array& other)
+		self& operator= (const self& other)
 		{
 			if (this == &other) return *this;
 
@@ -48,7 +51,7 @@ namespace ayr
 			return *this;
 		}
 
-		Array& operator= (Array&& other)
+		self& operator= (self&& other)
 		{
 			if (this == &other) return *this;
 
@@ -58,13 +61,13 @@ namespace ayr
 			return *this;
 		}
 
-		void swap(Array& other)
+		void swap(self& other)
 		{
 			std::swap(arr_, other.arr_);
 			std::swap(size_, other.size_);
 		}
 
-		void swap(Array&& other) { swap(other); }
+		void swap(self&& other) { swap(other); }
 
 		// fill_val 填充值
 		void fill(const T& fill_val, c_size pos = 0)
@@ -85,30 +88,13 @@ namespace ayr
 			}
 		}
 
-		// 以迭代器填充元素, 未填满使用默认值
-		template<typename It>
-		void fill(It begin, It end, const T& default_, c_size pos = 0)
-		{
-			while (pos < size_ && begin != end)
-			{
-				arr_[pos++] = *begin;
-				++begin;
-			}
-
-			fill(default_, pos);
-		}
-
 		// 以Array对象填充元素
-		void fill(const Array& other, c_size pos = 0)
+		void fill(const self& other, c_size pos = 0)
 		{
+			
 			fill(other.begin(), other.end(), pos);
 		}
 
-		// 以Array对象填充元素, 未填满使用默认值
-		void fill(const Array& other, const T& default_, c_size pos = 0)
-		{
-			fill(other.begin(), other.end(), default_, pos);
-		}
 
 		// 寻找元素返回下标
 		c_size find(const T& find_item, c_size pos = 0) const
@@ -150,7 +136,7 @@ namespace ayr
 
 		// 切片[l, r]
 		// 特殊的 arr = [1, 2, 3, 4] => arr.slice(2, 1) = [3, 4, 1, 2]
-		Array slice(c_size l, c_size r) const
+		self slice(c_size l, c_size r) const
 		{
 			assert_insize(l, -size_, size_ - 1);
 			assert_insize(r, -size_, size_ - 1);
@@ -164,7 +150,7 @@ namespace ayr
 			else if (ret_size == 0)
 				ret_size = size_;
 
-			Array<T> ret(ret_size);
+			self ret(ret_size);
 
 			for (c_size i = 0; i < ret.size_; ++i)
 				ret.arr_[i] = arr_[(l + i) % size_];
@@ -190,7 +176,7 @@ namespace ayr
 		}
 
 		// 比较逻辑
-		c_size __cmp__(const Array<T>& other) const
+		c_size __cmp__(const self& other) const
 		{
 			for (c_size i = 0; i < std::min(size_, other.size_); ++i)
 			{
@@ -218,22 +204,8 @@ namespace ayr
 		// 元素是否存在
 		bool contains(const T& item) const { return find(item) != -1; }
 
-		// 迭代器
-		iterator begin() { return arr_; }
-
-		iterator end() { return arr_ + size_; }
-
-		const_iterator begin() const { return arr_; }
-
-		const_iterator end() const { return arr_ + size_; }
-
-		std::reverse_iterator<iterator> rbegin() { return arr_ + size_ - 1; }
-
-		std::reverse_iterator<iterator> rend() { return arr_ - 1; }
-
-		std::reverse_iterator<const_iterator> rbegin() const { return arr_ + size_ - 1; }
-
-		std::reverse_iterator<const_iterator> rend() const { return arr_ - 1; }
+		// 返回迭代容器
+		self& __iter_container__() const override { return const_cast<self&>(*this); }
 
 		// 先释放再分配
 		virtual void relloc(c_size size)

@@ -166,4 +166,5 @@ namespace ayr
 
 #define RuntimeError(msg) error_assert(false, std::format("RuntimeError: {}", msg))
 
+#define NotImplementedError(msg) error_assert(false, std::format("NotImplementedError: {}", msg))
 }

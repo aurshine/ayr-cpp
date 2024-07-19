@@ -45,15 +45,17 @@ namespace ayr
 	};
 
 
-	// 字典迭代器
-	template<Hashable K, typename V>
-	class DictIterator;
+	template<Hashable K, typename V, typename Creator>
+	class DictGetItem;
 
 
 	// 哈希字典
 	template<Hashable K, typename V, typename C = Creator<KeyValue<K, V>>>
-	class Dict : public Object
+	class Dict : public IndexContainer<Dict<K, V, C>, KeyValue<K, V>, DictGetItem<K, V, C>>
 	{
+		using self = Dict<K, V, C>;
+
+		using super = IndexContainer<self, KeyValue<K, V>>;
 	public:
 		using KV_t = KeyValue<K, V>;
 
@@ -63,11 +65,9 @@ namespace ayr
 
 		using SkipList_t = Array<Dist_t>;
 
-		using Iterator = DictIterator<K, V>;
-
 		constexpr static c_size DEF_BUCKET_SIZE = 31;
 
-		friend class DictIterator<K, V>;
+		friend class DictGetItem<K, V, C>;
 	public:
 
 
@@ -113,7 +113,7 @@ namespace ayr
 
 
 		// key-value对的数量
-		size_t size() const { return keys_.size(); }
+		c_size size() const { return keys_.size(); }
 
 		// key是否存在于字典中
 		bool contains(const K& key) const { return get_kv(key) != nullptr; }
@@ -180,14 +180,6 @@ namespace ayr
 
 			return *this;
 		}
-
-		Iterator begin() { return Iterator(*this, 0); }
-
-		Iterator end() { return Iterator(*this, size()); }
-
-		const Iterator begin() const { return Iterator(*this, 0); }
-
-		const Iterator end() const { return Iterator(*this, size()); }
 	private:
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }
@@ -254,6 +246,7 @@ namespace ayr
 			new_bucket.fill(nullptr);
 		}
 
+		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 	private:
 		Bucket_t bucket_;
 
@@ -264,42 +257,18 @@ namespace ayr
 		C creator_;
 	};
 
-
-	template<Hashable K, typename V>
-	class DictIterator : public Object
+	template<Hashable K, typename V, typename Creator>
+	class DictGetItem
 	{
-		using Dict_t = Dict<K, V>;
+		using C = Dict<K, V, Creator>;
 	public:
-		DictIterator(Dict<K, V>& dict, c_size index = 0) : dict_(dict), index_(index) {}
 
-		DictIterator(const DictIterator& other) : dict_(other.dict_), index_(other.index_) {}
+		static KeyValue<K, V>& getitem(C& container, size_t index) { return *container.get_kv(container.keys_[index]); }
 
-		DictIterator(DictIterator&& other) : dict_(other.dict_), index_(other.index_) {}
+		static KeyValue<K, V>* getptr(C& container, size_t index) { return container.get_kv(container.keys_[index]); }
 
-		Dict_t::KV_t& operator*() { return *dict_.get_kv(dict_.keys_[index_]); }
+		static const KeyValue<K, V>& getcitem(const C& container, size_t index) { return *container.get_kv(container.keys_[index]); }
 
-		Dict_t::KV_t const& operator*() const { return *dict_.get_kv(dict_.keys_[index_]); }
-
-		Dict_t::KV_t* operator->() { return dict_.get_kv(dict_.keys_[index_]); }
-
-		Dict_t::KV_t const* operator->() const { return dict_.get_kv(dict_.keys_[index_]); }
-
-		DictIterator operator++()
-		{
-			return DictIterator(dict_, index_ + 1);
-		}
-
-		DictIterator operator++(int)
-		{
-			DictIterator temp = *this;
-			++index_;
-			return temp;
-		}
-
-		bool operator!=(const DictIterator& other) const { return index_ != other.index_; }
-	private:
-		Dict_t& dict_;
-
-		mutable c_size index_;
+		static const KeyValue<K, V>* getcptr(const C& container, size_t index) { return container.get_kv(container.keys_[index]); }
 	};
 }

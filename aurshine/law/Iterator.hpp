@@ -1,9 +1,4 @@
-#include <law/Printer.hpp>
+#pragma once
 
-namespace ayr
-{
-	class Iterator: public Object
-	{
-	public:
-	};
-}
+#include <law/detail/IndexIterator.hpp>
+

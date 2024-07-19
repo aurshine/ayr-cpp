@@ -12,8 +12,9 @@ namespace ayr
 
 
 	template<Char T>
-	class AString : public Object
+	class AString : public IndexContainer<AString<T>, T>
 	{
+		using self = AString<T>;
 	public:
 		AString() {}
 
@@ -27,25 +28,25 @@ namespace ayr
 
 		AString(CString&& c_str) : AString(c_str.str) { c_str.str = nullptr; }
 
-		AString(const AString& other) : astring_(other.astring_) {}
+		AString(const self& other) : astring_(other.astring_) {}
 
-		AString(AString&& other) : AString() { swap(other); }
+		AString(self&& other) : AString() { swap(other); }
 
 		~AString() {}
 
-		AString& operator=(const AString& other)
+		AString& operator=(const self& other)
 		{
 			if (this != &other) astring_ = other.astring_;
 			return *this;
 		}
 
-		AString& operator=(AString&& other)
+		AString& operator=(self&& other)
 		{
 			if (this != &other) astring_ = std::move(other.astring_);
 			return *this;
 		}
 
-		void swap(AString& other)
+		void swap(self& other)
 		{
 			astring_.swap(other.astring_);
 		}
@@ -62,11 +63,13 @@ namespace ayr
 
 		bool contains(const T& ch) const { return astring_.contains(ch); }
 
-		bool contains(const AString& other) const { return find(other, 0) != -1; }
+		bool contains(const self& other) const { return find(other, 0) != -1; }
 
-		int __cmp__(const AString& other) const { return astring_.__cmp__(other.astring_); }
+		int __cmp__(const self& other) const { return astring_.__cmp__(other.astring_); }
 
 		size_t __hash__() const { return char_hash(astring_.arr_); }
+
+		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
 		const char* __str__() const
 		{
@@ -78,7 +81,7 @@ namespace ayr
 
 		c_size find(const std::function<bool(const T&)>& check, c_size pos = 0) const { return astring_.find(check, pos); }
 
-		c_size find(const AString& other, c_size pos = 0) const
+		c_size find(const self& other, c_size pos = 0) const
 		{
 			assert_insize(pos, 0, size() - 1);
 
@@ -100,7 +103,7 @@ namespace ayr
 			return -1;
 		}
 
-		DynArray<c_size> find_all(const AString& other, c_size pos = 0) const
+		DynArray<c_size> find_all(const self& other, c_size pos = 0) const
 		{
 			DynArray<c_size> ret;
 
@@ -119,9 +122,9 @@ namespace ayr
 		}
 
 		// 切片[l, r]
-		AString slice(c_size l, c_size r) const
+		self slice(c_size l, c_size r) const
 		{
-			AString ret;
+			self ret;
 			ret.astring_.swap(astring_.slice(l, r));
 
 			return ret;
@@ -136,9 +139,9 @@ namespace ayr
 			return SubString(astring_.arr_ + l, r - l + 1);
 		}
 
-		AString operator+(const AString& other) const
+		self operator+(const self& other) const
 		{
-			AString result{};
+			self result{};
 			Array<T> temp(astring_.size() + other.astring_.size());
 			temp.fill(astring_);
 			temp.fill(other.astring_, astring_.size());
@@ -147,7 +150,7 @@ namespace ayr
 			return result;
 		}
 
-		bool startwith(const AString& other) const
+		bool startwith(const self& other) const
 		{
 			if (size() < other.size())	return false;
 
@@ -158,7 +161,7 @@ namespace ayr
 			return true;
 		}
 
-		bool endwith(const AString& other) const
+		bool endwith(const self& other) const
 		{
 			if (size() < other.size())	return false;
 			for (c_size i = other.size() - 1; i >= 0; --i)
@@ -168,25 +171,25 @@ namespace ayr
 			return true;
 		}
 
-		AString upper() const
+		self upper() const
 		{
-			AString ret = *this;
+			self ret = *this;
 			for (c_size i = 0; i < ret.size(); ++i)
 				if (ret[i] >= 'a' && ret[i] <= 'z')
 					ret[i] += 'A' - 'a';
 			return ret;
 		}
 
-		AString lower() const
+		self lower() const
 		{
-			AString ret = *this;
+			self ret = *this;
 			for (c_size i = 0; i < ret.size(); ++i)
 				if (ret[i] >= 'A' && ret[i] <= 'Z')
 					ret[i] += 'a' - 'A';
 			return ret;
 		}
 
-		AString strip() const
+		self strip() const
 		{
 			c_size l = 0, r = size();
 			while (l < r && isspace(astring_[l])) l++;
@@ -195,7 +198,7 @@ namespace ayr
 			return slice(l, r);
 		}
 
-		AString lstrip() const
+		self lstrip() const
 		{
 			c_size l = 0, r = size();
 			while (l < r && isspace(astring_[l])) l++;
@@ -203,7 +206,7 @@ namespace ayr
 			return slice(l, r);
 		}
 
-		AString rstrip() const
+		self rstrip() const
 		{
 			c_size l = 0, r = size();
 			while (r > l && isspace(astring_[r - 1])) r--;
@@ -211,7 +214,7 @@ namespace ayr
 			return slice(l, r);
 		}
 
-		AString join(const Array<AString>& join_strs) const
+		self join(const Array<self>& join_strs) const
 		{
 			c_size ret_size = (join_strs.size() - 1) * size();
 			for (c_size i = 0; i < join_strs.size(); ++i)
@@ -230,12 +233,12 @@ namespace ayr
 				j += join_strs[i].size();
 			}
 
-			AString ret;
+			self ret;
 			ret.astring_.swap(result);
 			return ret;
 		}
 
-		AString replace(const AString& old_, const AString& new_) const
+		self replace(const self& old_, const self& new_) const
 		{
 			DynArray<c_size> poses = find_all(old_);
 
@@ -257,14 +260,14 @@ namespace ayr
 			if (cur_pos < size())
 				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + size(), temp_length);
 
-			AString ret;
+			self ret;
 			ret.astring_.swap(temp);
 			return ret;
 		}
 
-		Array<AString> split() const
+		Array<self> split() const
 		{
-			DynArray<AString> das;
+			DynArray<self> das;
 
 			c_size i = 0;
 			while (i < size())
@@ -279,9 +282,9 @@ namespace ayr
 			return das.to_array();
 		}
 
-		Array<AString> split(const AString& other) const
+		Array<self> split(const self& other) const
 		{
-			DynArray<AString> das;
+			DynArray<self> das;
 			c_size last_pos = 0;
 
 			for (auto pos : find_all(other))
@@ -297,22 +300,6 @@ namespace ayr
 
 			return das.to_array();
 		}
-
-		T* begin() { return astring_.begin(); }
-
-		T* end() { return astring_.end(); }
-
-		const T* begin() const { return astring_.begin(); }
-
-		const T* end() const { return astring_.end(); }
-
-		std::reverse_iterator<T*> rbegin() { return astring_.rbegin(); }
-
-		std::reverse_iterator<T*> rend() { return astring_.rend(); }
-
-		const std::reverse_iterator<T*> rbegin() const { return astring_.rbegin(); }
-
-		const std::reverse_iterator<T*> rend() const { return astring_.rend(); }
 	private:
 		Array<T> astring_;
 	};
