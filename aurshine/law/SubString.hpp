@@ -4,8 +4,9 @@
 namespace ayr
 {
 	template<Char T>
-	class SubString : Object
+	class SubString : public IndexContainer<SubString<T>, T>
 	{
+		using self = SubString<T>;
 	public:
 		SubString(const T* str, size_t size) : substr_(str), size_(size) {}
 		
@@ -50,37 +51,15 @@ namespace ayr
 
 		cmp_t __cmp__(const SubString& other) const
 		{
-			for (size_t i = 0; substr_[i] || other.substr_[i; i++)
+			for (size_t i = 0; substr_[i] || other.substr_[i]; i++)
 				if (substr_[i] != other.substr_[i])
 					return substr_[i] - other.substr_[i];
 			return 0;
 		}
 
-		size_t __hash__() const
-		{
-			static size_t P = 1331;
-			size_t hash_value = 0;
-			for (size_t i = 0; substr_[i] != '\0'; i++)
-				hash_value = hash_value * P + substr_[i];
+		size_t __hash__() const { return bytes_hash(substr_, size_); }
 
-			return hash_value;
-		}
-
-		T* begin() { return substr_; }
-
-		T* end() { return substr_ + size_; }
-
-		const T* begin() const { return substr_; }
-
-		const T* end() const { return substr_ + size_; }
-
-		std::reverse_iterator<T*> rbegin() { return substr_; }
-
-		std::reverse_iterator<T*> rend() { return substr_ + size_; }
-
-		std::reverse_iterator<const T*> rbegin() const { return substr_; }
-	
-		std::reverse_iterator<const T*> rend() const { return substr_ + size_; }
+		self& __iter_container__() const override { return const_cast<self&>(*this); }
 	private:
 		T* substr_;
 

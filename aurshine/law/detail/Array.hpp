@@ -23,11 +23,8 @@ namespace ayr
 	{
 		using self = Array<T>;
 
+		using super = IndexContainer<Array<T>, T>;
 	public:
-		/*using iterator = T*;
-
-		using const_iterator = const T*;*/
-
 		Array() : arr_(nullptr), size_(0) {}
 
 		Array(c_size size) : Array() { relloc(size); }
@@ -91,7 +88,6 @@ namespace ayr
 		// 以Array对象填充元素
 		void fill(const self& other, c_size pos = 0)
 		{
-			
 			fill(other.begin(), other.end(), pos);
 		}
 
