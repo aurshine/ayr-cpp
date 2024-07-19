@@ -38,7 +38,7 @@ namespace ayr
 		using super = IndexContainer<DynArray<T>, T>;
 
 	public:
-		DynArray() : dynarray_(EXP2.size()), size_(0), occupies_size_(0) {}
+		DynArray() : dynarray_(sizeof(uint64_t) * 8), size_(0), occupies_size_(0) {}
 
 		DynArray(const self& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 
@@ -192,7 +192,7 @@ namespace ayr
 		{
 			c_size l = _BlockCache::get(index);
 			++index;
-			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
+			return dynarray_.arr_[l].arr_[index ^ exp2(l)];
 		}
 
 		// 对index范围不做检查
@@ -200,7 +200,7 @@ namespace ayr
 		{
 			c_size l = _BlockCache::get(index);
 			++index;
-			return dynarray_.arr_[l].arr_[index ^ EXP2[l]];
+			return dynarray_.arr_[l].arr_[index ^ exp2(l)];
 		}
 
 		// 唤醒一个新的块
@@ -210,7 +210,7 @@ namespace ayr
 
 			auto&& block = dynarray_[occupies_size_ - 1];
 
-			block.relloc(EXP2[occupies_size_ - 1]);
+			block.relloc(exp2(occupies_size_ - 1));
 		}
 
 	private:

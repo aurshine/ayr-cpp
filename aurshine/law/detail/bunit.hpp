@@ -4,8 +4,7 @@
 
 namespace ayr
 {
-	// EXP[i] 第i位为1其余位为0
-	constexpr static auto EXP2 = make_stl_array<c_size, 64>([](int x) { return 1ll << x; });
+	constexpr uint64_t exp2(int i) { return 1ull << i; }
 
 
 	template<typename B>

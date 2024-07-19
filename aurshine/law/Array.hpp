@@ -39,4 +39,15 @@ namespace ayr
 	private:
 		c_size _start, _end, _step;
 	};
+
+
+	template<typename T, typename F>
+	inline Array<T> make_array(c_size size, const F& func)
+	{
+		Array<T> arr(size);
+		for (c_size i = 0; i < size; ++i)
+			arr[i] = func(i);
+
+		return arr;
+	}
 }
