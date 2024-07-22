@@ -1,20 +1,19 @@
 ﻿#pragma once
 #include <memory>
+#include <law/detail/printer.hpp>
+
 
 namespace ayr
 {
-	template<typename T>
-	inline T* allocate(size_t size) { return reinterpret_cast<T*>(::operator new(sizeof(T) * size)); }
+// 分配连续size个T的内存, 不会调用构造函数
+#define ayr_alloc(T, size) reinterpret_cast<T*>(::operator new(sizeof(T) * (size)))
 
-	// 释放allocate分配的内存
-	template<typename T>
-	inline void deallocate(T* ptr) { ::operator delete[](ptr); }
+// 在ptr上调用构造函数
+#define ayr_construct(T, ptr,...) ::new(ptr) T(__VA_ARGS__)
 
+// 释放allocate分配的内存
+#define ayr_delloc(ptr) ::operator delete[](ptr)
 
-	template<typename T, typename... Args>
-	inline void construct_at(T* ptr, Args&&... args) { ::new(ptr) T(std::forward<Args>(args)...); }
-
-
-	template<typename T>
-	inline void destroy_at(T* ptr) { ptr->~T(); }
+// 在ptr处调用T的析构函数, 释放内存
+#define ayr_destroy(ptr) (ptr)->~T()
 }

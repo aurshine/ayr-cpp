@@ -4,18 +4,18 @@
 
 namespace ayr
 {
-	constexpr uint64_t exp2(int i) { return 1ull << i; }
+	constexpr inline uint64_t exp2(int i) { return 1ull << i; }
 
 
 	template<typename B>
-	inline B lowbit(const B& x)
+	constexpr inline B lowbit(const B& x)
 	{
 		return x & -x;
 	}
 
 
 	template<typename B>
-	inline int lowbit_index(const B& x)
+	constexpr inline int lowbit_index(const B& x)
 	{
 		int l = 0;
 		while ((x >> l & 1) == 0) ++l;
@@ -24,7 +24,7 @@ namespace ayr
 
 
 	template<typename B>
-	inline int highbit_index(const B& x)
+	constexpr inline int highbit_index(const B& x)
 	{
 		int l = 0;
 		while (x >> l) ++l;
@@ -34,8 +34,11 @@ namespace ayr
 
 
 	template<typename B>
-	inline B highbit(const B& x)
-	{
-		return x >> highbit_index(x);
-	}
+	constexpr inline B highbit(const B& x) { return x >> highbit_index(x); }
+
+	template<typename B>
+	constexpr inline bool all_one(const B& x) { return (x & x + 1) == 0; }
+
+	template<typename B>
+	constexpr inline bool only_one(const B& x) { return (x & x - 1) == 0; }
 }

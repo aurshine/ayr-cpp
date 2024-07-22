@@ -38,6 +38,8 @@ namespace ayr
 
 		void __print__(const bool& object) const { ostream << (object ? "true" : "false"); }
 
+		void __print__(const CString& object) const { ostream << object.str; }
+
 		// 可变形参
 		template<Printable T, Printable ...Args>
 		void __print__(const T& object, const Args& ...args) const

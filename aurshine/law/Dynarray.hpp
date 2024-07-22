@@ -8,7 +8,7 @@
 namespace ayr
 {
 	// 动态数组块的数量
-	constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
+	constexpr static size_t DYNARRAY_BLOCK_SIZE = sizeof(size_t) * 8;
 
 
 	struct _BlockCache : public Object
@@ -38,14 +38,20 @@ namespace ayr
 		using super = IndexContainer<DynArray<T>, T>;
 
 	public:
-		DynArray() : dynarray_(sizeof(uint64_t) * 8), size_(0), occupies_size_(0) {}
+		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>{0}), size_(0), occupies_size_(0) {}
 
 		DynArray(const self& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 
-		DynArray(self&& other) : self() { swap(other); }
+		DynArray(self&& other) : DynArray() { swap(other); }
+
+		~DynArray() { release(); }
 
 		self& operator=(const self& other)
 		{
+			if (this == &other)
+				return *this;
+
+			release();
 			dynarray_ = other.dynarray_;
 			size_ = other.size_;
 			occupies_size_ = other.occupies_size_;
@@ -57,6 +63,7 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
+			release();
 			dynarray_ = std::move(other.dynarray_);
 			size_ = other.size_;
 			occupies_size_ = other.occupies_size_;
@@ -111,40 +118,40 @@ namespace ayr
 		// 追加元素
 		T& append(const T& item)
 		{
-			if (!((size_ + 1) & size_))
+			if (all_one(size_))
 				__wakeup__();
 
-			return __at__(size_++) = item;
+			T& v = __at__(size_++);
+			ayr_construct(T, &v, item);
+			return v;
 		}
 
 		T& append(T&& item)
 		{
-			if (!((size_ + 1) & size_))
+			if (all_one(size_))
 				__wakeup__();
 
-			return __at__(size_++) = std::move(item);
+			T& v = __at__(size_++);
+			ayr_construct(T, &v, std::move(item));
+			return v;
 		}
 
 		// 移除最后一个元素并返回
-		T pop()
-		{
-			assert_insize(size_, 1, MAX_ALLOC);
-			return __at__(--size_);
-		}
+		void pop() { return pop(-1); }
 
 		// 移除指定位置的元素并返回
-		T pop(c_size index)
+		void pop(c_size index)
 		{
 			assert_insize(index, -size_, size_ - 1);
 
 			index = (index + size_) % size_;
-			T ret = __at__(index);
+			T& ret = __at__(index);
+			ayr_destroy(&ret);
 
 			for (c_size i = index; i < size_ - 1; ++i)
-				__at__(i) = __at__(i + 1);
-			--size_;
-
-			return ret;
+				__at__(i) = std::move(__at__(i + 1));
+			
+			if (all_one(-- size_)) -- occupies_size_;
 		}
 
 		// 转换为Array
@@ -186,6 +193,21 @@ namespace ayr
 
 		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
+		void release()
+		{
+			c_size last_block_size = size_;
+			
+			for (c_size i = 0; i < occupies_size_ - 1; ++i)
+			{
+				dynarray_[i].release(exp2(i));
+				last_block_size -= exp2(i);
+			}
+
+			dynarray_[occupies_size_ - 1].release(last_block_size);
+			dynarray_.release(DYNARRAY_BLOCK_SIZE);
+			size_ = 0;
+			occupies_size_ = 0;
+		}
 	protected:
 		// 对index范围不做检查
 		T& __at__(c_size index)
@@ -210,9 +232,8 @@ namespace ayr
 
 			auto&& block = dynarray_[occupies_size_ - 1];
 
-			block.relloc(exp2(occupies_size_ - 1));
+			ayr_construct(Array<T>, &block, Array<T>::noconstruct(exp2(occupies_size_ - 1)));
 		}
-
 	private:
 		Array<Array<T>> dynarray_;
 

@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include <functional>
 #include <string>
-#include <array>
 
 #include <law/detail/printer.hpp>
+#include <law/detail/ayr_memory.hpp>
 #include <law/detail/IndexIterator.hpp>
 
 
@@ -25,26 +25,51 @@ namespace ayr
 
 		using super = IndexContainer<Array<T>, T>;
 	public:
-		Array() : arr_(nullptr), size_(0) {}
+		Array(c_size size)
+		{ 
+			relloc(size);
+			for (c_size i = 0; i < size_; ++ i)
+				ayr_construct(T, arr_ + i);
+		}
 
-		Array(c_size size) : Array() { relloc(size); }
+		Array(c_size size, const T& fill_)
+		{ 
+			relloc(size);
+			for (c_size i = 0; i < size_; ++ i)
+				ayr_construct(T, arr_ + i, fill_);
+		}
 
-		Array(c_size size, const T& fill_) : Array(size) { fill(fill_); }
+		Array(std::initializer_list<T>&& init_list)
+		{ 
+			relloc(init_list.size());
+			for (c_size i = 0; i < size_; ++i)
+				ayr_construct(T, arr_ + i, std::move(*(init_list.begin() + i)));
+		}
 
-		Array(const std::initializer_list<T>& init_list) : Array(init_list.size()) { fill(init_list.begin(), init_list.end()); }
+		Array(const Array& other) 
+		{ 
+			relloc(other.size());
+			for (c_size i = 0; i < size_; ++i)
+				ayr_construct(T, arr_ + i, other.arr_[i]);
+		}
 
-		Array(const Array& other, std::source_location loc = std::source_location::current()) : Array(other.size_) { print(loc.file_name(), loc.line()); fill(other); }
+		Array(Array&& other) noexcept
+		{ 
+			arr_ = other.arr_;
+			size_ = other.size_;
+			other.arr_ = nullptr;
+			other.size_ = 0;
+		}
 
-		Array(Array&& other) : Array() { swap(other); }
-
-		~Array() { release(); }
+		~Array() { release(size_); }
 
 		self& operator= (const self& other)
 		{
 			if (this == &other) return *this;
 
 			relloc(other.size_);
-			fill(other);
+			for (c_size i = 0; i < size_; ++i)
+				arr_[i] = other.arr_[i];
 			return *this;
 		}
 
@@ -52,9 +77,12 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			release();
+			relloc(other.size_);
+			for (c_size i = 0; i < size_; ++i)
+				arr_[i] = std::move(other.arr_[i]);
 
-			this->swap(other);
+			other.arr_ = nullptr;
+			other.size_ = 0;
 			return *this;
 		}
 
@@ -187,6 +215,14 @@ namespace ayr
 
 			return size_ - other.size_;
 		}
+		
+		// 不用构造函数构造对象
+		static self noconstruct(c_size size) 
+		{
+			self ret{};
+			ret.relloc(size);
+			return ret;
+		}
 
 		// 容器大小
 		c_size size() const { return size_; }
@@ -203,25 +239,30 @@ namespace ayr
 		// 返回迭代容器
 		self& __iter_container__() const override { return const_cast<self&>(*this); }
 
-		// 先释放再分配
+		// 先释放内存再分配
 		virtual void relloc(c_size size)
 		{
 			assert_insize(size, 0, MAX_ALLOC);
-			release();
-			if (size) arr_ = new T[size]{};
+			release(size_);
+			if (size) arr_ = ayr_alloc(T, size);
 			size_ = size;
 		}
 
-		// 释放内存
-		virtual void release()
+		// 释放内存, size个元素调用析构函数
+		virtual void release(c_size size)
 		{
-			delete[] arr_;
+			if (arr_ == nullptr) return;
+
+			for (size_t i = 0; i < size; ++ i)
+				ayr_destroy(arr_ + i);
+			ayr_delloc(arr_);
+
 			arr_ = nullptr;
 			size_ = 0;
 		}
 
 		T* arr_ = nullptr;
 
-		c_size size_;
+		c_size size_ = 0;
 	};
 }
