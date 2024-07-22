@@ -180,6 +180,17 @@ namespace ayr
 
 			return *this;
 		}
+
+		CString __str__() const
+		{
+			std::stringstream stream;
+			stream << "{";
+			for (auto&& kv: *this)
+				stream << kv.key << ":" << kv.value << ", ";
+			stream << "}";
+
+			return CString(stream.str());
+		}
 	private:
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }

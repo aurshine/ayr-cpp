@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <cstring>
+#include <string>
 
 #include <law/detail/hash.hpp>
 #include <law/detail/ayr_memory.hpp>
@@ -14,6 +15,8 @@ namespace ayr
 		CString() : str(nullptr) {}
 
 		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
+
+		CString(const std::string& str_): CString(str_.c_str(), str_.size()) {}
 
 		CString(const char* str_, size_t len_)
 		{
