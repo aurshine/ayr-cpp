@@ -1,9 +1,8 @@
 ﻿#pragma once
 #include <cstring>
-#include <string>
 
-#include <law/detail/object.hpp>
 #include <law/detail/hash.hpp>
+#include <law/detail/ayr_memory.hpp>
 
 
 namespace ayr
@@ -14,11 +13,13 @@ namespace ayr
 	public:
 		CString() : str(nullptr) {}
 
-		CString(const char* str_)
+		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
+
+		CString(const char* str_, size_t len_)
 		{
-			size_t len = std::strlen(str_);
-			str = new char[len + 1] {};
-			memcpy(str, str_, len + 1);
+			str = ayr_alloc(char, len_ + 1);
+			std::memcpy(str, str_, len_);
+			str[len_] = '\0';
 		}
 
 		CString(const CString& other) : CString(other.str) {}

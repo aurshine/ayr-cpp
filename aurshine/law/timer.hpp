@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <chrono>
 
-#include <law/CString.hpp>
+#include <law/detail/CString.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
@@ -63,14 +63,13 @@ namespace ayr
 			return { year, month, day };
 		}
 
-		const char* __str__() const
+		CString __str__() const
 		{
 			YearMonthDay ymd = year_month_day();
 
 			auto&& str = std::format("{:04d}-{:02d}-{:02d}", ymd.year, ymd.month, ymd.day);
 
-			memcpy__str_buffer__(str.c_str(), str.size());
-			return __str_buffer__;
+			return CString(str.c_str());
 		}
 
 		cmp_t __cmp__(const Date& date) const

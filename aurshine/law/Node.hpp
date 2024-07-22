@@ -57,13 +57,12 @@ namespace ayr
 			return *this;
 		}
 
-		const char* __str__() const
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "<Node  " << value << ">";
 
-			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
-			return __str_buffer__;
+			return CString(stream.str());
 		}
 
 		cmp_t __cmp__(const SimpleNode& other)
@@ -114,12 +113,12 @@ namespace ayr
 			return *this;
 		}
 
-		const char* __str__() const
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "<BiNode  " << value << ">";
 
-			return memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
+			return CString(stream.str());
 		}
 
 		T value;

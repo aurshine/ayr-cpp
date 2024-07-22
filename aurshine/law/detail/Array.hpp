@@ -183,7 +183,7 @@ namespace ayr
 		}
 
 		// 输出的字符串形式
-		const char* __str__() const
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "<Array> [";
@@ -194,9 +194,7 @@ namespace ayr
 			}
 			stream << "]";
 
-			memcpy__str_buffer__(stream.str());
-
-			return __str_buffer__;
+			return CString(stream.str());
 		}
 
 		// 比较逻辑

@@ -3,5 +3,5 @@
 
 namespace ayr
 {
-#define type(T) typeid(T).name()
+
 }

@@ -85,7 +85,7 @@ namespace ayr
 			return ret;
 		}
 
-		const char* __str__() const
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "<Chain> [";
@@ -97,8 +97,7 @@ namespace ayr
 			}
 			stream << "]";
 
-			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
-			return __str_buffer__;
+			return CString(stream.str());
 		}
 
 		ChainIterator<Node> begin() const { return ChainIterator<Node>{this->head_}; }
@@ -154,7 +153,8 @@ namespace ayr
 			super::head_ = new_node;
 			++super::size_;
 		}
-		const char* __str__() const
+
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "<BiChain> [";
@@ -166,8 +166,7 @@ namespace ayr
 			}
 			stream << "]";
 
-			memcpy__str_buffer__(stream.str().c_str(), stream.str().size());
-			return __str_buffer__;
+			return CString(stream.str());
 		}
 
 		BiChainIterator<BiNode> begin() const { return BiChainIterator<BiNode>{super::head_}; }

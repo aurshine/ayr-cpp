@@ -3,6 +3,7 @@
 #include <concepts>
 #include <ranges>
 
+#include <law/detail/ayr.h>
 #include <law/detail/ayr_traits.hpp>
 
 

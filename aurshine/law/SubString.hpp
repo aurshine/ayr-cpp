@@ -43,11 +43,7 @@ namespace ayr
 			return SubString(substr_ + l, r - l + 1);
 		}
 
-		const char* __str__() const
-		{
-			memcpy__str_buffer__(substr_, size_);
-			return __str_buffer__;
-		}
+		CString __str__() const { return CString(reinterpret_cast<char*>(substr_), size_ * sizeof(T)); }
 
 		cmp_t __cmp__(const SubString& other) const
 		{

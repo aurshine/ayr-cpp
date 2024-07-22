@@ -71,11 +71,7 @@ namespace ayr
 
 		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
-		const char* __str__() const
-		{
-			memcpy__str_buffer__(astring_.arr_, astring_.size_);
-			return __str_buffer__;
-		}
+		CString __str__() const { return CString(reinterpret_cast<char*>(astring_.arr_)); }
 
 		c_size find(const T& ch, c_size pos = 0) const { return astring_.find(ch, pos); }
 
