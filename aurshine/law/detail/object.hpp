@@ -9,7 +9,7 @@
 
 namespace ayr
 {
-#define type(T) typeid(T).name()
+#define dtype(T) typeid(T).name()
 
 	class Object : public Ayr
 	{
@@ -20,7 +20,7 @@ namespace ayr
 			std::stringstream addr;
 			addr << std::hex << this;
 
-			auto&& str = std::format(R"(<{} 0x{}>)", type(*this), addr.str());
+			auto&& str = std::format(R"(<{} 0x{}>)", dtype(*this), addr.str());
 			
 			return CString(str.c_str());
 		}

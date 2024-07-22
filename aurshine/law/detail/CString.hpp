@@ -81,4 +81,14 @@ namespace ayr
 
 		char* str;
 	};
+
+	inline CString cstr(int64_t value) { return CString(std::to_string(value)); }
+
+	inline CString cstr(uint64_t value) { return CString(std::to_string(value)); }
+
+	inline CString cstr(double value) { return CString(std::to_string(value)); }
+
+	inline CString cstr(bool value) { return  value ? CString("true") : CString("false"); }
+
+	inline CString cstr(const char* str_) { return CString(str_); }
 }

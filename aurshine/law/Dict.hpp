@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <law/Array.hpp>
 #include <law/detail/hash.hpp>
+#include <law/ayr_memory.hpp>
 
 
 namespace ayr

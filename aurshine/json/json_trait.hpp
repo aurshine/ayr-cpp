@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include <concepts>
-#include <type_traits>
-
+#include <law/detail/ayr_concepts.hpp>
 #include <law/AString.hpp>
 #include <law/DynArray.hpp>
+#include <law/Dict.hpp>
+
 
 namespace ayr
 {
@@ -25,7 +25,7 @@ namespace ayr
 
 			using JsonArray = DynArray<Json>;
 
-			using JsonDict = std::map<JsonStr, Json>;
+			using JsonDict = Dict<JsonStr, Json>;
 
 			using JsonNull = Null;
 		};

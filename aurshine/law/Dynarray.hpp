@@ -136,11 +136,8 @@ namespace ayr
 			return v;
 		}
 
-		// 移除最后一个元素并返回
-		void pop() { return pop(-1); }
-
-		// 移除指定位置的元素并返回
-		void pop(c_size index)
+		// 移除指定位置的元素
+		void pop(c_size index = -1)
 		{
 			assert_insize(index, -size_, size_ - 1);
 
