@@ -186,7 +186,7 @@ namespace ayr
 		CString __str__() const
 		{
 			std::stringstream stream;
-			stream << "<Array> [";
+			stream << "[";
 			for (c_size i = 0; i < size_; ++i)
 			{
 				if (i) stream << ", ";

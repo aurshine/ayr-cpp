@@ -1,4 +1,4 @@
-﻿#include <json/json.hpp>
+﻿#include <json/json_obj.hpp>
 #include <law/AString.hpp>
 
 
@@ -91,7 +91,7 @@ namespace ayr
 				start = jump_blank(json_str, start);
 				error_assert(json_str[start] == ':', "error parse for object not Dict");
 
-				dict.emplace(key.transform<typename JsonType::JsonStr>(), parse(json_str, ++start));
+				dict[key.transform<typename JsonType::JsonStr>()] = parse(json_str, ++start);
 
 				start = jump_blank(json_str, start);
 				if (json_str[start] == ',')
@@ -123,8 +123,8 @@ namespace ayr
 				++end;
 			}
 
-			Json ret = float_flag ? Json(make_float(atof(json_str.slice(start, end).__str__()))) 
-									: Json(make_int(atoll(json_str.slice(start, end).__str__())));
+			Json ret = float_flag ? Json(make_float(atof(json_str.slice(start, end).__str__().str))) 
+									: Json(make_int(atoll(json_str.slice(start, end).__str__().str)));
 
 
 			start = end;

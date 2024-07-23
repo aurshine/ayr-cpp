@@ -11,99 +11,113 @@ namespace ayr
 	class SubString;
 
 
-	template<Char T>
-	class AString : public IndexContainer<AString<T>, T>
+	template<Char Ch>
+	class AString : public IndexContainer<AString<Ch>, Ch>
 	{
-		using self = AString<T>;
+		using self = AString<Ch>;
+
+		using super = IndexContainer<AString<Ch>, Ch>;
 	public:
-		AString() {}
+		using Char_t = Ch;
 
-		AString(c_size size_, const T& ch) : astring_(size_, ch) {}
+		AString(): str_() {}
 
-		AString(T* str) : astring_(strlen(str), str) {}
+		AString(const Char_t* str) : str_(str), size_(str_.size()) {}
 
-		AString(const T* str) : astring_(strlen(str)) { astring_.fill(str, str + size()); }
+		AString(CString&& c_str) : str_(std::move(c_str)), size_(str_.size()) {}
 
 		AString(const CString& c_str) : AString(c_str.str) {}
 
-		AString(CString&& c_str) : AString(c_str.str) { c_str.str = nullptr; }
+		AString(const self& other) : AString(other.str_) {}
 
-		AString(const self& other) : astring_(other.astring_) {}
-
-		AString(self&& other) : AString() { swap(other); }
+		AString(self&& other) : AString(std::move(other.str_)) {}
 
 		~AString() {}
 
 		AString& operator=(const self& other)
 		{
-			if (this != &other) astring_ = other.astring_;
+			if (this == &other)
+				return *this;
+
+			str_ = other.str_;
+			size_ = other.size_;
 			return *this;
 		}
 
 		AString& operator=(self&& other)
 		{
-			if (this != &other) astring_ = std::move(other.astring_);
+			if (this == &other)
+				return *this;
+
+			str_ = std::move(other.str_);
+			size_ = other.size_;
+			other.size_ = 0;
 			return *this;
 		}
 
-		void swap(self& other)
-		{
-			astring_.swap(other.astring_);
+		void swap(self& other) 
+		{ 
+			std::swap(str_.str, other.str_.str); 
+			std::swap(size_, other.size_);
 		}
 
-		T& operator[] (c_size index) { return astring_[index]; }
+		Char_t& operator[] (c_size index)
+		{
+			index = (index + size_) % size_;
+			return str_[index]; 
+		}
 
-		const T& operator[] (c_size index) const { return astring_[index]; }
+		const Char_t& operator[] (c_size index) const
+		{ 
+			index = (index + size_) % size_;
+			return str_[index];
+		}
 
-		c_size size() const { return astring_.size_; }
+		c_size size() const { return size_; }
 
-		T* ptr() { return astring_.ptr(); }
+		Char_t* ptr() { return str_.str; }
 
-		const T* ptr() const { return astring_.ptr(); }
+		const Char_t* ptr() const { return str_.str; }
 
-		bool contains(const T& ch) const { return astring_.contains(ch); }
+		bool contains(const Char_t& ch) const { return find(ch, 0) != -1; }
 
 		bool contains(const self& other) const { return find(other, 0) != -1; }
 
-		int __cmp__(const self& other) const { return astring_.__cmp__(other.astring_); }
+		int __cmp__(const self& other) const { return str_.__cmp__(other.str_); }
 
-		size_t __hash__() const { return char_hash(astring_.arr_); }
+		size_t __hash__() const { return str_.__hash__(); }
 
 		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
-		CString __str__() const { return CString(reinterpret_cast<char*>(astring_.arr_)); }
+		CString __str__() const { return str_; }
 
-		c_size find(const T& ch, c_size pos = 0) const { return astring_.find(ch, pos); }
+		SubString<Char_t> subme() { return SubString<Char_t>(ptr(), size_); }
 
-		c_size find(const std::function<bool(const T&)>& check, c_size pos = 0) const { return astring_.find(check, pos); }
+		c_size find(const Char_t& ch, c_size pos = 0) const 
+		{ 
+			for (c_size i = pos; i < size_; ++ i)
+				if (str_[i] == ch)
+					return i;
+			return -1;
+		}
 
 		c_size find(const self& other, c_size pos = 0) const
 		{
-			assert_insize(pos, 0, size() - 1);
+			if (size() < other.size() + pos) return -1;
 
-			if (size() - pos < other.size()) return -1;
-
+			SubString<Char_t> sub_other = other.subme();
 			for (c_size i = pos; i + other.size() <= size(); ++i)
-			{
-				bool flag = true;
-				for (c_size j = 0; j < other.size(); ++j)
-					if (astring_[i + j] != other.astring_[j])
-					{
-						flag = false;
-						break;
-					}
-
-				if (flag) return i;
-			}
+				if (subslice(pos, pos + other.size()) == sub_other)
+					return i;
 
 			return -1;
 		}
 
-		DynArray<c_size> find_all(const self& other, c_size pos = 0) const
+		Array<c_size> find_all(const self& other, c_size pos = 0) const
 		{
 			DynArray<c_size> ret;
 
-			while (pos < size())
+			while (pos != -1)
 			{
 				pos = find(other, pos);
 				if (pos != -1)
@@ -111,60 +125,60 @@ namespace ayr
 					ret.append(pos);
 					pos += other.size();
 				}
-				else break;
 			}
 
-			return ret;
+			return ret.to_array();
 		}
 
-		// 切片[l, r]
+		// 切片[l, r)
 		self slice(c_size l, c_size r) const
 		{
-			self ret;
-			ret.astring_.swap(astring_.slice(l, r));
+			RawString<Char_t> rs(r - l + 1);
+			
+			while (l < r)
+			{
+				static c_size i = 0;
+				rs[i++] = str_[l++];
+			}
 
-			return ret;
+			return AString(rs);
 		}
 
-		// 切片[l, r]
-		SubString<T> subslice(c_size l, c_size r)
-		{
-			assert_insize(l, 0, size_ - 1);
-			assert_insize(r, 0, size_ - 1);
-
-			return SubString(astring_.arr_ + l, r - l + 1);
-		}
+		// 切片[l, r)
+		SubString<Char_t> subslice(c_size l, c_size r) { return SubString(ptr() + l, r - l); }
 
 		self operator+(const self& other) const
 		{
-			self result{};
-			Array<T> temp(astring_.size() + other.astring_.size());
-			temp.fill(astring_);
-			temp.fill(other.astring_, astring_.size());
-			result.astring_ = std::move(temp);
+			RawString<Char_t> rs(size() + other.size() + 1);
+			for (c_size i = 0; i < size(); ++i)
+				rs[i] = str_[i];
+			for (c_size i = 0; i < other.size(); ++i)
+				rs[i + size()] = other[i];
 
-			return result;
+			return AString(rs);
+		}
+
+		self operator*(c_size n) const
+		{
+			RawString<Char_t> rs(size() * n);
+			for (c_size i = 0; i < n; ++i)
+				rs[i] = str_[i % n];
+
+			return AString(rs);
 		}
 
 		bool startwith(const self& other) const
 		{
 			if (size() < other.size())	return false;
 
-			for (c_size i = 0; i < other.size(); ++i)
-				if (astring_[i] != other.astring_[i])
-					return false;
-
-			return true;
+			return find(other, 0) == 0;
 		}
 
 		bool endwith(const self& other) const
 		{
 			if (size() < other.size())	return false;
-			for (c_size i = other.size() - 1; i >= 0; --i)
-				if (astring_[i] != other.astring_[i])
-					return false;
-
-			return true;
+			
+			return subslice(size() - other.size(), size()) == other.subme();
 		}
 
 		self upper() const
@@ -197,7 +211,7 @@ namespace ayr
 		self lstrip() const
 		{
 			c_size l = 0, r = size();
-			while (l < r && isspace(astring_[l])) l++;
+			while (l < r && isspace(str_[l])) l++;
 
 			return slice(l, r);
 		}
@@ -205,7 +219,7 @@ namespace ayr
 		self rstrip() const
 		{
 			c_size l = 0, r = size();
-			while (r > l && isspace(astring_[r - 1])) r--;
+			while (r > l && isspace(str_[r - 1])) r--;
 
 			return slice(l, r);
 		}
@@ -216,49 +230,43 @@ namespace ayr
 			for (c_size i = 0; i < join_strs.size(); ++i)
 				ret_size += join_strs[i].size();
 
-			Array<T> result(ret_size);
+			RawString<Char_t> rs(ret_size);
 			for (c_size i = 0, j = 0; i < join_strs.size(); ++i)
 			{
 				if (i != 0)
-				{
-					result.fill(astring_, j);
-					j += size();
-				}
+					for (c_size k = 0; k < size(); ++k)
+						rs[j++] = str_[k];
 
-				result.fill(join_strs[i].astring_, j);
-				j += join_strs[i].size();
+				for (c_size k = 0; k < join_strs[i].size(); ++k)
+					rs[j++] = join_strs[i].str_[k];
 			}
 
-			self ret;
-			ret.astring_.swap(result);
-			return ret;
+			return AString(rs);
 		}
 
 		self replace(const self& old_, const self& new_) const
 		{
 			DynArray<c_size> poses = find_all(old_);
 
-			Array<T> temp(size() + (new_.size() - old_.size()) * poses.size());
+			RawString<Char_t> rs{ size() + (new_.size() - old_.size()) * poses.size() };
 
-			// 当前走到原字符串的位置 以及 临时字符串的长度
-			c_size cur_pos = 0, temp_length = 0;
-			for (c_size i = 0; i < poses.size(); ++i)
+			c_size pos_idx = 0;
+			for (c_size i = 0, j = 0; i < size(); ++i)
 			{
-				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + poses[i], temp_length);
-				temp_length += poses[i] - cur_pos;
-
-				temp.fill(new_.astring_.arr_, new_.astring_.arr_ + new_.size(), temp_length);
-				temp_length += new_.size();
-
-				cur_pos = poses[i] + old_.size();
+				if (poses[pos_idx] == i)
+				{
+					++ pos_idx;
+					for (c_size k = 0; k < new_.size(); ++k)
+						rs[j++] = new_[k];
+					i += old_.size() - 1;
+				}
+				else
+				{
+					rs[j++] = str_[i];
+				}
 			}
 
-			if (cur_pos < size())
-				temp.fill(astring_.arr_ + cur_pos, astring_.arr_ + size(), temp_length);
-
-			self ret;
-			ret.astring_.swap(temp);
-			return ret;
+			return AString(rs);
 		}
 
 		Array<self> split() const
@@ -268,9 +276,9 @@ namespace ayr
 			c_size i = 0;
 			while (i < size())
 			{
-				while (i < size() && isspace(astring_[i])) ++i;
+				while (i < size() && isspace(str_[i])) ++i;
 				c_size j = i + 1;
-				while (j < size() && !isspace(astring_[j])) ++j;
+				while (j < size() && !isspace(str_[j])) ++j;
 				das.append(slice(i, j));
 				i = j;
 			}
@@ -297,7 +305,9 @@ namespace ayr
 			return das.to_array();
 		}
 	private:
-		Array<T> astring_;
+		RawString<Char_t> str_;
+
+		c_size size_;
 	};
 
 	using Astring = AString<char>;
