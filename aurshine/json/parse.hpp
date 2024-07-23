@@ -32,10 +32,7 @@ namespace ayr
 			error_assert(start != -1, "parse str error");
 			c_size end = json_str.find('"', start + 1);
 
-			Json ret = Json(json_str.slice(start, end).strme());
-
-			start = end + 1;
-			return ret;
+			return Json(json_str.slice(start, end).strme());;
 		}
 
 		Json parse_array(const Str& json_str)
