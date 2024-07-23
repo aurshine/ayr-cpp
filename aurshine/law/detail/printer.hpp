@@ -139,7 +139,6 @@ namespace ayr
 		}
 	}
 
-
 	template<Printable T>
 	inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
 	{

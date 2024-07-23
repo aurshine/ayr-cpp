@@ -91,7 +91,7 @@ namespace ayr
 
 		CString __str__() const { return str_; }
 
-		SubString<Char_t> subme() { return SubString<Char_t>(ptr(), size_); }
+		SubString<Char_t> subme() const { return SubString<Char_t>(ptr(), size_); }
 
 		c_size find(const Char_t& ch, c_size pos = 0) const 
 		{ 
@@ -304,11 +304,30 @@ namespace ayr
 
 			return das.to_array();
 		}
+
+		self match(const Char_t& l_match, const Char_t& r_match) const 
+		{
+			c_size l = find(l_match) + 1, match_cnt = 1;
+			for (int i = l; i < size(); ++i)
+			{
+				if (str_[i] == l_match)
+					++match_cnt;
+				else if (str_[i] == r_match)
+					--match_cnt;
+
+				if (match_cnt == 0)
+					return slice(l, i);
+			}
+				
+			ValueError("string is not matched");
+		}
 	private:
 		RawString<Char_t> str_;
 
 		c_size size_;
 	};
+
+
 
 	using Astring = AString<char>;
 }
