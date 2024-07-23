@@ -70,8 +70,6 @@ namespace ayr
 
 		friend class DictGetItem<K, V, C>;
 	public:
-
-
 		Dict() : Dict(DEF_BUCKET_SIZE) {}
 
 		Dict(c_size bucket_size) : bucket_(std::max(bucket_size, DEF_BUCKET_SIZE), nullptr), skip_list_(std::max(bucket_size, DEF_BUCKET_SIZE), 0) {}

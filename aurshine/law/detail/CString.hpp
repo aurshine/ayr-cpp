@@ -15,21 +15,20 @@ namespace ayr
 	public:
 		RawString(): RawString(1) {}
 
-		RawString(const Ch* str_) : RawString(str_, std::strlen(str_)) {}
+		RawString(const Ch* str_) : RawString(str_, std::strlen(str_ == nullptr ? "" : str_)) {}
 
 		RawString(const std::basic_string<Ch>& str_): RawString(str_.c_str(), str_.size()) {}
 
 		RawString(c_size len)
 		{
-			str = ayr_alloc(Ch, len);
-			std::memset(str, 0, sizeof(Ch) * len);
+			str = ayr_alloc(Ch, len + 1);
+			std::memset(str, 0, sizeof(Ch) * (len + 1));
 		}
 
-		RawString(const Ch* str_, c_size len_)
+		RawString(const Ch* str_, c_size len_): RawString(len_)
 		{
-			str = ayr_alloc(Ch, len_ + 1);
-			std::memcpy(str, str_, sizeof(Ch) * len_);
-			str[len_] = '\0';
+			for (c_size i = 0; i < len_; ++i)
+				str[i] = str_[i];
 		}
 
 		RawString(const RawString& other) : RawString(other.str) {}
@@ -81,8 +80,11 @@ namespace ayr
 		cmp_t __cmp__(const RawString& other) const
 		{
 			for (size_t i = 0; str[i] || other.str[i]; ++i)
+			{
 				if (str[i] != other.str[i])
 					return str[i] - other.str[i];
+			}
+				
 			return 0;
 		}
 

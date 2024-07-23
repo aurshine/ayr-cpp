@@ -38,7 +38,7 @@ namespace ayr
 		using super = IndexContainer<DynArray<T>, T>;
 
 	public:
-		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>{0}), size_(0), occupies_size_(0) {}
+		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>(0)), size_(0), occupies_size_(0) {}
 
 		DynArray(const self& other) : dynarray_(other.dynarray_), size_(other.size_), occupies_size_(other.occupies_size_) {}
 

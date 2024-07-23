@@ -77,9 +77,9 @@ namespace ayr
 		Json parse_dict(const Astring& json_str, size_t& start)
 		{
 			start = jump_blank(json_str, start);
+			
 			error_assert(json_str[start] == '{', "error parse for object not Dict");
 			typename JsonType::JsonDict dict;
-
 
 			int end = ++start;
 			while (json_str[start] != '}')

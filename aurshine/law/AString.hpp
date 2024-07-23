@@ -20,7 +20,7 @@ namespace ayr
 	public:
 		using Char_t = Ch;
 
-		AString(): str_() {}
+		AString(): str_(), size_(0) {}
 
 		AString(const Char_t* str) : str_(str), size_(str_.size()) {}
 
@@ -202,8 +202,8 @@ namespace ayr
 		self strip() const
 		{
 			c_size l = 0, r = size();
-			while (l < r && isspace(astring_[l])) l++;
-			while (r > l && isspace(astring_[r - 1])) r--;
+			while (l < r && isspace(str_[l])) l++;
+			while (r > l && isspace(str_[r - 1])) r--;
 
 			return slice(l, r);
 		}
