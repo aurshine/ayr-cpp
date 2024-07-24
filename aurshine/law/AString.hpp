@@ -61,11 +61,7 @@ namespace ayr
 			std::swap(size_, other.size_);
 		}
 
-		Char_t& operator[] (c_size index)
-		{
-			index = (index + size_) % size_;
-			return str_[index]; 
-		}
+		Char_t& operator[] (c_size index) { return str_[neg_index(index, size_)]; }
 
 		const Char_t& operator[] (c_size index) const
 		{ 
@@ -107,8 +103,11 @@ namespace ayr
 
 			SubString<Char_t> sub_other = other.subme();
 			for (c_size i = pos; i + other.size() <= size(); ++i)
-				if (subslice(pos, pos + other.size()) == sub_other)
+			{
+				if (subslice(i, i + other.size()) == sub_other)
 					return i;
+			}
+				
 
 			return -1;
 		}
@@ -133,19 +132,17 @@ namespace ayr
 		// 切片[l, r)
 		self slice(c_size l, c_size r) const
 		{
-			RawString<Char_t> rs(r - l + 1);
-			
-			while (l < r)
-			{
-				static c_size i = 0;
-				rs[i++] = str_[l++];
-			}
+			l = neg_index(l, size_), r = neg_index(r, size_);
+			RawString<Char_t> rs(r - l);
+			c_size i = 0;
+
+			while (l < r) rs[i++] = str_[l++];
 
 			return AString(rs);
 		}
 
 		// 切片[l, r)
-		SubString<Char_t> subslice(c_size l, c_size r) { return SubString(ptr() + l, r - l); }
+		SubString<Char_t> subslice(c_size l, c_size r) const { return SubString(ptr() + l, r - l); }
 
 		self operator+(const self& other) const
 		{
@@ -290,12 +287,12 @@ namespace ayr
 		{
 			DynArray<self> das;
 			c_size last_pos = 0;
-
+			
 			for (auto pos : find_all(other))
 			{
 				if (last_pos != pos)
 					das.append(slice(last_pos, pos));
-
+				
 				last_pos = pos + other.size();
 			}
 
@@ -307,8 +304,8 @@ namespace ayr
 
 		self match(const Char_t& l_match, const Char_t& r_match) const 
 		{
-			c_size l = find(l_match) + 1, match_cnt = 1;
-			for (int i = l; i < size(); ++i)
+			c_size l = find(l_match), match_cnt = 1;
+			for (int i = l + 1; i < size(); ++i)
 			{
 				if (str_[i] == l_match)
 					++match_cnt;
@@ -316,7 +313,7 @@ namespace ayr
 					--match_cnt;
 
 				if (match_cnt == 0)
-					return slice(l, i);
+					return slice(l, i + 1);
 			}
 				
 			ValueError("string is not matched");

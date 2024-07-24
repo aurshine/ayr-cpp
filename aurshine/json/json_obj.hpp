@@ -55,7 +55,7 @@ namespace ayr
 							this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
 							break;
 						default:
-							ValueError(std::format("json_type can not be {}"), type());
+							ValueError(std::format("json_type can not be {}", type()));
 					}
 				}
 				return *this;
@@ -190,7 +190,7 @@ namespace ayr
 					delete transform_ptr<typename JsonType::JsonNull>();
 					break;
 				default:
-					ValueError(std::format("json_type can not be {}"), type());
+					ValueError(std::format("json_type can not be {}", type()));
 				}
 			}
 
@@ -216,7 +216,7 @@ namespace ayr
 			if constexpr (std::is_arithmetic_v<RT>)
 				return static_cast<JsonType::JsonInt>(value);
 
-			RuntimeError(std::format("Unsupported {} for make int"), dtype(T));
+			RuntimeError(std::format("Unsupported {} for make int", dtype(T)));
 			return None<JsonType::JsonInt>;
 		}
 
@@ -228,7 +228,7 @@ namespace ayr
 			if constexpr (std::is_arithmetic_v<RT>)
 				return static_cast<JsonType::JsonFloat>(value);
 
-			RuntimeError(std::format("Unsupported {} for make float"), dtype(T));
+			RuntimeError(std::format("Unsupported {} for make float", dtype(T)));
 			return None<JsonType::JsonFloat>;
 		}
 

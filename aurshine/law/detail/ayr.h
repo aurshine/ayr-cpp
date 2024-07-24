@@ -5,6 +5,11 @@
 
 namespace ayr
 {
+#define def inline auto
+
+#define neg_index(index, size) (((index) == (size)) ? (index): (((index) + (size)) % (size)))
+
+
 	class Ayr {};
 
 	// container size type 
@@ -22,6 +27,5 @@ namespace ayr
 	T& None = *reinterpret_cast<std::remove_reference_t<T>*>(const_cast<char*>(__NONE__));
 
 	template<typename T>
-	inline bool is_none(const T& val) { return &val == &None<T>; }
-
+	def is_none(const T& val) -> bool { return &val == &None<T>; }
 }

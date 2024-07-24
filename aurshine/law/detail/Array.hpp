@@ -251,7 +251,7 @@ namespace ayr
 		{
 			if (arr_ == nullptr) return;
 
-			for (size_t i = 0; i < size; ++ i)
+			for (c_size i = 0; i < size; ++ i)
 				ayr_destroy(arr_ + i);
 			ayr_delloc(arr_);
 
