@@ -67,6 +67,9 @@ namespace ayr
 				std::swap(this->json_type, json.json_type);
 			}
 
+			template<JsonTypeStrictConcept T>
+			bool is() const { return json_type == GetJsonTypeID<T>::ID; }
+
 			// 返回 Json 存储的对象类型ID
 			int type() const { return this->json_type; }
 
@@ -74,7 +77,7 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			T* transform_ptr() 
 			{
-				check_type<T>();
+				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
 				return reinterpret_cast<T*>(this->json_item); 
 			}
 
@@ -82,7 +85,7 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			const T* transform_ptr() const 
 			{
-				check_type<T>();
+				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
 				return reinterpret_cast<T*>(this->json_item);
 			}
 
@@ -192,15 +195,6 @@ namespace ayr
 				default:
 					ValueError(std::format("json_type can not be {}", type()));
 				}
-			}
-
-			// 检查类型是否正确
-			template<JsonTypeStrictConcept T>
-			void check_type() const
-			{
-				error_assert(json_type == GetJsonTypeID<T>::ID, 
-					std::format("Json type is not {}\n", dtype(T))
-				);
 			}
 
 			void* json_item;
