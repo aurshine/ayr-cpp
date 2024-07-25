@@ -27,6 +27,8 @@ namespace ayr
 			std::swap(size_, other.size_);
 		}
 
+		Char_t& operator[] (c_size index) { return substr_[neg_index(index, size_)]; }
+
 		const Char_t& operator[] (c_size index)  const { return substr_[neg_index(index, size_)]; }
 
 		c_size size() const { return size_; }

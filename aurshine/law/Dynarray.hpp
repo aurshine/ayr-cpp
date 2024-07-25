@@ -31,11 +31,11 @@ namespace ayr
 
 	// 动态数组
 	template<typename T>
-	class DynArray: public IndexContainer<DynArray<T>, T>
+	class DynArray: public Sequence<T>
 	{
 		using self = DynArray<T>;
 
-		using super = IndexContainer<DynArray<T>, T>;
+		using super = Sequence<T>;
 
 	public:
 		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>(0)), size_(0), occupies_size_(0) {}
@@ -83,38 +83,6 @@ namespace ayr
 		// 容器已经占用的块
 		c_size occupy_size() const { return occupies_size_; }
 
-		// 容器是否包含item
-		bool contains(const T& item) const { return find(item) != -1; }
-
-		// 查找item的下标，不存在返回-1
-		c_size find(const T& item) const
-		{
-			for (c_size i = 0; i < size_; ++i)
-				if (__at__(i) == item)
-					return i;
-			return -1;
-		}
-
-		// 获取指定下标的元素，可以传入负数
-		T& operator[] (c_size index)
-		{
-			assert_insize(index, -size_, size_ - 1);
-
-			index = (index + size_) % size_;
-
-			return __at__(index);
-		}
-
-		// 获取指定下标的元素，可以传入负数
-		const T& operator[] (c_size index) const
-		{
-			assert_insize(index, -size_, size_ - 1);
-
-			index = (index + size_) % size_;
-
-			return __at__(index);
-		}
-
 		// 追加元素
 		T& append(const T& item)
 		{
@@ -139,8 +107,6 @@ namespace ayr
 		// 移除指定位置的元素
 		void pop(c_size index = -1)
 		{
-			assert_insize(index, -size_, size_ - 1);
-
 			index = (index + size_) % size_;
 			T& ret = __at__(index);
 			ayr_destroy(&ret);
@@ -173,20 +139,6 @@ namespace ayr
 
 			return CString(stream.str());
 		}
-
-		// 容器的比较方式
-		cmp_t __cmp__(const self& other) const
-		{
-			for (c_size i = 0; i < std::min(occupies_size_, other.occupies_size_); ++i)
-			{
-				c_size res = dynarray_[i].__cmp__(other.dynarray_[i]);
-				if (res) return res;
-			}
-
-			return occupies_size_ - other.occupies_size_;
-		}
-
-		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 
 		void release()
 		{

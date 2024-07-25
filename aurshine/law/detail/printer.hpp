@@ -145,11 +145,10 @@ namespace ayr
 		if (!condition)
 		{
 			ayr_error(
-				std::format("file: {}  column: {}  line: {}  function_name: {}\n"\
-					"error: ",
+				std::format("file: {}\nline: {}\ncolumn: {}\nfunction_name: {}\nerror: ",
 					loc.file_name(),
-					loc.column(),
 					loc.line(),
+					loc.column(),
 					loc.function_name()),
 				msg
 			);

@@ -53,11 +53,10 @@ namespace ayr
 		}
 	};
 
-
-	template<typename Iter, typename ConstIter>
-	struct ComboIterator
+	
+	template<typename V>
+	class ZipIterator : IteratorImpl<V>
 	{
-		using Iterator = Iter;
-		using ConstIterator = ConstIter;
+
 	};
 }

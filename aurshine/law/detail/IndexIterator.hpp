@@ -44,6 +44,7 @@ namespace ayr
 
 		self& operator--() override { --index_; return *this; }
 
+		CString __str__() const { return CString(std::format("IndexIterator<{}, {}, {}>(index={})", dtype(C), dtype(V), dtype(GetItem), index_)); }
 	private:
 		Container_t& container_;
 
@@ -77,6 +78,7 @@ namespace ayr
 
 		self& operator--() override { --index_; return *this; }
 
+		CString __str__() const { return CString(std::format("IndexIterator<{}, {}, {}>(index={})", dtype(C), dtype(V), dtype(GetItem), index_)); }
 	private:
 		const Container_t& container_;
 

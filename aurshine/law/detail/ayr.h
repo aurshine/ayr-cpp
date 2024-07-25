@@ -7,6 +7,10 @@ namespace ayr
 {
 #define def inline auto
 
+#define der(R) inline R
+
+#define dtype(T) typeid(T).name()
+
 #define neg_index(index, size) (((index) == (size)) ? (index): (((index) + (size)) % (size)))
 
 
@@ -24,7 +28,7 @@ namespace ayr
 
 	// 空值
 	template<typename T>
-	T& None = *reinterpret_cast<std::remove_reference_t<T>*>(const_cast<char*>(__NONE__));
+	T& None = *reinterpret_cast<T*>(const_cast<char*>(__NONE__));
 
 	template<typename T>
 	def is_none(const T& val) -> bool { return &val == &None<T>; }

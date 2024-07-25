@@ -9,8 +9,6 @@
 
 namespace ayr
 {
-#define dtype(T) typeid(T).name()
-
 	class Object : public Ayr
 	{
 	public:
@@ -27,7 +25,6 @@ namespace ayr
 
 		// hash 编码
 		hash_t __hash__() const { assert(false, "not implemented __hash__()"); }
-
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }

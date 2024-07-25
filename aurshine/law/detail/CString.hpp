@@ -80,10 +80,8 @@ namespace ayr
 		cmp_t __cmp__(const RawString& other) const
 		{
 			for (size_t i = 0; str[i] || other.str[i]; ++i)
-			{
 				if (str[i] != other.str[i])
 					return str[i] - other.str[i];
-			}
 				
 			return 0;
 		}

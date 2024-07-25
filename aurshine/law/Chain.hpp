@@ -50,10 +50,7 @@ namespace ayr
 
 		Value_t& operator[](c_size index)
 		{
-			assert_insize(index, -size_, size_ - 1);
-			if (index == -1)	return tail_->value;
-
-			index = (index + size_) % size_;
+			index = neg_index(index, size_);
 
 			Node* current = head_;
 			while (index--) current = current->next;
@@ -63,10 +60,7 @@ namespace ayr
 
 		const Value_t& operator[](c_size index) const
 		{
-			assert_insize(index, -size_, size_ - 1);
-			if (index == -1)	return tail_->value;
-
-			index = (index + size_) % size_;
+			index = neg_index(index, size_);
 
 			Node* current = head_;
 			while (index--) current = current->next;
