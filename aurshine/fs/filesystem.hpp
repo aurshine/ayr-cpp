@@ -1,14 +1,11 @@
 #pragma once
+#include <format>
+#include <law/Printer.hpp>
 
-#ifndef _WIN32
-#warning "This file is only for Windows"
-#else
+#ifdef _WIN32
 
 #include <Windows.h>
 #include <fileapi.h>
-
-#include <law/Printer.hpp>
-
 
 namespace ayr
 {
@@ -19,6 +16,7 @@ namespace ayr
 			DWORD attributes = GetFileAttributesA(path);
 			return (attributes != INVALID_FILE_ATTRIBUTES);
 		}
+
 
 		def isfile(const char* path) -> bool
 		{
@@ -42,10 +40,10 @@ namespace ayr
 			{
 			case ERROR_ALREADY_EXISTS:
 				if (exist_ok) break;
-				RuntimeError("Directory already exists: {}", path);
+				RuntimeError(std::format("Directory already exists: {}", path));
 				break;
 			case ERROR_PATH_NOT_FOUND:
-				RuntimeError("Path not found: {}", path);
+				RuntimeError(std::format("Path not found: {}", path));
 				break;
 			}
 		}
@@ -53,5 +51,11 @@ namespace ayr
 		def mkdir(const CString& path) -> void { mkdir(path.str); }
 	}
 }
-#endif
+#elif __linux__
 
+
+#else
+
+#error "Unsupported platform"
+
+#endif
