@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <chrono>
 
-#include <law/detail/CString.hpp>
+#include <law/AString.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
