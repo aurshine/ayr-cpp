@@ -184,8 +184,12 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "{";
-			for (auto&& kv: *this)
-				stream << kv.key << ":" << kv.value << ", ";
+			for (c_size i = 0; i < keys_.size(); ++i)
+			{
+				if (i != 0) stream << ", ";
+				stream << keys_[i] << ":" << get(keys_[i]);
+			}
+				
 			stream << "}";
 
 			return CString(stream.str());

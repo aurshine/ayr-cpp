@@ -119,6 +119,8 @@ namespace ayr
 						return transform<typename JsonType::JsonDict>().__str__();
 					case GetJsonTypeID<typename JsonType::JsonNull>::ID:
 						return cstr("null");
+					default:
+						ValueError(std::format("json_type can not be {}", type()));
 				}
 			}
 
