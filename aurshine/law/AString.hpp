@@ -22,7 +22,7 @@ namespace ayr
 
 		AString(): str_(), size_(0) {}
 
-		AString(const Char_t* str) : str_(str), size_(str_.size()) {}
+		AString(const Char_t* str, c_size len=-1) : str_(str, len != -1? len : strlen(str)), size_(str_.size()) {}
 
 		AString(CString&& c_str) : str_(std::move(c_str)), size_(str_.size()) {}
 
@@ -325,6 +325,9 @@ namespace ayr
 	};
 
 
-
 	using Astring = AString<char>;
+
+	inline CString operator ""c(const char* str, size_t len) { return CString(str, len); }
+
+	inline Astring operator ""a(const char* str, size_t len) { return Astring(str, len); }
 }

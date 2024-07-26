@@ -33,9 +33,18 @@ namespace ayr
 		// 解析dict
 		def __parse_dict(const Str& json_str) -> Json
 		{
+			json_str = json_str.slice(1, -1);
 			typename JsonType::JsonDict dict;
 
 			auto kv_strs = json_str.strme().split(",");
+			for (auto&& kv_str : kv_strs)
+			{
+				auto kv = kv_str.split(":");
+				if (kv.size() != 2)
+					ValueError(kv_str.__str__().str);
+
+				dict[__parse_str(kv[0].subme().strip_()).transform<JsonType::JsonStr>()] = parse(kv[1]);
+			}
 
 			return Json(std::move(dict));
 		}
