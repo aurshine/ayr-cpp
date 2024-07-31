@@ -4,6 +4,7 @@
 
 #ifdef _WIN32
 
+#include <cstdio>
 #include <Windows.h>
 #include <fileapi.h>
 
@@ -11,28 +12,28 @@ namespace ayr
 {
 	namespace fs
 	{
-		def exists(const char* path) -> bool
+		der(bool) exists(const char* path)
 		{
 			DWORD attributes = GetFileAttributesA(path);
 			return (attributes != INVALID_FILE_ATTRIBUTES);
 		}
 
 
-		def isfile(const char* path) -> bool
+		der(bool) isfile(const char* path)
 		{
 			DWORD attr = GetFileAttributesA(path);
 			return (attr != INVALID_FILE_ATTRIBUTES) && ((attr & FILE_ATTRIBUTE_DIRECTORY) == 0);
 		}
 
 
-		def isdir(const char* path) -> bool
+		der(bool) isdir(const char* path)
 		{
 			DWORD attr = GetFileAttributesA(path);
 			return (attr != INVALID_FILE_ATTRIBUTES) && ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0);
 		}
 
 
-		def mkdir(const char* path, bool exist_ok = false) -> void
+		der(void) mkdir(const char* path, bool exist_ok = false)
 		{
 			BOOL ret = CreateDirectoryA(path, nullptr);
 
@@ -41,14 +42,21 @@ namespace ayr
 			case ERROR_ALREADY_EXISTS:
 				if (exist_ok) break;
 				RuntimeError(std::format("Directory already exists: {}", path));
-				break;
 			case ERROR_PATH_NOT_FOUND:
 				RuntimeError(std::format("Path not found: {}", path));
-				break;
 			}
 		}
 
-		def mkdir(const CString& path) -> void { mkdir(path.str); }
+		der(void) mkdir(const CString& path) { mkdir(path.str); }
+
+		class Open : public Object
+		{
+		public:
+			Open(const char* path, const char* mode)
+			{
+
+			}
+		};
 	}
 }
 #elif __linux__
