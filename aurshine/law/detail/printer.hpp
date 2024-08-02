@@ -157,13 +157,19 @@ namespace ayr
 	}
 
 
-#define KeyError(msg) error_assert(false, std::format("KeyError: {}", msg))
+#define Error(errorname, msg) error_assert(false, std::format("{}: {}", errorname, msg))
 
-#define ValueError(msg) error_assert(false, std::format("ValueError: {}", msg))
+#define KeyError(msg) Error("KeyError", msg)
 
-#define TypeError(msg) error_assert(false, std::format("TypeError: {}", msg))
+#define ValueError(msg) Error("ValueError", msg)
 
-#define RuntimeError(msg) error_assert(false, std::format("RuntimeError: {}", msg))
+#define TypeError(msg) Error("TypeError", msg)
 
-#define NotImplementedError(msg) error_assert(false, std::format("NotImplementedError: {}", msg))
+#define RuntimeError(msg) Error("RuntimeError", msg)
+
+#define NotImplementedError(msg) Error("NotImplementedError", msg)
+
+#define FileNotFoundError(msg) Error("FileNotFoundError", msg)
+
+#define PermissionError(msg) Error("PermissionError", msg)
 }
