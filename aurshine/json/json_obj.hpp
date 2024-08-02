@@ -20,17 +20,49 @@ namespace ayr
 
 			Json(Json&& json): Json() { this->swap(json); }
 
-			Json(const Json& json): Json(){ *this = json; }
+			Json(const Json& other)
+			{ 
+				json_type = other.json_type;
+				
+				switch (json_type)
+				{
+				case GetJsonTypeID<typename JsonType::JsonInt>::ID:
+					this->json_item = new typename JsonType::JsonInt(other.transform<typename JsonType::JsonInt>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
+					this->json_item = new typename JsonType::JsonFloat(other.transform<typename JsonType::JsonFloat>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonBool>::ID:
+					this->json_item = new typename JsonType::JsonBool(other.transform<typename JsonType::JsonBool>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonStr>::ID:
+					this->json_item = new typename JsonType::JsonStr(other.transform<typename JsonType::JsonStr>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonArray>::ID:
+					this->json_item = new typename JsonType::JsonArray(other.transform<typename JsonType::JsonArray>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonDict>::ID:
+					this->json_item = new typename JsonType::JsonDict(other.transform<typename JsonType::JsonDict>());
+					break;
+				case GetJsonTypeID<typename JsonType::JsonNull>::ID:
+					this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
+					break;
+				default:
+					ValueError(std::format("json_type can not be {}", type()));
+				}
+				
+			}
 
 			~Json() { release(); }
 
 			Json& operator=(const Json& other)
 			{
+				print(other);
 				if (this != &other)
 				{
 					release();
 					json_type = other.json_type;
-
+			
 					switch (json_type)
 					{
 						case GetJsonTypeID<typename JsonType::JsonInt>::ID:
@@ -58,8 +90,51 @@ namespace ayr
 							ValueError(std::format("json_type can not be {}", type()));
 					}
 				}
+				
 				return *this;
 			}
+
+
+			Json& operator=(Json&& other)
+			{
+				if (this != &other)
+				{
+					release();
+					json_type = other.json_type;
+
+					switch (json_type)
+					{
+					case GetJsonTypeID<typename JsonType::JsonInt>::ID:
+						this->json_item = new typename JsonType::JsonInt(other.transform<typename JsonType::JsonInt>());
+						break;
+					case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
+						this->json_item = new typename JsonType::JsonFloat(other.transform<typename JsonType::JsonFloat>());
+						break;
+					case GetJsonTypeID<typename JsonType::JsonBool>::ID:
+						this->json_item = new typename JsonType::JsonBool(other.transform<typename JsonType::JsonBool>());
+						break;
+					case GetJsonTypeID<typename JsonType::JsonStr>::ID:
+						this->json_item = new typename JsonType::JsonStr(other.transform<typename JsonType::JsonStr>());
+						break;
+					case GetJsonTypeID<typename JsonType::JsonArray>::ID:
+						print(type(), other.type());
+						this->json_item = new typename JsonType::JsonArray(other.transform<typename JsonType::JsonArray>());
+						print(this->json_item);
+						break;
+					case GetJsonTypeID<typename JsonType::JsonDict>::ID:
+						this->json_item = new typename JsonType::JsonDict(other.transform<typename JsonType::JsonDict>());
+						break;
+					case GetJsonTypeID<typename JsonType::JsonNull>::ID:
+						this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
+						break;
+					default:
+						ValueError(std::format("json_type can not be {}", type()));
+					}
+				}
+
+				return *this;
+			}
+
 
 			void swap(Json& json) noexcept
 			{
@@ -83,11 +158,12 @@ namespace ayr
 
 			// 转换为指定类型，返回转换后对象的指针
 			template<JsonTypeStrictConcept T>
-			const T* transform_ptr() const 
+			const T* transform_ptr() const
 			{
 				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
 				return reinterpret_cast<T*>(this->json_item);
 			}
+
 
 			// 转换为指定类型，返回转换后对象的引用
 			template<JsonTypeStrictConcept T>
@@ -96,6 +172,7 @@ namespace ayr
 			// 转换为指定类型，返回转换后对象的引用
 			template<JsonTypeStrictConcept T>
 			const T& transform() const { return *transform_ptr<T>(); }
+
 
 			template<JsonTypeStrictConcept T>
 			operator T() const { return transform<T>(); }

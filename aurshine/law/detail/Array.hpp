@@ -70,9 +70,8 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			relloc(other.size_);
-			for (c_size i = 0; i < size_; ++i)
-				arr_[i] = std::move(other.arr_[i]);
+			arr_ = other.arr_;
+			size_ = other.size_;
 
 			other.arr_ = nullptr;
 			other.size_ = 0;

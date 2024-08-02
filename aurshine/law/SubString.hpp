@@ -4,17 +4,19 @@
 namespace ayr
 {
 	template<Char Ch>
-	class SubString : public IndexContainer<SubString<Ch>, Ch>
+	class SubString : public IndexContainer<SubString<Ch>, const Ch>
 	{
 		using self = SubString<Ch>;
 	public:
 		using Char_t = Ch;
 
+		SubString() : substr_(nullptr), size_(0) {}
+
 		SubString(const Char_t* str, size_t size) : substr_(str), size_(size) {}
 		
 		SubString(const SubString& other) : substr_(other.substr_), size_(other.size_) {}
 
-		const SubString& operator=(const SubString& other) const
+		const SubString& operator=(const SubString& other)
 		{
 			substr_ = other.substr_;
 			size_ = other.size_;
@@ -26,8 +28,6 @@ namespace ayr
 			std::swap(substr_, other.substr_);
 			std::swap(size_, other.size_);
 		}
-
-		Char_t& operator[] (c_size index) { return substr_[neg_index(index, size_)]; }
 
 		const Char_t& operator[] (c_size index)  const { return substr_[neg_index(index, size_)]; }
 
@@ -158,7 +158,7 @@ namespace ayr
 			ValueError("string is not matched");
 		}
 	private:
-		mutable Char_t const * substr_;
+		mutable const Char_t * substr_;
 
 		mutable c_size size_;
 	};
