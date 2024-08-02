@@ -31,7 +31,7 @@ namespace ayr
 
 	// 动态数组
 	template<typename T>
-	class DynArray: public Sequence<T>
+	class DynArray : public Sequence<T>
 	{
 		using self = DynArray<T>;
 
@@ -40,15 +40,14 @@ namespace ayr
 	public:
 		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>(0)), size_(0), occupies_size_(0) {}
 
-		DynArray(const self& other) : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>(0)), size_(other.size_), occupies_size_(other.occupies_size_)
+		DynArray(const self& other) : DynArray()
 		{
-			print("\n\n\n");
 			for (auto& item : other)
 				append(item);
 		}
 
 
-		DynArray(self&& other): dynarray_(std::move(other.dynarray_)), size_(other.size_), occupies_size_(other.occupies_size_)
+		DynArray(self&& other) : dynarray_(std::move(other.dynarray_)), size_(other.size_), occupies_size_(other.occupies_size_)
 		{
 			other.size_ = 0;
 			other.occupies_size_ = 0;
@@ -80,7 +79,7 @@ namespace ayr
 
 			other.size_ = 0;
 			other.occupies_size_ = 0;
-			
+
 			return *this;
 		}
 
@@ -104,9 +103,7 @@ namespace ayr
 				__wakeup__();
 
 			T& v = __at__(size_++);
-
-			::new(&v) T(item);
-			print("const");
+			ayr_construct(T, &v, item);
 			return v;
 		}
 
@@ -116,7 +113,7 @@ namespace ayr
 				__wakeup__();
 
 			T& v = __at__(size_++);
-			
+
 			ayr_construct(T, &v, std::move(item));
 			return v;
 		}
@@ -130,8 +127,8 @@ namespace ayr
 
 			for (c_size i = index; i < size_ - 1; ++i)
 				__at__(i) = std::move(__at__(i + 1));
-			
-			if (all_one(-- size_)) -- occupies_size_;
+
+			if (all_one(--size_)) --occupies_size_;
 		}
 
 		// 转换为Array
@@ -160,7 +157,7 @@ namespace ayr
 		void release()
 		{
 			c_size last_block_size = size_;
-			
+
 			for (c_size i = 0; i < occupies_size_ - 1; ++i)
 			{
 				dynarray_[i].release(exp2(i));

@@ -16,120 +16,100 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			Json(T&& item) : json_item(new T(std::move(item))), json_type(GetJsonTypeIDStrict<T>::ID) {}
 
-			Json() : Json(Null()){}
+			Json() : Json(Null()) {}
 
-			Json(Json&& json): Json() { this->swap(json); }
+			Json(Json&& other) noexcept
+			{
+				json_type = other.json_type;
+				json_item = other.json_item;
+
+				other.json_item = nullptr;
+				other.json_type = GetJsonTypeIDStrict<JsonType::JsonNull>::ID;
+			}
 
 			Json(const Json& other)
-			{ 
+			{
 				json_type = other.json_type;
-				
+
 				switch (json_type)
 				{
-				case GetJsonTypeID<typename JsonType::JsonInt>::ID:
-					this->json_item = new typename JsonType::JsonInt(other.transform<typename JsonType::JsonInt>());
+				case GetJsonTypeID<JsonType::JsonInt>::ID:
+					this->json_item = new JsonType::JsonInt(other.transform<JsonType::JsonInt>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
-					this->json_item = new typename JsonType::JsonFloat(other.transform<typename JsonType::JsonFloat>());
+				case GetJsonTypeID<JsonType::JsonFloat>::ID:
+					this->json_item = new JsonType::JsonFloat(other.transform<JsonType::JsonFloat>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonBool>::ID:
-					this->json_item = new typename JsonType::JsonBool(other.transform<typename JsonType::JsonBool>());
+				case GetJsonTypeID<JsonType::JsonBool>::ID:
+					this->json_item = new JsonType::JsonBool(other.transform<JsonType::JsonBool>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonStr>::ID:
-					this->json_item = new typename JsonType::JsonStr(other.transform<typename JsonType::JsonStr>());
+				case GetJsonTypeID<JsonType::JsonStr>::ID:
+					this->json_item = new JsonType::JsonStr(other.transform<JsonType::JsonStr>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonArray>::ID:
-					this->json_item = new typename JsonType::JsonArray(other.transform<typename JsonType::JsonArray>());
+				case GetJsonTypeID<JsonType::JsonArray>::ID:
+					this->json_item = new JsonType::JsonArray(other.transform<JsonType::JsonArray>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonDict>::ID:
-					this->json_item = new typename JsonType::JsonDict(other.transform<typename JsonType::JsonDict>());
+				case GetJsonTypeID<JsonType::JsonDict>::ID:
+					this->json_item = new JsonType::JsonDict(other.transform<JsonType::JsonDict>());
 					break;
-				case GetJsonTypeID<typename JsonType::JsonNull>::ID:
-					this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
+				case GetJsonTypeID<JsonType::JsonNull>::ID:
+					this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
 					break;
 				default:
 					ValueError(std::format("json_type can not be {}", type()));
 				}
-				
 			}
 
 			~Json() { release(); }
 
 			Json& operator=(const Json& other)
 			{
-				print(other);
 				if (this != &other)
 				{
 					release();
 					json_type = other.json_type;
-			
+
 					switch (json_type)
 					{
-						case GetJsonTypeID<typename JsonType::JsonInt>::ID:
-							this->json_item = new typename JsonType::JsonInt(other.transform<typename JsonType::JsonInt>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
-							this->json_item = new typename JsonType::JsonFloat(other.transform<typename JsonType::JsonFloat>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonBool>::ID:
-							this->json_item = new typename JsonType::JsonBool(other.transform<typename JsonType::JsonBool>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonStr>::ID:
-							this->json_item = new typename JsonType::JsonStr(other.transform<typename JsonType::JsonStr>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonArray>::ID:
-							this->json_item = new typename JsonType::JsonArray(other.transform<typename JsonType::JsonArray>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonDict>::ID:
-							this->json_item = new typename JsonType::JsonDict(other.transform<typename JsonType::JsonDict>());
-							break;
-						case GetJsonTypeID<typename JsonType::JsonNull>::ID:
-							this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
-							break;
-						default:
-							ValueError(std::format("json_type can not be {}", type()));
+					case GetJsonTypeID<JsonType::JsonInt>::ID:
+						this->json_item = new JsonType::JsonInt(other.transform<JsonType::JsonInt>());
+						break;
+					case GetJsonTypeID<JsonType::JsonFloat>::ID:
+						this->json_item = new JsonType::JsonFloat(other.transform<JsonType::JsonFloat>());
+						break;
+					case GetJsonTypeID<JsonType::JsonBool>::ID:
+						this->json_item = new JsonType::JsonBool(other.transform<JsonType::JsonBool>());
+						break;
+					case GetJsonTypeID<JsonType::JsonStr>::ID:
+						this->json_item = new JsonType::JsonStr(other.transform<JsonType::JsonStr>());
+						break;
+					case GetJsonTypeID<JsonType::JsonArray>::ID:
+						this->json_item = new JsonType::JsonArray(other.transform<JsonType::JsonArray>());
+						break;
+					case GetJsonTypeID<JsonType::JsonDict>::ID:
+						this->json_item = new JsonType::JsonDict(other.transform<JsonType::JsonDict>());
+						break;
+					case GetJsonTypeID<JsonType::JsonNull>::ID:
+						this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
+						break;
+					default:
+						ValueError(std::format("json_type can not be {}", type()));
 					}
 				}
-				
+
 				return *this;
 			}
 
 
-			Json& operator=(Json&& other)
+			Json& operator=(Json&& other) noexcept
 			{
 				if (this != &other)
 				{
 					release();
 					json_type = other.json_type;
+					json_item = other.json_item;
 
-					switch (json_type)
-					{
-					case GetJsonTypeID<typename JsonType::JsonInt>::ID:
-						this->json_item = new typename JsonType::JsonInt(other.transform<typename JsonType::JsonInt>());
-						break;
-					case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
-						this->json_item = new typename JsonType::JsonFloat(other.transform<typename JsonType::JsonFloat>());
-						break;
-					case GetJsonTypeID<typename JsonType::JsonBool>::ID:
-						this->json_item = new typename JsonType::JsonBool(other.transform<typename JsonType::JsonBool>());
-						break;
-					case GetJsonTypeID<typename JsonType::JsonStr>::ID:
-						this->json_item = new typename JsonType::JsonStr(other.transform<typename JsonType::JsonStr>());
-						break;
-					case GetJsonTypeID<typename JsonType::JsonArray>::ID:
-						print(type(), other.type());
-						this->json_item = new typename JsonType::JsonArray(other.transform<typename JsonType::JsonArray>());
-						print(this->json_item);
-						break;
-					case GetJsonTypeID<typename JsonType::JsonDict>::ID:
-						this->json_item = new typename JsonType::JsonDict(other.transform<typename JsonType::JsonDict>());
-						break;
-					case GetJsonTypeID<typename JsonType::JsonNull>::ID:
-						this->json_item = new typename JsonType::JsonNull(other.transform<typename JsonType::JsonNull>());
-						break;
-					default:
-						ValueError(std::format("json_type can not be {}", type()));
-					}
+					other.json_item = nullptr;
+					other.json_type = GetJsonTypeID<JsonType::JsonNull>::ID;
 				}
 
 				return *this;
@@ -150,10 +130,10 @@ namespace ayr
 
 			// 转换为指定类型，返回转换后对象的指针
 			template<JsonTypeStrictConcept T>
-			T* transform_ptr() 
+			T* transform_ptr()
 			{
 				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
-				return reinterpret_cast<T*>(this->json_item); 
+				return reinterpret_cast<T*>(this->json_item);
 			}
 
 			// 转换为指定类型，返回转换后对象的指针
@@ -182,64 +162,64 @@ namespace ayr
 			{
 				switch (json_type)
 				{
-					case GetJsonTypeID<typename JsonType::JsonInt>::ID:
-						return cstr(transform<typename JsonType::JsonInt>());
-					case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
-						return cstr(transform<typename JsonType::JsonFloat>());
-					case GetJsonTypeID<typename JsonType::JsonBool>::ID:
-						return cstr(transform<typename JsonType::JsonBool>());
-					case GetJsonTypeID<typename JsonType::JsonStr>::ID:
-						return transform<typename JsonType::JsonStr>().__str__();
-					case GetJsonTypeID<typename JsonType::JsonArray>::ID:
-						return transform<typename JsonType::JsonArray>().__str__();
-					case GetJsonTypeID<typename JsonType::JsonDict>::ID:
-						return transform<typename JsonType::JsonDict>().__str__();
-					case GetJsonTypeID<typename JsonType::JsonNull>::ID:
-						return cstr("null");
-					default:
-						ValueError(std::format("json_type can not be {}", type()));
+				case GetJsonTypeID<JsonType::JsonInt>::ID:
+					return cstr(transform<JsonType::JsonInt>());
+				case GetJsonTypeID<JsonType::JsonFloat>::ID:
+					return cstr(transform<JsonType::JsonFloat>());
+				case GetJsonTypeID<JsonType::JsonBool>::ID:
+					return cstr(transform<JsonType::JsonBool>());
+				case GetJsonTypeID<JsonType::JsonStr>::ID:
+					return transform<JsonType::JsonStr>().__str__();
+				case GetJsonTypeID<JsonType::JsonArray>::ID:
+					return transform<JsonType::JsonArray>().__str__();
+				case GetJsonTypeID<JsonType::JsonDict>::ID:
+					return transform<JsonType::JsonDict>().__str__();
+				case GetJsonTypeID<JsonType::JsonNull>::ID:
+					return cstr("null");
+				default:
+					ValueError(std::format("json_type can not be {}", type()));
 				}
 			}
 
 			// 尾部添加一个Json对象，需要当前Json对象为JsonArray类型
 			Json& append(const Json& json)
 			{
-				transform<typename JsonType::JsonArray>().append(json);
+				transform<JsonType::JsonArray>().append(json);
 				return *this;
 			}
 
-			Json& operator[] (const typename JsonType::JsonStr& key)
+			Json& operator[] (const JsonType::JsonStr& key)
 			{
-				return transform<typename JsonType::JsonDict>()[key];
+				return transform<JsonType::JsonDict>()[key];
 			}
 
-			const Json& operator[] (const typename JsonType::JsonStr& key) const
+			const Json& operator[] (const JsonType::JsonStr& key) const
 			{
-				return transform<typename JsonType::JsonDict>().get(key);
+				return transform<JsonType::JsonDict>().get(key);
 			}
 
 			Json& operator[] (size_t index)
 			{
-				return transform<typename JsonType::JsonArray>()[index];
+				return transform<JsonType::JsonArray>()[index];
 			}
 
 			const Json& operator[] (size_t index) const
 			{
-				return transform<typename JsonType::JsonArray>()[index];
+				return transform<JsonType::JsonArray>()[index];
 			}
 
 			void pop(size_t index = -1)
 			{
-				transform<typename JsonType::JsonArray>().pop(index);
+				transform<JsonType::JsonArray>().pop(index);
 			}
 
 			size_t size() const
 			{
-				if (json_type == GetJsonTypeID<typename JsonType::JsonArray>::ID)
-					return transform<typename JsonType::JsonArray>().size();
+				if (json_type == GetJsonTypeID<JsonType::JsonArray>::ID)
+					return transform<JsonType::JsonArray>().size();
 
-				if (json_type == GetJsonTypeID<typename JsonType::JsonDict>::ID)
-					return transform<typename JsonType::JsonDict>().size();
+				if (json_type == GetJsonTypeID<JsonType::JsonDict>::ID)
+					return transform<JsonType::JsonDict>().size();
 
 				RuntimeError("Json type is not JSON_ARRAY or JSON_DICT");
 			}
@@ -250,26 +230,26 @@ namespace ayr
 			{
 				switch (json_type)
 				{
-				case GetJsonTypeID<typename JsonType::JsonInt>::ID:
-					delete transform_ptr<typename JsonType::JsonInt>();
+				case GetJsonTypeID<JsonType::JsonInt>::ID:
+					delete transform_ptr<JsonType::JsonInt>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonFloat>::ID:
-					delete transform_ptr<typename JsonType::JsonFloat>();
+				case GetJsonTypeID<JsonType::JsonFloat>::ID:
+					delete transform_ptr<JsonType::JsonFloat>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonBool>::ID:
-					delete transform_ptr<typename JsonType::JsonBool>();
+				case GetJsonTypeID<JsonType::JsonBool>::ID:
+					delete transform_ptr<JsonType::JsonBool>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonStr>::ID:
-					delete transform_ptr<typename JsonType::JsonStr>();
+				case GetJsonTypeID<JsonType::JsonStr>::ID:
+					delete transform_ptr<JsonType::JsonStr>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonArray>::ID:
-					delete transform_ptr<typename JsonType::JsonArray>();
+				case GetJsonTypeID<JsonType::JsonArray>::ID:
+					delete transform_ptr<JsonType::JsonArray>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonDict>::ID:
-					delete transform_ptr<typename JsonType::JsonDict>();
+				case GetJsonTypeID<JsonType::JsonDict>::ID:
+					delete transform_ptr<JsonType::JsonDict>();
 					break;
-				case GetJsonTypeID<typename JsonType::JsonNull>::ID:
-					delete transform_ptr<typename JsonType::JsonNull>();
+				case GetJsonTypeID<JsonType::JsonNull>::ID:
+					delete transform_ptr<JsonType::JsonNull>();
 					break;
 				default:
 					ValueError(std::format("json_type can not be {}", type()));
