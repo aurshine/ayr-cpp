@@ -35,7 +35,7 @@ namespace ayr
 		const char* end = data + n;
 		hash_t h = seed ^ (n * m);
 
-		while (data < end)
+		while (data + 4 < end)
 		{
 			hash_t w = decode_fixed32(data);
 			data += 4;

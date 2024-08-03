@@ -1,9 +1,11 @@
+ï»¿#pragma once
+#include <iterator>
 #include <law/detail/Printer.hpp>
 #include <law/detail/ayr_traits.hpp>
 
 namespace ayr
 {
-	// µü´úÆ÷½Ó¿Ú
+	// è¿­ä»£å™¨æ¥å£
 	template<typename V>
 	class IteratorImpl : public Object
 	{
@@ -30,9 +32,9 @@ namespace ayr
 
 		virtual const Value_t* operator->() const { NotImplementedError("Not implemented const Value_t& operator->() const"); return &None<Value_t>; }
 
-		virtual self& operator++() { NotImplementedError("Not implemented self& operator++()"); return *this;}
+		virtual self& operator++() { NotImplementedError("Not implemented self& operator++()"); return *this; }
 
-		virtual self& operator--() { NotImplementedError("Not implemented self& operator--()"); return *this;}
+		virtual self& operator--() { NotImplementedError("Not implemented self& operator--()"); return *this; }
 
 		virtual cmp_t __cmp__(const self& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
 
@@ -53,7 +55,7 @@ namespace ayr
 		}
 	};
 
-	
+
 	template<typename V>
 	class ZipIterator : IteratorImpl<V>
 	{

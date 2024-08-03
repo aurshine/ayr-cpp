@@ -13,6 +13,7 @@ namespace ayr
 
 #define neg_index(index, size) (((index) == (size)) ? (index): (((index) + (size)) % (size)))
 
+#define ifelse(expr, t, f) ((expr)? (t) : (f))
 
 	class Ayr {};
 

@@ -189,7 +189,7 @@ namespace ayr
 				if (i != 0) stream << ", ";
 				stream << keys_[i] << ":" << get(keys_[i]);
 			}
-				
+
 			stream << "}";
 
 			return CString(stream.str());

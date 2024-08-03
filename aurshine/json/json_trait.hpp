@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <law/detail/ayr_concepts.hpp>
-#include <law/AString.hpp>
+#include <law/String.hpp>
 #include <law/DynArray.hpp>
 #include <law/Dict.hpp>
 
@@ -21,7 +21,7 @@ namespace ayr
 
 			using JsonBool = bool;
 
-			using JsonStr = Astring;
+			using JsonStr = String<char>;
 
 			using JsonArray = DynArray<Json>;
 

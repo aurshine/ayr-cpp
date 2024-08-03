@@ -1,4 +1,8 @@
 ﻿#pragma once
+
+#ifndef AYR_LAW_DETAIL_CSTRING_HPP
+#define AYR_LAW_DETAIL_CSTRING_HPP
+
 #include <cstring>
 #include <string>
 
@@ -13,11 +17,11 @@ namespace ayr
 	class RawString : public Ayr
 	{
 	public:
-		RawString(): RawString(1) {}
+		RawString() : RawString(1) {}
 
 		RawString(const Ch* str_) : RawString(str_, std::strlen(str_ == nullptr ? "" : str_)) {}
 
-		RawString(const std::basic_string<Ch>& str_): RawString(str_.c_str(), str_.size()) {}
+		RawString(const std::basic_string<Ch>& str_) : RawString(str_.c_str(), str_.size()) {}
 
 		RawString(c_size len)
 		{
@@ -25,7 +29,7 @@ namespace ayr
 			std::memset(str, 0, sizeof(Ch) * (len + 1));
 		}
 
-		RawString(const Ch* str_, c_size len_): RawString(len_)
+		RawString(const Ch* str_, c_size len_) : RawString(len_)
 		{
 			for (c_size i = 0; i < len_; ++i)
 				str[i] = str_[i];
@@ -82,7 +86,7 @@ namespace ayr
 			for (size_t i = 0; str[i] || other.str[i]; ++i)
 				if (str[i] != other.str[i])
 					return str[i] - other.str[i];
-				
+
 			return 0;
 		}
 
@@ -97,7 +101,8 @@ namespace ayr
 
 	inline CString cstr(double value) { return CString(std::to_string(value)); }
 
-	inline CString cstr(bool value) { return  value ? CString("true") : CString("false"); }
+	inline CString cstr(bool value) { return  ifelse(value, CString("true"), CString("false")); }
 
 	inline CString cstr(const char* str_) { return CString(str_); }
 }
+#endif // AYR_LAW_DETAIL_CSTRING_HPP

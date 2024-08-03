@@ -13,18 +13,6 @@ namespace ayr
 	template<typename T>
 	concept Char = isinstance<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
 
-	// 判断T是否为可迭代类型
-	template<typename T>
-	concept Iteratable = std::ranges::range<T>;
-
-	// 判断T是否为无形参的可调用类型
-	template<typename T>
-	concept Callable = requires(T t)
-	{
-		{ t() };
-	};
-
-
 	// 可输出的类型约束概念
 	template<typename T>
 	concept StdPrintable = requires(T t)
