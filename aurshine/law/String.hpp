@@ -110,6 +110,8 @@ namespace ayr
 			return result;
 		}
 
+		CharT operator[] (c_size index) const { return cstr_[neg_index(index, size())]; }
+
 		CharT& __at__(c_size index) override { return cstr_[index]; }
 
 		const CharT& __at__(c_size index) const override { return cstr_[index]; }
