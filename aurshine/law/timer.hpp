@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include <chrono>
 
-#include <law/AString.hpp>
+#include <law/String.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
@@ -20,7 +20,7 @@ namespace ayr
 
 		Date(const YearMonthDay& ymd) : Date(ymd.year, ymd.month, ymd.day) {}
 
-		void swap(Date& date) { std::swap(day_from_1970_01_01_, date.day_from_1970_01_01_); }
+		void swap(Date& date) { ::std::swap(day_from_1970_01_01_, date.day_from_1970_01_01_); }
 
 		int year() const { return year_month_day().year; }
 

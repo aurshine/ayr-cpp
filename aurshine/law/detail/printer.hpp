@@ -29,7 +29,7 @@ namespace ayr
 		// 单一形参
 		void __print__() const {}
 
-		void __print__(const char& object) const { std::fprintf(output_file_, "%c", object); }
+		void __print__(const char& object) const { ::std::fprintf(output_file_, "%c", object); }
 
 		void __print__(const int& object) const { ::std::fprintf(output_file_, "%d", object); }
 

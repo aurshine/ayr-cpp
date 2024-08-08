@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include <memory>
-#include <law/detail/printer.hpp>
 
 
 namespace ayr
