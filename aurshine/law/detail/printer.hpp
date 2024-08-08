@@ -104,6 +104,8 @@ namespace ayr
 		constexpr static const char* DEEPGREEN = "\033[36m";
 
 		constexpr static const char* WHITE = "\033[37m";
+
+		constexpr static const char* AQUA = "\033[94m";
 	};
 
 	class ColorPrinter : public Printer
