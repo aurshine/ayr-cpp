@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_JSON_JSON_OBJ_HPP
+#define AYR_JSON_JSON_OBJ_HPP
+
 #include <json/json_trait.hpp>
 
 
@@ -291,3 +293,4 @@ namespace ayr
 		}
 	}
 }
+#endif

@@ -1,6 +1,4 @@
-﻿#pragma once
-
-#ifndef AYR_LAW_DETAIL_CSTRING_HPP
+﻿#ifndef AYR_LAW_DETAIL_CSTRING_HPP
 #define AYR_LAW_DETAIL_CSTRING_HPP
 
 #include <cstring>

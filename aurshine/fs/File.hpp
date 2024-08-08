@@ -1,5 +1,5 @@
-#ifndef AYR_FILE_HPP
-#define AYR_FILE_HPP
+#ifndef AYR_FS_FILE_HPP
+#define AYR_FS_FILE_HPP
 
 #include <cstdio>
 #include <atomic>

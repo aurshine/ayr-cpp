@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_AYR_MEMORY_HPP
+#define AYR_LAW_DETAIL_AYR_MEMORY_HPP
+
 #include <memory>
 
 
@@ -16,3 +18,4 @@ namespace ayr
 // 在ptr处调用T的析构函数, 释放内存
 #define ayr_destroy(ptr) (ptr)->~T()
 }
+#endif 

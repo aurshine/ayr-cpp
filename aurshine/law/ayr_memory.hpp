@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_AYR_MEMORY_HPP
+#define AYR_LAW_AYR_MEMORY_HPP
+
 #include <law/detail/ayr_memory.hpp>
 #include <law/detail/ayr_traits.hpp>
 #include <law/DynArray.hpp>
@@ -34,3 +36,5 @@ namespace ayr
 		DynArray<T> created_values;
 	};
 }
+
+#endif

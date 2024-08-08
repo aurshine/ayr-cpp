@@ -1,6 +1,5 @@
-﻿#pragma once
-#include <law/detail/printer.hpp>
-#include <law/detail/Array.hpp>
+﻿#ifndef AYR_LAW_DETIAL_BUNIT_HPP
+#define AYR_LAW_DETIAL_BUNIT_HPP
 
 namespace ayr
 {
@@ -42,3 +41,4 @@ namespace ayr
 	template<typename B>
 	constexpr inline bool only_one(const B& x) { return (x & x - 1) == 0; }
 }
+#endif

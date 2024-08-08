@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_STRING_HPP
+#define AYR_LAW_STRING_HPP
+
 #include <cstring>
 
 #include <law/printer.hpp>
@@ -423,3 +425,4 @@ namespace ayr
 
 	inline Atring operator ""as(const char* str, size_t len) { return Atring(str, len); }
 }
+#endif

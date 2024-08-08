@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETIAL_OBJECT_HPP
+#define AYR_LAW_DETIAL_OBJECT_HPP
+
 #include <format>
 #include <sstream>
 #include <typeinfo>
@@ -62,3 +64,4 @@ namespace ayr
 	template<DerivedAyr T1, typename T2>
 	bool operator!= (const T1& one, const T2& other) { return one.__cmp__(other) != 0; }
 }
+#endif

@@ -1,5 +1,8 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_ITERATOR_HPP
+#define AYR_LAW_DETAIL_ITERATOR_HPP
+
 #include <iterator>
+
 #include <law/detail/Printer.hpp>
 #include <law/detail/ayr_traits.hpp>
 
@@ -62,3 +65,4 @@ namespace ayr
 
 	};
 }
+#endif

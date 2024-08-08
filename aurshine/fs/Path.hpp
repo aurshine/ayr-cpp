@@ -1,5 +1,5 @@
-#ifndef AYR_PATH_HPP
-#define AYR_PATH_HPP
+#ifndef AYR_FS_PATH_HPP
+#define AYR_FS_PATH_HPP
 
 #include <law/Printer.hpp>
 

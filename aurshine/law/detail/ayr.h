@@ -1,6 +1,9 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_AYR_H
+#define AYR_LAW_DETAIL_AYR_H
+
 #include <cstdint>
 #include <cassert>
+#include <typeinfo>
 
 
 namespace ayr
@@ -34,3 +37,5 @@ namespace ayr
 	template<typename T>
 	def is_none(const T& val) -> bool { return &val == &None<T>; }
 }
+
+#endif

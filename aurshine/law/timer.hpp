@@ -1,7 +1,9 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_TIMER_HPP
+#define AYR_LAW_TIMER_HPP
+
 #include <chrono>
 
-#include <law/String.hpp>
+#include <law/Printer.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
@@ -156,3 +158,4 @@ namespace ayr
 		long long dvd;
 	};
 }
+#endif

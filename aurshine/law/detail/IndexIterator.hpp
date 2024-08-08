@@ -1,4 +1,6 @@
-#pragma once
+#ifndef AYR_LAW_DETAIL_INDEXITERATOR_HPP
+#define AYR_LAW_DETAIL_INDEXITERATOR_HPP
+
 #include <law/detail/Iterator.hpp>
 
 
@@ -108,3 +110,5 @@ namespace ayr
 		ConstIterator end() const { return ConstIterator(__iter_container__(), size()); }
 	};
 }
+
+#endif

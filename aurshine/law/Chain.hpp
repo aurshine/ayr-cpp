@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_CHAIN_HPP
+#define AYR_LAW_CHAIN_HPP
+
 #include <law/Node.hpp>
 #include <law/ayr_memory.hpp>
 
@@ -249,3 +251,4 @@ namespace ayr
 	template<typename T>
 	using BiChain = BiSimpleChain<BiSimpleNode<T>, Creator<BiSimpleNode<T>>>;
 }
+#endif

@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_AYR_TRAITS_HPP
+#define AYR_LAW_DETAIL_AYR_TRAITS_HPP
+
 #include <type_traits>
 
 
@@ -31,3 +33,5 @@ namespace ayr
 	template<typename T1, typename T2, typename... Args>
 	constexpr bool isinstance<T1, T2, Args...> = isinstance<T1, T2> || isinstance<T1, Args...>;
 }
+
+#endif

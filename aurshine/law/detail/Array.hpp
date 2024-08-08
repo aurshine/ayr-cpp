@@ -1,6 +1,7 @@
-﻿#pragma once
-#include <functional>
-#include <string>
+﻿#ifndef AYR_LAW_DETAIL_ARRAY_HPP
+#define AYR_LAW_DETAIL_ARRAY_HPP
+
+#include <sstream>
 
 #include <law/detail/printer.hpp>
 #include <law/detail/ayr_memory.hpp>
@@ -185,3 +186,4 @@ namespace ayr
 		c_size size_ = 0;
 	};
 }
+#endif

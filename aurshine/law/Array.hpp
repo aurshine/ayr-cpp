@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_ARRAY_HPP
+#define AYR_LAW_ARRAY_HPP
+
 #include <law/detail/Array.hpp>
 #include <law/detail/ayr_concepts.hpp>
 
@@ -55,3 +57,5 @@ namespace ayr
 		return arr;
 	}
 }
+
+#endif

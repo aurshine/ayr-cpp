@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_AYR_CONCEPTS_HPP
+#define AYR_LAW_DETAIL_AYR_CONCEPTS_HPP
+
 #include <iostream>
 #include <concepts>
 #include <ranges>
@@ -48,3 +50,4 @@ namespace ayr
 	template<typename T>
 	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
 }
+#endif

@@ -1,7 +1,7 @@
-﻿#pragma once
-#include <functional>
+﻿#ifndef AYR_LAW_WRAPPER_HPP
+#define AYR_LAW_WRAPPER_HPP
 
-#include <law/printer.hpp>
+#include <functional>
 
 
 namespace ayr
@@ -41,3 +41,4 @@ namespace ayr
 		}
 	};
 }
+#endif

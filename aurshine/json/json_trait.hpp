@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_JSON_TRAIT_HPP
+#define AYR_JSON_TRAIT_HPP
+
 #include <law/detail/ayr_concepts.hpp>
 #include <law/String.hpp>
 #include <law/DynArray.hpp>
@@ -60,3 +62,4 @@ namespace ayr
 		struct GetJsonTypeID { constexpr static int8_t ID = GetJsonTypeIDStrict<std::remove_cvref_t<T>>::ID; };
 	}
 }
+#endif

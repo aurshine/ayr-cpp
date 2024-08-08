@@ -1,4 +1,7 @@
-﻿#include <json/json_obj.hpp>
+﻿#ifndef AYR_JSON_PARSE_HPP
+#define AYR_JSON_PARSE_HPP
+
+#include "json_obj.hpp"
 
 
 namespace ayr
@@ -177,3 +180,5 @@ namespace ayr
 		}
 	}
 }
+
+#endif

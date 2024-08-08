@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DYNAARRAY_HPP
+#define AYR_LAW_DYNAARRAY_HPP
+
 #include <utility>
 
 #include <law/detail/bunit.hpp>
@@ -201,3 +203,5 @@ namespace ayr
 		c_size size_, occupies_size_;
 	};
 }
+
+#endif

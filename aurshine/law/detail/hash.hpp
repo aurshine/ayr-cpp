@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_HASH_HPP
+#define AYR_LAW_DETAIL_HASH_HPP
+
 #include <law/detail/ayr_concepts.hpp>
 #include <law/detail/ayr.h>
 
@@ -52,3 +54,4 @@ namespace ayr
 		return h;
 	}
 }
+#endif

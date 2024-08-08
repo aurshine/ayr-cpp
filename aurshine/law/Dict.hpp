@@ -1,6 +1,8 @@
-﻿#pragma once
-#include <law/Array.hpp>
+﻿#ifndef AYR_LAW_DICT_HPP
+#define AYR_LAW_DICT_HPP
+
 #include <law/detail/hash.hpp>
+#include <law/Array.hpp>
 #include <law/ayr_memory.hpp>
 
 
@@ -286,3 +288,4 @@ namespace ayr
 		static const KeyValue<K, V>* getcptr(const C& container, size_t index) { return container.get_kv(container.keys_[index]); }
 	};
 }
+#endif

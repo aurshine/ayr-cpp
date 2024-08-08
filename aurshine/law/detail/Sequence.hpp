@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_DETAIL_SEQUENCE_HPP
+#define AYR_LAW_DETAIL_SEQUENCE_HPP
+
 #include <law/detail/printer.hpp>
 #include <law/detail/IndexIterator.hpp>
 
@@ -86,3 +88,5 @@ namespace ayr
 		}
 	};
 }
+
+#endif

@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_LAW_NODE_HPP
+#define AYR_LAW_NODE_HPP
+
 #include <law/detail/printer.hpp>
 #include <law/DynArray.hpp>
 
@@ -126,3 +128,5 @@ namespace ayr
 		BiSimpleNode* prev, * next;
 	};
 }
+
+#endif
