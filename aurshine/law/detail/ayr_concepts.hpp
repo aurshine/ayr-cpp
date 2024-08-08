@@ -13,14 +13,24 @@ namespace ayr
 {
 	// 判断T是否为char类型
 	template<typename T>
-	concept Char = issame<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
+	concept Char = issame<T, char, wchar_t, char8_t, char16_t, char32_t>;
 
 	// 可输出的类型约束概念
 	template<typename T>
-	concept StdPrintable = requires(T t)
-	{
-		{ std::cout << t };
-	};
+	concept StdPrintable = issame<T,
+		bool,
+		char,
+		int,
+		unsigned int,
+		long,
+		unsigned long,
+		long long,
+		unsigned long long,
+		float,
+		double,
+		long double,
+		nullptr_t,
+		std::string> || std::is_pointer_v<T> || ischararray<T>;
 
 	template<typename T>
 	concept AyrPrintable = requires(T t)

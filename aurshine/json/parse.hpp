@@ -101,7 +101,7 @@ namespace ayr
 		def parse_first_object(JsonType::JsonStr& json_str, char stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
 			json_str.strip_();
-			error_assert(json_str.size(), "json_str is empty");
+			error_assert(json_str.size() == 0, "json_str is empty");
 
 			JsonType::JsonStr match;
 			if (json_str[0] == '[')

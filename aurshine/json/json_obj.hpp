@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_JSON_JSON_OBJ_HPP
 #define AYR_JSON_JSON_OBJ_HPP
 
-#include <json/json_trait.hpp>
+#include "json_trait.hpp"
 
 
 namespace ayr
