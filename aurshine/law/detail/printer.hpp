@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+#include <cstdio>
 #include <iostream>
 #include <format>
 #include <source_location>
@@ -7,53 +9,79 @@
 
 namespace ayr
 {
-	template<class Ostream>
 	class Printer : public Object
 	{
 	public:
-		Printer(Ostream& ostream) : Printer("\n", " ", ostream) {}
+		Printer(FILE* file_ptr) : Printer("\n", " ", file_ptr) {}
 
-		Printer(CString ew, CString sw, Ostream& ostream)
-			: ew_(std::move(ew)), sw_(std::move(sw)), ostream(ostream) {}
-
-
-		template<Printable T>
-		void operator()(const T& object) const { __print__(object); __print__(ew_); }
-
-		template<Printable T, Printable... Args>
-		void operator()(const T& object, const Args&... args) const { __print__(object, args...); __print__(ew_); }
-
+		Printer(CString ew, CString sw, FILE* file_ptr) : ew_(::std::move(ew)), sw_(::std::move(sw)), output_file_(file_ptr) {}
+		 
+		template<typename... Args>
+		void operator()(const Args&... args) const { __print__(args...); __print__(ew_); }
 
 		// 设置输出结束符
-		void set_end_word(CString ew) const { ew_ = std::move(ew); }
+		void set_end_word(CString ew) { ew_ = ::std::move(ew); }
 
 		// 设置输出分隔符
-		void set_sep_word(CString sw) const { sw_ = std::move(sw); }
+		void set_sep_word(CString sw) { sw_ = ::std::move(sw); }
 
 	protected:
 		// 单一形参
+		void __print__() const {}
+
+		void __print__(const char& object) const { std::fprintf(output_file_, "%c", object); }
+
+		void __print__(const int& object) const { ::std::fprintf(output_file_, "%d", object); }
+
+		void __print__(const long& object) const { ::std::fprintf(output_file_, "%ld", object); }
+
+		void __print__(const long long& object) const { ::std::fprintf(output_file_, "%lld", object); }
+
+		void __print__(const unsigned int& object) const { ::std::fprintf(output_file_, "%u", object); }
+
+		void __print__(const unsigned long& object) const { ::std::fprintf(output_file_, "%lu", object); }
+
+		void __print__(const unsigned long long& object) const { ::std::fprintf(output_file_, "%llu", object); }
+
+		void __print__(const float& object) const { ::std::fprintf(output_file_, "%f", object); }
+
+		void __print__(const double& object) const { ::std::fprintf(output_file_, "%lf", object); }
+
+		void __print__(const long double& object) const { ::std::fprintf(output_file_, "%Lf", object); }
+
+		void __print__(const char* object) const { ::std::fprintf(output_file_, object); }
+
+		void __print_ptr__(const void* object) const { ::std::fprintf(output_file_, "0x%p", object); }
+
+		void __print__(const ::std::nullptr_t& object) const { ::std::fprintf(output_file_, "nullptr"); }
+
+		void __print__(const ::std::string& object) const { ::std::fprintf(output_file_, object.c_str()); }
+
+		void __print__(const bool& object) const { ::std::fprintf(output_file_, object ? "true" : "false"); }
+
 		template<Printable T>
-		void __print__(const T& object) const { ostream << object; }
+		void __print__(const T& object) const { __print__(object.__str__()); }
 
-		void __print__(const bool& object) const { ostream << (object ? "true" : "false"); }
-
-		void __print__(const CString& object) const { ostream << object.str; }
+		void __print__(const CString& object) const { ::std::fprintf(output_file_, "%s", object.str); }
 
 		// 可变形参
-		template<Printable T, Printable ...Args>
+		template<typename T, typename ...Args>
 		void __print__(const T& object, const Args& ...args) const
 		{
-			__print__(object);
+			if constexpr (std::is_pointer_v<T>)
+				__print_ptr__(object);
+			else
+				__print__(object);
+
 			__print__(sw_);
 			__print__(args...);
 		}
-
 	private:
 		CString ew_; // 结束符
 
 		CString sw_; // 分隔符
 
-		Ostream& ostream;
+		::std::FILE* output_file_;
 	};
 
 
@@ -79,18 +107,16 @@ namespace ayr
 		constexpr static const char* WHITE = "\033[37m";
 	};
 
-
-	template<class Ostream>
-	class ColorPrinter : public Printer<Ostream>
+	class ColorPrinter : public Printer
 	{
-		using super = Printer<Ostream>;
+		using super = Printer;
 	public:
-		ColorPrinter(Ostream& ostream, const char* color = Color::WHITE)
-			: Printer<Ostream>(ostream), color_(color) {}
+		ColorPrinter(FILE* file_ptr, const char* color = Color::WHITE)
+			: Printer(file_ptr), color_(color) {}
 
 		~ColorPrinter() = default;
 
-		template<Printable T>
+		template<typename T>
 		void operator()(const T& object) const
 		{
 			opencolor();
@@ -98,7 +124,7 @@ namespace ayr
 			closecolor();
 		}
 
-		template<Printable T, Printable... Args>
+		template<typename T, typename... Args>
 		void operator()(const T& object, const Args&... args) const
 		{
 			opencolor();
@@ -115,15 +141,15 @@ namespace ayr
 	};
 
 
-	static Printer<std::ostream> print{ std::cout };
+	static Printer print{stdout};
 
-	static ColorPrinter<std::ostream> ayr_warner{ std::cout, Color::YELLOW };
+	static ColorPrinter ayr_warner{ stdin, Color::YELLOW };
 
-	static ColorPrinter<std::ostream> ayr_error{ std::cout, Color::RED };
+	static ColorPrinter ayr_error{ stderr, Color::RED };
 
 
-	template<Printable T>
-	inline void warn_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
+	template<typename T>
+	inline void warn_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		if (!condition)
 		{
@@ -139,8 +165,8 @@ namespace ayr
 		}
 	}
 
-	template<Printable T>
-	inline void error_assert(bool condition, const T& msg, const std::source_location& loc = std::source_location::current())
+	template<typename T>
+	inline void error_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		if (!condition)
 		{
