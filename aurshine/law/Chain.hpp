@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_LAW_CHAIN_HPP
 #define AYR_LAW_CHAIN_HPP
 
-#include <law/Node.hpp>
+#include <law/detail/Node.hpp>
 #include <law/ayr_memory.hpp>
 
 

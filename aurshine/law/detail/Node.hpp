@@ -1,8 +1,7 @@
-﻿#ifndef AYR_LAW_NODE_HPP
-#define AYR_LAW_NODE_HPP
+﻿#ifndef AYR_LAW_DETAIL_NODE_HPP
+#define AYR_LAW_DETIAL_NODE_HPP
 
 #include <law/detail/printer.hpp>
-#include <law/DynArray.hpp>
 
 
 namespace ayr
