@@ -13,7 +13,7 @@ namespace ayr
 {
 	// 判断T是否为char类型
 	template<typename T>
-	concept Char = isinstance<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
+	concept Char = issame<std::remove_cvref_t<T>, char, wchar_t, char8_t, char16_t, char32_t>;
 
 	// 可输出的类型约束概念
 	template<typename T>
