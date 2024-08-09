@@ -1,112 +1,92 @@
 ﻿#ifndef AYR_LAW_TIMER_HPP
 #define AYR_LAW_TIMER_HPP
 
+#include <ctime>
 #include <chrono>
 
 #include <law/Printer.hpp>
+#include <law/Array.hpp>
 #include <law/Wrapper.hpp>
 
 namespace ayr
 {
-	// 保存年月日
-	struct YearMonthDay { int year, month, day; };
-
 	// 1970_01_01距离现在的天数
 	class Date : public Object
 	{
 	public:
-		Date(int _day_from_1970_01_01_ = 0) : day_from_1970_01_01_(_day_from_1970_01_01_) {}
+		Date() : Date(std::time(nullptr)) {}
 
-		Date(int year, int month, int day)
-			: day_from_1970_01_01_(get_day_from_1970_01_01(year, month, day)) {}
-
-		Date(const YearMonthDay& ymd) : Date(ymd.year, ymd.month, ymd.day) {}
-
-		void swap(Date& date) { ::std::swap(day_from_1970_01_01_, date.day_from_1970_01_01_); }
-
-		int year() const { return year_month_day().year; }
-
-		int month() const { return year_month_day().month; }
-
-		int day() const { return year_month_day().day; }
-
-		int week_day() const { return (WEEK_DAY_FROM_1970_01_01 + day_from_1970_01_01_) % 7; }
-
-		int day_from_1970_01_01() const { return day_from_1970_01_01_; }
-
-		YearMonthDay year_month_day() const
+		Date(time_t second_from_19700101)
 		{
-			int year = 1970, month = 1, day = 1;
-			int temp = day_from_1970_01_01_;
+			year_ = 1970, month_ = 1, day_ = 1;
+			time_t day_from_19700101 = second_from_19700101 / (24 * 3600);
+			time_t sec_from_19700101 = second_from_19700101 % (24 * 3600);
 
-			while (temp)
+			int TIMEZONE = 8; // 时区转换，北京时间比UTC时间早八个小时
+			hour_ = TIMEZONE + sec_from_19700101 / 3600;
+			minute_ = (sec_from_19700101 % 3600) / 60;
+			second_ = sec_from_19700101 % 60;
+			week_ = (WEEK_DAY_FROM_1970_01_01 + day_from_19700101) % 7;
+			while (day_from_19700101)
 			{
-				int is_run = (check_run_year(year) ? 1 : 0);
+				int is_run = (check_run_year(year_) ? 1 : 0);
 				int y = 365 + is_run;
-				int m = MONTHS[month] + (month == 2 ? is_run : 0);
+				int m = MONTHS[month_] + (month_ == 2 ? is_run : 0);
 
-				if (temp - y >= 0)
+				if (day_from_19700101 - y >= 0)
 				{
-					year++;
-					temp -= y;
+					year_++;
+					day_from_19700101 -= y;
 				}
-				else if (temp - m >= 0)
+				else if (day_from_19700101 - m >= 0)
 				{
-					month++;
-					temp -= m;
+					month_++;
+					day_from_19700101 -= m;
 				}
 				else
 				{
-					day += temp;
-					temp = 0;
+					day_ += day_from_19700101;
+					day_from_19700101 = 0;
 				}
 			}
-
-			return { year, month, day };
 		}
 
-		CString __str__() const
-		{
-			YearMonthDay ymd = year_month_day();
+		Date(int year, int month, int day, int hour, int minute, int second)
+			: year_(year), month_(month), day_(day), week_(calc_week(year, month, day)), hour_(hour), minute_(minute), second_(second) {}
 
-			auto&& str = std::format("{:04d}-{:02d}-{:02d}", ymd.year, ymd.month, ymd.day);
+		int year() const { return year_; }
 
-			return CString(str.c_str());
-		}
+		int month() const { return month_; }
 
+		int day() const { return day_; }
+
+		int week() const { return week_; }
+
+		CString week_str() const { return WEEK_STR[week_]; }
+
+		CString __str__() const { return std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_); }
+		
 		cmp_t __cmp__(const Date& date) const
 		{
-			return day_from_1970_01_01_ - date.day_from_1970_01_01_;
+			return Array<int>{year_, month_, day_}.__cmp__(Array<int>{date.year(), date.month(), date.day()});
+		}
+
+		static int calc_week(int year, int month, int day)
+		{
+			return (day + 2 * month + 3 * (month + 1) / 5 + year + year / 4 - year / 100 + year / 400 + 1) % 7;
 		}
 
 		static bool check_run_year(int year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
 
-		static int get_day_from_1970_01_01(int year, int month, int day)
-		{
-			int cnt = day - 1;
-			while (year != 1970)
-			{
-				cnt += 365 + (check_run_year(year) ? 1 : 0);
-				year--;
-			}
+		constexpr static const int WEEK_DAY_FROM_1970_01_01 = 4;
 
-			while (month != 1)
-			{
-				cnt += MONTHS[month];
-				month--;
-			}
+		constexpr static int MONTHS[13]{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
-			return cnt;
-		}
+		constexpr static const char* WEEK_STR[7]{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
-		static const int WEEK_DAY_FROM_1970_01_01 = 4;
-
-		static int MONTHS[13];
 	private:
-		int day_from_1970_01_01_;
+		int year_, month_, day_, week_, hour_, minute_, second_;
 	};
-
-	int Date::MONTHS[13] = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
 
 	class Timer : public VoidWrapper

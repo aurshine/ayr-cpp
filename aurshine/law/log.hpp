@@ -5,145 +5,104 @@
 #include <functional>
 
 #include <law/printer.hpp>
+#include <law/timer.hpp>
+#include <law/Array.hpp>
+
 
 namespace ayr
 {
-	typedef void(*LogFn)(LogEvent& event);
-
-	typedef void(*LogLockFn)(bool lock, void* data);
-
-	constexpr int MAX_CALLBACKS = 32;
-
-	struct LogEvent
+	class Log : Object
 	{
-		LogEvent(const char* msg, const char* file, FILE* output, int line, int level)
-			: msg(msg), file(file), output(output), line(line), level(level)
+	public:
+		struct LogLevel
 		{
-			time_t _t = time(nullptr);
-			t = localtime(&_t);
-		}
+			constexpr static int TRACE = 0;
 
-		const char* msg;
+			constexpr static int DEBUG = 1;
 
-		const char* file;
+			constexpr static int INFO = 2;
 
-		tm* t;
+			constexpr static int WARN = 3;
 
-		FILE* output;
+			constexpr static int ERROR = 4;
 
-		int line;
+			constexpr static int FATAL = 5;
 
-		int level;
-	};
+			constexpr static int INACTIVE = INT_MAX;
 
-	struct LogLevel
-	{
-		constexpr static int TRACE = 0;
+			constexpr static const char* LEVEL_NAMES[] = {
+				"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
+			};
 
-		constexpr static int DEBUG = 1;
-
-		constexpr static int INFO = 2;
-
-		constexpr static int WARN = 3;
-
-		constexpr static int ERROR = 4;
-
-		constexpr static int FATAL = 5;
-
-		constexpr static const char* LEVEL_NAMES[] = {
-			"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"
+			constexpr static const char* LEVEL_COLORS[] = {
+				Color::AQUA, Color::DEEPGREEN, Color::GREEN, Color::YELLOW, Color::RED, Color::PURPLE
+			};
 		};
 
-		constexpr static const char* LEVEL_COLORS[] = {
-			Color::AQUA, Color::DEEPGREEN, Color::GREEN, Color::YELLOW, Color::RED, Color::PURPLE
-		};
-	};
 
-	struct LogCallback
-	{
-		LogFn fn;
-		FILE* output;
-		int level;
-	};
-
-	struct L
-	{
-		FILE* output;
-		LogLockFn lock_fn;
-		int level;
-		bool quiet;
-		LogCallback callbacks[MAX_CALLBACKS];
-
-		L() = default;
-
-		L& operator=(const L&) = delete;
-
-		L& operator=(L&&) = delete;
-
-		L(const L&) = delete;
-
-		L(L&&) = delete;
-
-		static L& instance()
+		class LogEvent : Object
 		{
-			static L inst;
-			return inst;
+		public:
+			constexpr LogEvent() : level_(LogLevel::INACTIVE), output_(nullptr) {}
+
+			constexpr LogEvent(int level, FILE* output) : level_(level), output_(output) {}
+
+			int level_;
+
+			FILE* output_;
+		};
+
+		static void print_logevent(const LogEvent& evt, const char* msg, Date date, const char* file, int line)
+		{
+			fprintf(evt.output_, "%s %s%-5s%s %s:%d", date.__str__().str, LogLevel::LEVEL_COLORS[evt.level_], LogLevel::LEVEL_NAMES[evt.level_], Color::CLOSE, file, line);
+			fprintf(evt.output_, msg);
+			fprintf(evt.output_, "\n");
+			fflush(evt.output_);
 		}
+
+
+		static void add_log(const LogEvent& evt)
+		{
+			if (event_count + 1 >= MAX_LOG_SIZE)
+				RuntimeError("Log event buffer overflow");
+
+			events[event_count++] = evt;
+		}
+
+		static void log(const char* msg, int level, const char* file, int line)
+		{
+			time_t cur_t = std::time(nullptr);
+			tm* t = std::localtime(&cur_t);
+
+			char log_tm[16];
+			log_tm[strftime(log_tm, sizeof(log_tm), "%H:%M:%S", t)] = '\0';
+
+			for (int i = 0; i < event_count; ++i)
+				if (events[i].level_ <= level)
+					print_logevent(events[i], msg, file, log_tm, line);
+		}
+
+	private:
+		constexpr static int MAX_LOG_SIZE = 64;
+
+		static LogEvent events[MAX_LOG_SIZE];
+
+		static int event_count;
 	};
+	
+int Log::event_count = 0;
 
 
-	def stdout_callback(LogEvent& event)
-	{
-		char buffer[16];
-		buffer[strftime(buffer, sizeof(buffer), "%H:%M:%S", event.t)] = '\0';
-		fprintf(event.output, "%s %s%-5s%s %s:%d %s ", buffer, LogLevel::LEVEL_COLORS[event.level], LogLevel::LEVEL_NAMES[event.level], Color::CLOSE, event.file, event.line);
-		fprintf(event.output, event.msg);
-		fprintf(event.output, "\n");
-		fflush(event.output);
-	}
+#define log_trace(msg) ayr::Log::log(msg, LogLevel::TRACE, __FILE__, __LINE__)
 
-	def set_level(int level)
-	{
-		L::instance().level = level;
-	}
+#define log_debug(msg) ayr::Log::log(msg, LogLevel::DEBUG, __FILE__, __LINE__)
 
-	def set_quiet(bool quiet)
-	{
-		L::instance().quiet = quiet;
-	}
+#define log_info(msg) ayr::Log::log(msg, LogLevel::INFO, __FILE__, __LINE__)
 
-	def add_callback(LogFn fn, FILE* output, int level)
-	{
-		for (int i = 0; i < MAX_CALLBACKS; i++)
-			if (L::instance().callbacks[i].fn == nullptr)
-			{
-				L::instance().callbacks[i] = LogCallback{ fn, output, level };
-				break;
-			}
-	}
+#define log_warn(msg) ayr::Log::log(msg, LogLevel::WARN, __FILE__, __LINE__)
 
-	def add_fp(FILE* fp, int level)
-	{
-		return add_callback(stdout_callback, fp, level);
-	}
+#define log_error(msg) ayr::Log::log(msg, LogLevel::ERROR, __FILE__, __LINE__)
 
-
-	void log(const char* msg, int level, const char* file, int line)
-	{
-		LogEvent log_event{ msg, file, stderr, line, level };
-
-	}
-
-#define log_trace(fmt, ...) log(LogLevel::TRACE, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
-#define log_debug(fmt, ...) log(LogLevel::DEBUG, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
-#define log_info(fmt, ...) log(LogLevel::INFO, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
-#define log_warn(fmt, ...) log(LogLevel::WARN, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
-#define log_error(fmt, ...) log(LogLevel::ERROR, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-
-#define log_fatal(fmt, ...) log(LogLevel::FATAL, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define log_fatal(msg) ayr::Log::log(msg, LogLevel::FATAL, __FILE__, __LINE__)
 }
 #endif
