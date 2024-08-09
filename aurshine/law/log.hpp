@@ -78,17 +78,23 @@ namespace ayr
 					print_logevent(events[i], msg, date, file, line);
 		}
 
-		static void log_trace(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::TRACE, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_trace(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::TRACE, loc.file_name(), loc.line()); }
 
-		static void log_debug(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::DEBUG, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_debug(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::DEBUG, loc.file_name(), loc.line()); }
 
-		static void log_info(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::INFO, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_info(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::INFO, loc.file_name(), loc.line()); }
 
-		static void log_warn(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_warn(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
 
-		static void log_error(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_error(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
 
-		static void log_fatal(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
+		template<typename Str>
+		static void log_fatal(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
 	
 	private:
 		constexpr static int MAX_LOG_SIZE = 64;
