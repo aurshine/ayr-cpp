@@ -112,7 +112,6 @@ namespace ayr
 			return *this;
 		}
 
-
 		// key-value对的数量
 		c_size size() const { return keys_.size(); }
 
@@ -182,6 +181,21 @@ namespace ayr
 			return *this;
 		}
 
+		// 根据传入的字典更新字典
+		Dict& update(const Dict& other)
+		{
+			if (size() + other.size() > bucket_.size() * 0.7)
+				expand((size() + other.size()) * 1.5);
+
+			for (auto&& kv : other)
+				if (!contains(kv.key)) 
+					setkv2bucket(creator_(kv));
+				else
+					get(kv.key) = kv.value;
+
+			return *this;
+		}
+
 		CString __str__() const
 		{
 			std::stringstream stream;
@@ -241,7 +255,7 @@ namespace ayr
 		// 向字典中添加元素，不会检查key是否已经存在
 		void setkv2bucket(KV_t* kv)
 		{
-			if (1.0 * size() / bucket_.size() > 0.6) expand(bucket_.size() * 2);
+			if (1.0 * size() / bucket_.size() > 0.7) expand(bucket_.size() * 2);
 
 			setkv2bucket_impl(bucket_, skip_list_, kv);
 
