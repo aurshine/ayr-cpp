@@ -67,6 +67,10 @@ namespace ayr
 			return *this;
 		}
 
+		operator const Ch* () const { return str; }
+
+		operator Ch* () { return str; }
+
 		Ch& operator[] (size_t index) { return str[index]; }
 
 		const Ch& operator[] (size_t index) const { return str[index]; }

@@ -52,9 +52,9 @@ namespace ayr
 			FILE* output_;
 		};
 
-		static void print_logevent(const LogEvent& evt, const char* msg, Date date, const char* file, int line)
+		static void print_logevent(const LogEvent& evt, const char* msg, const Date& date, const char* file, int line)
 		{
-			fprintf(evt.output_, "%s %s%-5s%s %s:%d", date.__str__().str, LogLevel::LEVEL_COLORS[evt.level_], LogLevel::LEVEL_NAMES[evt.level_], Color::CLOSE, file, line);
+			fprintf(evt.output_, "%s %s%-5s%s %s:%d ", date.__str__().str, LogLevel::LEVEL_COLORS[evt.level_], LogLevel::LEVEL_NAMES[evt.level_], Color::CLOSE, file, line);
 			fprintf(evt.output_, msg);
 			fprintf(evt.output_, "\n");
 			fflush(evt.output_);
@@ -71,17 +71,25 @@ namespace ayr
 
 		static void log(const char* msg, int level, const char* file, int line)
 		{
-			time_t cur_t = std::time(nullptr);
-			tm* t = std::localtime(&cur_t);
-
-			char log_tm[16];
-			log_tm[strftime(log_tm, sizeof(log_tm), "%H:%M:%S", t)] = '\0';
+			Date date;
 
 			for (int i = 0; i < event_count; ++i)
 				if (events[i].level_ <= level)
-					print_logevent(events[i], msg, file, log_tm, line);
+					print_logevent(events[i], msg, date, file, line);
 		}
 
+		static void log_trace(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::TRACE, loc.file_name(), loc.line()); }
+
+		static void log_debug(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::DEBUG, loc.file_name(), loc.line()); }
+
+		static void log_info(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::INFO, loc.file_name(), loc.line()); }
+
+		static void log_warn(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
+
+		static void log_error(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
+
+		static void log_fatal(const char* msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
+	
 	private:
 		constexpr static int MAX_LOG_SIZE = 64;
 
@@ -89,20 +97,9 @@ namespace ayr
 
 		static int event_count;
 	};
-	
-int Log::event_count = 0;
 
+	Log::LogEvent Log::events[MAX_LOG_SIZE] = { Log::LogEvent(Log::LogLevel::TRACE, stdout) };
 
-#define log_trace(msg) ayr::Log::log(msg, LogLevel::TRACE, __FILE__, __LINE__)
-
-#define log_debug(msg) ayr::Log::log(msg, LogLevel::DEBUG, __FILE__, __LINE__)
-
-#define log_info(msg) ayr::Log::log(msg, LogLevel::INFO, __FILE__, __LINE__)
-
-#define log_warn(msg) ayr::Log::log(msg, LogLevel::WARN, __FILE__, __LINE__)
-
-#define log_error(msg) ayr::Log::log(msg, LogLevel::ERROR, __FILE__, __LINE__)
-
-#define log_fatal(msg) ayr::Log::log(msg, LogLevel::FATAL, __FILE__, __LINE__)
+	int Log::event_count = 1;
 }
 #endif
