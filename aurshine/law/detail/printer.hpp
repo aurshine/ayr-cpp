@@ -11,57 +11,55 @@ namespace ayr
 	class Printer : public Object
 	{
 	public:
-		Printer(FILE* file_ptr) : Printer("\n", " ", file_ptr) {}
-
-		Printer(CString ew, CString sw, FILE* file_ptr) : ew_(::std::move(ew)), sw_(::std::move(sw)), output_file_(file_ptr) {}
+		Printer(FILE* file_ptr, CString sw=" ", CString ew="\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
 
 		template<Printable... Args>
 		void operator()(const Args&... args) const { __print__(args...); __print__(ew_); }
 
 		// 设置输出结束符
-		void set_end_word(CString ew) { ew_ = ::std::move(ew); }
+		void set_end_word(CString ew) { ew_ = std::move(ew); }
 
 		// 设置输出分隔符
-		void set_sep_word(CString sw) { sw_ = ::std::move(sw); }
+		void set_sep_word(CString sw) { sw_ = std::move(sw); }
 
 	protected:
 		// 单一形参
 		void __print__() const {}
 
-		void __print__(const bool& object) const { ::std::fprintf(output_file_, object ? "true" : "false"); }
+		void __print__(const bool& object) const { std::fprintf(output_file_, object ? "true" : "false"); }
 
-		void __print__(const int& object) const { ::std::fprintf(output_file_, "%d", object); }
+		void __print__(const int& object) const { std::fprintf(output_file_, "%d", object); }
 
-		void __print__(const unsigned int& object) const { ::std::fprintf(output_file_, "%u", object); }
+		void __print__(const unsigned int& object) const { std::fprintf(output_file_, "%u", object); }
 
-		void __print__(const long& object) const { ::std::fprintf(output_file_, "%ld", object); }
+		void __print__(const long& object) const { std::fprintf(output_file_, "%ld", object); }
 
-		void __print__(const long long& object) const { ::std::fprintf(output_file_, "%lld", object); }
+		void __print__(const long long& object) const { std::fprintf(output_file_, "%lld", object); }
 
-		void __print__(const unsigned long& object) const { ::std::fprintf(output_file_, "%lu", object); }
+		void __print__(const unsigned long& object) const { std::fprintf(output_file_, "%lu", object); }
 
-		void __print__(const unsigned long long& object) const { ::std::fprintf(output_file_, "%llu", object); }
+		void __print__(const unsigned long long& object) const { std::fprintf(output_file_, "%llu", object); }
 
-		void __print__(const float& object) const { ::std::fprintf(output_file_, "%f", object); }
+		void __print__(const float& object) const { std::fprintf(output_file_, "%f", object); }
 
-		void __print__(const double& object) const { ::std::fprintf(output_file_, "%lf", object); }
+		void __print__(const double& object) const { std::fprintf(output_file_, "%lf", object); }
 
-		void __print__(const long double& object) const { ::std::fprintf(output_file_, "%Lf", object); }
+		void __print__(const long double& object) const { std::fprintf(output_file_, "%Lf", object); }
 
-		void __print__(const char& object) const { ::std::fprintf(output_file_, "%c", object); }
+		void __print__(const char& object) const { std::fprintf(output_file_, "%c", object); }
 
-		void __print__(const char* object) const { ::std::fprintf(output_file_, object); }
+		void __print__(const char* object) const { std::fprintf(output_file_, object); }
 
-		void __print_ptr__(const void* object) const { ::std::fprintf(output_file_, "0x%p", object); }
+		void __print_ptr__(const void* object) const { std::fprintf(output_file_, "0x%p", object); }
 
-		void __print__(const ::std::nullptr_t& object) const { ::std::fprintf(output_file_, "nullptr"); }
+		void __print__(const std::nullptr_t& object) const { std::fprintf(output_file_, "nullptr"); }
 
-		void __print__(const ::std::string& object) const { ::std::fprintf(output_file_, object.c_str()); }
+		void __print__(const std::string& object) const { std::fprintf(output_file_, object.c_str()); }
 
 		template<AyrPrintable T>
 		void __print__(const T& object) const { __print__(object.__str__()); }
 
-		void __print__(const CString& object) const { ::std::fprintf(output_file_, "%s", object.str); }
+		void __print__(const CString& object) const { std::fprintf(output_file_, "%s", object.str); }
 
 		// 可变形参
 		template<Printable T, Printable ...Args>
@@ -80,7 +78,7 @@ namespace ayr
 
 		CString sw_; // 分隔符
 
-		::std::FILE* output_file_;
+		std::FILE* output_file_;
 	};
 
 
@@ -115,16 +113,6 @@ namespace ayr
 		ColorPrinter(FILE* file_ptr, const char* color = Color::WHITE)
 			: Printer(file_ptr), color_(color) {}
 
-		~ColorPrinter() = default;
-
-		template<Printable T>
-		void operator()(const T& object) const
-		{
-			opencolor();
-			super::operator()(object);
-			closecolor();
-		}
-
 		template<Printable T, Printable... Args>
 		void operator()(const T& object, const Args&... args) const
 		{
@@ -138,7 +126,7 @@ namespace ayr
 		void closecolor() const { super::__print__(Color::CLOSE); }
 
 	private:
-		const char* color_;
+		CString color_;
 	};
 
 
