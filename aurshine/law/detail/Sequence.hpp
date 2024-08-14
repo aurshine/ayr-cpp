@@ -70,7 +70,7 @@ namespace ayr
 			std::stringstream ss;
 			ss << "Sequence<" << dtype(Value_t) << ">(";
 			for (auto&& value : *this)
-				ss << printer(value) << ", ";
+				ss << value << ", ";
 			ss << ")";
 			return CString(ss.str());
 		}

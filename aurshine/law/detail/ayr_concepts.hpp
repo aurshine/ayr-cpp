@@ -15,6 +15,11 @@ namespace ayr
 	template<typename T>
 	concept Char = issame<T, char, wchar_t, char8_t, char16_t, char32_t>;
 
+	// 可以隐式转换为const char*类型约束概念
+	template<typename S>
+	concept ConveribleToCstr = std::convertible_to<S, const char*>;
+
+
 	// 可输出的类型约束概念
 	template<typename T>
 	concept StdPrintable = issame<T,
@@ -35,7 +40,7 @@ namespace ayr
 	template<typename T>
 	concept AyrPrintable = requires(T t)
 	{
-		{ t.__str__() };
+		{ t.__str__() } -> ConveribleToCstr;
 	};
 
 	template<typename T>
@@ -45,7 +50,7 @@ namespace ayr
 	template<typename T>
 	concept AyrLikeHashable = requires(const T & one, const T & other)
 	{
-		{ one.__hash__() } -> std::convertible_to<size_t>;
+		{ one.__hash__() } -> std::convertible_to<hash_t>;
 		{ one.__cmp__(other) } -> std::convertible_to<cmp_t>;
 	};
 
@@ -53,7 +58,7 @@ namespace ayr
 	template<typename T>
 	concept StdHashable = requires(const T & one, const T & other)
 	{
-		{ std::hash<T>()(one) } -> std::convertible_to<size_t>;
+		{ std::hash<T>()(one) } -> std::convertible_to<hash_t>;
 		{ one == other } -> std::convertible_to<bool>;
 	};
 

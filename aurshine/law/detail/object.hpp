@@ -15,7 +15,7 @@ namespace ayr
 	{
 	public:
 		// 转换为 字符串 类型
-		CString __str__() const
+		virtual CString __str__() const
 		{
 			std::stringstream addr;
 			addr << std::hex << this;
@@ -26,10 +26,10 @@ namespace ayr
 		}
 
 		// hash 编码
-		hash_t __hash__() const { assert(false, "not implemented __hash__()"); }
+		virtual hash_t __hash__() const { assert(false, "not implemented __hash__()"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
-		cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }
+		virtual cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }
 	};
 
 	// Ayr 的派生类

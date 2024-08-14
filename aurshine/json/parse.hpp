@@ -58,8 +58,8 @@ namespace ayr
 					else
 						ValueError(json_str.__str__().str);
 
-			Json ret = float_flag ? Json(make_float(atof(json_str.__str__().str)))
-				: Json(make_int(atoll(json_str.__str__().str)));
+			Json ret = float_flag ? Json(make_float(atof(json_str.__str__())))
+				: Json(make_int(atoll(json_str.__str__())));
 
 			return ret;
 		}
