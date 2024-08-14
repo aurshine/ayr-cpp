@@ -3,18 +3,18 @@
 
 namespace ayr
 {
-	constexpr inline uint64_t exp2(int i) { return 1ull << i; }
+	constexpr def exp2(int i) { return 1ull << i; }
 
 
 	template<typename B>
-	constexpr inline B lowbit(const B& x)
+	constexpr def lowbit(const B& x)
 	{
 		return x & -x;
 	}
 
 
 	template<typename B>
-	constexpr inline int lowbit_index(const B& x)
+	constexpr def lowbit_index(const B& x)
 	{
 		int l = 0;
 		while ((x >> l & 1) == 0) ++l;
@@ -23,7 +23,7 @@ namespace ayr
 
 
 	template<typename B>
-	constexpr inline int highbit_index(const B& x)
+	constexpr def highbit_index(const B& x)
 	{
 		int l = 0;
 		while (x >> l) ++l;
@@ -31,14 +31,26 @@ namespace ayr
 		return --l;
 	}
 
+	template<typename B>
+	constexpr def highbit(const B& x) { return x >> highbit_index(x); }
 
 	template<typename B>
-	constexpr inline B highbit(const B& x) { return x >> highbit_index(x); }
+	constexpr def all_one(const B& x) { return (x & x + 1) == 0; }
 
 	template<typename B>
-	constexpr inline bool all_one(const B& x) { return (x & x + 1) == 0; }
+	constexpr def only_one(const B& x) { return (x & x - 1) == 0; }
 
 	template<typename B>
-	constexpr inline bool only_one(const B& x) { return (x & x - 1) == 0; }
+	constexpr def roundup2(const B& x)
+	{
+		if (x <= 1)	return 1;
+
+		--x;
+		for (size_t i = 1; i < sizeof(B) * 8; i <<= 1)
+			x |= x >> i;
+
+		return x + 1;
+	}
 }
+
 #endif

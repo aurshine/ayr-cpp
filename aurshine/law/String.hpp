@@ -112,11 +112,13 @@ namespace ayr
 			return result;
 		}
 
-		CharT operator[] (c_size index) const { return cstr_[neg_index(index, size())]; }
+		const CharT& operator[] (c_size index) const { return __at__(index); }
 
-		CharT& __at__(c_size index) override { return cstr_[index]; }
+		const CharT& operator[] (c_size index) { return __at__(index); }
 
-		const CharT& __at__(c_size index) const override { return cstr_[index]; }
+		CharT& __at__(c_size index) { return cstr_[neg_index(index, size())]; }
+
+		const CharT& __at__(c_size index) const { return cstr_[neg_index(index, size())]; }
 
 		c_size size() const override { return length_; }
 

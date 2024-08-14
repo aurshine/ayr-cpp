@@ -10,7 +10,6 @@
 
 namespace ayr
 {
-	// 1970_01_01距离现在的天数
 	class Date : public Object
 	{
 	public:
