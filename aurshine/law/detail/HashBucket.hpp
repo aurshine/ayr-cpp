@@ -20,8 +20,10 @@ namespace ayr
 	class HashBucket: public Object
 	{
 		Array<T> bucket_;
+		
+		Array<bool> used_;
 	public:
-		HashBucket(c_size bucket_size) : bucket_(bucket_size) {}
+		HashBucket(c_size bucket_size) : bucket_(bucket_size), used_(bucket_size, false) {}
 
 		// 判断是否过载，过载返回true
 		bool check_overload(c_size used_size) const { return usd_size * 4ull > bucket_.size() * 3ull; }
