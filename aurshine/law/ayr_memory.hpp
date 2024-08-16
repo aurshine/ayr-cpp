@@ -8,6 +8,13 @@
 
 namespace ayr
 {
+	template<typename T>
+	struct ArrayDeleter : public Object
+	{
+		void operator()(T* ptr) const noexcept { delete[] ptr; }
+	};
+
+
 	// 自动管理内存创建节点类型
 	template<typename T>
 	class Creator : Object

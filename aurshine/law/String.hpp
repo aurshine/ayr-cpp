@@ -1,10 +1,10 @@
 ﻿#ifndef AYR_LAW_STRING_HPP
 #define AYR_LAW_STRING_HPP
 
-#include <cstring>
 
 #include <law/printer.hpp>
 #include <law/Dynarray.hpp>
+#include <law/ayr_memory.hpp>
 
 
 namespace ayr
@@ -20,6 +20,8 @@ namespace ayr
 
 		c_size length_;
 
+		std::shared_ptr<CharT> shared_head_;
+
 		int* ref_count_;
 
 		CharT* head_;
@@ -27,6 +29,7 @@ namespace ayr
 		String(size_t length, CharT c) : cstr_(nullptr), length_(length), ref_count_(nullptr), head_(nullptr)
 		{
 			head_ = cstr_ = ayr_alloc(CharT, length + 1);
+
 			ref_count_ = ayr_alloc(int, 1);
 
 			for (size_t i = 0; i < length_; ++i)
@@ -124,13 +127,7 @@ namespace ayr
 
 		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(cstr_), length_ * sizeof(CharT)); }
 
-		CString __str__() const
-		{
-			char* str = ayr_alloc(char, length_ * sizeof(CharT) + 1);
-			std::memcpy(str, cstr_, length_ * sizeof(CharT));
-			str[length_] = '\0';
-			return CString(str);
-		}
+		CString __str__() const { return CString(cstr_, length_); }
 
 		c_size find(CharT c, c_size pos) const
 		{
