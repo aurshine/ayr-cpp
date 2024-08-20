@@ -22,15 +22,16 @@ namespace ayr
 
 		std::shared_ptr<CharT[]> shared_head_;
 
-		String(size_t length, CharT c) : cstr_(nullptr), length_(length), shared_head_(nullptr)
+		String(CharT c, c_size len)
 		{
-			cstr_ = ayr_alloc(CharT, length + 1);
+			cstr_ = ayr_alloc(CharT, len + 1);
 			shared_head_.reset(cstr_);
 
-			for (size_t i = 0; i < length_; ++i)
-				cstr_[i] = c;
-			cstr_[length_] = '\0';
+			std::memset(cstr_, c, len * sizeof(CharT));
+			cstr_[len] = '\0';
+			length_ = len;
 		}
+
 	public:
 		String() : String("", 0) {}
 
@@ -53,14 +54,11 @@ namespace ayr
 			cstr_[length_] = '\0';
 		}
 
-		~String() { release(); }
-
 		self& operator= (self& other)
 		{
 			if (this == &other)
 				return *this;
 
-			release();
 			ayr_construct(self, this, other);
 			return *this;
 		}
@@ -72,7 +70,6 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			release();
 			ayr_construct(self, this, other);
 			return *this;
 		}
@@ -92,19 +89,18 @@ namespace ayr
 		self operator+= (const self& othre)
 		{
 			self result = *this + othre;
-			release();
 			*this = std::move(result);
 			return *this;
 		}
 
 		self operator* (size_t n)
 		{
-			self result(size() * n, '\0');
+			self result('\0', size() * n);
 
 			size_t pos = 0, self_size = size();
 			while (n--)
 				for (size_t i = 0; i < self_size; ++i)
-					result[pos++] = __at__(i);
+					result.cstr_[pos++] = __at__(i);
 
 			return result;
 		}
@@ -139,7 +135,7 @@ namespace ayr
 			{
 				bool flag = true;
 				for (c_size j = 0; flag && j < pattern_size; ++j)
-					flag &= (__at__(i + j) != pattern.__at__(j));
+					flag &= (__at__(i + j) == pattern.__at__(j));
 
 				if (flag) return i;
 			}
@@ -176,19 +172,11 @@ namespace ayr
 
 		self& slice_(c_size start) { return slice_(start, size()); }
 
-		self slice(c_size start, c_size end)
-		{
-			self sub = *this;
-			return sub.slice_(start, end);
-		}
-
 		self slice(c_size start, c_size end) const
 		{
-			self sub = *this;
-			return sub.slice_(start, end);
+			c_size length = end - start;
+			return String(cstr_ + start, length);
 		}
-
-		self slice(c_size start) { return slice(start, size()); }
 
 		self slice(c_size start) const { return slice(start, size()); }
 
@@ -354,7 +342,29 @@ namespace ayr
 
 		self replace(const self& old_, const self& new_) const
 		{
+			DynArray<c_size> indices;
+			c_size pos = 0;
+			while (pos = find(old_, pos), pos != -1)
+			{
+				indices.append(pos);
+				pos += old_.size();
+			}
 
+			self result('\0', size() + indices.size() * (new_.size() - old_.size()));
+			for (c_size i = 0, j = 0, k = 0; i < size(); ++i)
+			{
+				if (j < indices.size() && i == indices[j])
+				{
+					for (auto&& c : new_)
+						result.cstr_[k++] = c;
+					i += old_.size() - 1;
+					j++;
+				}
+				else
+					result.cstr_[k++] = __at__(i);
+			}
+			
+			return result;
 		}
 
 		self split() const
@@ -387,9 +397,6 @@ namespace ayr
 
 			ValueError(std::format("Unmatched parentheses, too many left parentheses '{}'", lmatch));
 		}
-
-
-		void release() {}
 	};
 
 
