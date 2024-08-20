@@ -20,22 +20,16 @@ namespace ayr
 
 		c_size length_;
 
-		std::shared_ptr<CharT> shared_head_;
+		std::shared_ptr<CharT[]> shared_head_;
 
-		int* ref_count_;
-
-		CharT* head_;
-
-		String(size_t length, CharT c) : cstr_(nullptr), length_(length), ref_count_(nullptr), head_(nullptr)
+		String(size_t length, CharT c) : cstr_(nullptr), length_(length), shared_head_(nullptr)
 		{
-			head_ = cstr_ = ayr_alloc(CharT, length + 1);
-
-			ref_count_ = ayr_alloc(int, 1);
+			cstr_ = ayr_alloc(CharT, length + 1);
+			shared_head_.reset(cstr_);
 
 			for (size_t i = 0; i < length_; ++i)
 				cstr_[i] = c;
 			cstr_[length_] = '\0';
-			*ref_count_ = 1;
 		}
 	public:
 		String() : String("", 0) {}
@@ -46,17 +40,17 @@ namespace ayr
 
 		String(const self& other) : String(other.cstr_, other.length_) {}
 
-		String(self& other) : cstr_(other.cstr_), length_(other.length_), ref_count_(other.ref_count_), head_(other.head_) { ++ (*other.ref_count_); }
+		String(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_){}
 
-		String(const CharT* str, c_size len = -1) : cstr_(nullptr), length_(0), ref_count_(nullptr)
+		String(const CharT* str, c_size len = -1) : cstr_(nullptr), length_(0)
 		{
 			length_ = ifelse(len >= 0, len, std::strlen(str));
 
-			head_ = cstr_ = ayr_alloc(CharT, length_ + 1);
-			ref_count_ = ayr_alloc(int, 1);
+			cstr_ = ayr_alloc(CharT, length_ + 1);
+			shared_head_.reset(cstr_);
+
 			std::memcpy(cstr_, str, length_ * sizeof(CharT));
 			cstr_[length_] = '\0';
-			*ref_count_ = 1;
 		}
 
 		~String() { release(); }
@@ -395,14 +389,7 @@ namespace ayr
 		}
 
 
-		void release()
-		{
-			if (-- (*ref_count_) == 0)
-			{
-				ayr_delloc(head_);
-				ayr_delloc(ref_count_);
-			}
-		}
+		void release() {}
 	};
 
 
