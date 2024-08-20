@@ -88,7 +88,7 @@ namespace ayr
 	};
 
 
-	class Timer : public VoidWrapper
+	class Timer : public Wrapper
 	{
 	public:
 		Timer() : dvd(100) {};
