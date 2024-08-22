@@ -15,16 +15,23 @@ namespace ayr
 		class AyrFile
 		{
 		public:
-			AyrFile(CString filename, CString mode) : file(std::fopen(filename, mode)), is_open(false)
+#pragma warning(push)
+#pragma warning(disable: 4996)
+			template<ConveribleToCstr S1, ConveribleToCstr S2>
+			AyrFile(const S1& filename, const S2& mode) : file(std::fopen(filename, mode)), is_open(false)
 			{
+				const char* c_filename = static_cast<const char*>(filename);
 				if (file == nullptr)
 				{
 					if (!fs::isfile(filename))
-						FileNotFoundError(std::format("file not found in {}", filename));
+						FileNotFoundError(std::format("file not found in {}", c_filename));
 					else
-						RuntimeError(std::format("failed to open file {}", filename));
+						RuntimeError(std::format("failed to open file {}", c_filename));
 				}
 			}
+#pragma warning(pop)
+
+			~AyrFile() { close(); }
 
 			void close()
 			{
@@ -34,11 +41,36 @@ namespace ayr
 					is_open = false;
 				}
 			}
-
-			~AyrFile()
+			
+			template<typename I>
+			void write(const I& data) const
 			{
-				close();
+				if constexpr (ConveribleToCstr<I>)
+					std::fputs(static_cast<const char*>(data), file);
+				else
+					for (const char& d: data)
+						std::fputc(d, file);
 			}
+
+			void flush() const { fflush(file); }
+
+			CString readline() const
+			{
+				DynArray<char> buffer;
+				while (true)
+				{
+					char c = std::fgetc(file);
+					if (c == EOF || c == '\n')
+						break;
+					buffer.append(c);
+				}
+
+				CString ret(buffer.size());
+				for (c_size i = 0, length = buffer.size(); i < length; ++ i)
+					ret[i] = buffer[i];
+				return ret;
+			}
+
 
 			std::FILE* file;
 

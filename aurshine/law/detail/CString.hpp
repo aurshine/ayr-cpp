@@ -71,9 +71,9 @@ namespace ayr
 
 		operator Ch* () { return str; }
 
-		Ch& operator[] (size_t index) { return str[index]; }
+		Ch& operator[] (c_size index) { return str[index]; }
 
-		const Ch& operator[] (size_t index) const { return str[index]; }
+		const Ch& operator[] (c_size index) const { return str[index]; }
 
 		size_t size() const { return std::strlen(str); }
 
