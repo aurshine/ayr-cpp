@@ -10,8 +10,6 @@
 
 namespace ayr
 {
-	constexpr static c_size MAX_ALLOC = LLONG_MAX;
-
 	template<typename T>
 	class Array : public Sequence<T>
 	{

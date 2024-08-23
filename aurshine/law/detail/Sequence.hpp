@@ -75,16 +75,33 @@ namespace ayr
 			return CString(ss.str());
 		}
 
-		bool contains(const Value_t& v) const { return find(v) != super::end(); }
+		bool contains(const Value_t& v) const { return find_it(v) != super::end(); }
 
 		c_size find(const Value_t& v) const
 		{
-			c_size idx = 0;
-			for (auto it = super::begin(); it != super::end(); ++it, ++idx)
-				if (*it == v)
-					return idx;
+			for (c_size i = 0, size = size(); i < size; ++i)
+				if (__at__(i) == v)
+					return i;
 
 			return -1;
+		}
+
+		super::Iterator find_it(const Value_t& v)
+		{
+			for (auto&& it = super::begin(), end = super::end(); it != end; ++it)
+				if (*it == v)
+					return it;
+
+			return super::end();
+		}
+
+		super::ConstIterator find_it(const Value_t& v) const 
+		{
+			for (auto&& it = super::begin(), end = super::end(); it != end; ++it)
+				if (*it == v)
+					return it;
+
+			return super::end();
 		}
 	};
 }
