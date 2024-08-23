@@ -17,10 +17,10 @@ namespace ayr
 		void operator()(const Args&... args) const { __print__(args...); __print__(ew_); }
 
 		// 设置输出结束符
-		void set_end_word(CString ew) { ew_ = std::move(ew); }
+		void set_end(CString ew) { ew_ = std::move(ew); }
 
 		// 设置输出分隔符
-		void set_sep_word(CString sw) { sw_ = std::move(sw); }
+		void set_sep(CString sw) { sw_ = std::move(sw); }
 
 	protected:
 		// 单一形参
