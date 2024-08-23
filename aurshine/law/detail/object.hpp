@@ -30,6 +30,8 @@ namespace ayr
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		virtual cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }
+
+		virtual bool __equal__(const Object& other) const { return __cmp__(other) == 0; }
 	};
 
 	// Ayr 的派生类

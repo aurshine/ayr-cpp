@@ -11,177 +11,95 @@
 namespace ayr
 {
 	template<typename T>
-	class Array : public Sequence<T>
+	class ArrayInterface: public Object
 	{
-		using self = Array<T>;
-
-		using super = Sequence<T>;
-	public:
-		Array(c_size size)
-		{ 
-			relloc(size);
-			for (c_size i = 0; i < size_; ++ i)
-				ayr_construct(T, arr_ + i);
-		}
-
-		Array(c_size size, const T& fill_)
-		{ 
-			relloc(size);
-			for (c_size i = 0; i < size_; ++ i)
-				ayr_construct(T, arr_ + i, fill_);
-		}
-
-		Array(std::initializer_list<T>&& init_list)
-		{ 
-			relloc(init_list.size());
-			for (c_size i = 0; i < size_; ++i)
-				ayr_construct(T, arr_ + i, std::move(*(init_list.begin() + i)));
-		}
-
-		Array(const Array& other) 
-		{ 
-			relloc(other.size());
-			for (c_size i = 0; i < size_; ++i)
-				ayr_construct(T, arr_ + i, other.arr_[i]);
-		}
-
-		Array(Array&& other) noexcept
-		{ 
-			arr_ = other.arr_;
-			size_ = other.size_;
-			other.arr_ = nullptr;
-			other.size_ = 0;
-		}
-
-		~Array() { release(size_); }
-
-		self& operator= (const self& other)
-		{
-			if (this == &other) return *this;
-
-			relloc(other.size_);
-			for (c_size i = 0; i < size_; ++i)
-				arr_[i] = other.arr_[i];
-			return *this;
-		}
-
-		self& operator= (self&& other)
-		{
-			if (this == &other) return *this;
-
-			arr_ = other.arr_;
-			size_ = other.size_;
-
-			other.arr_ = nullptr;
-			other.size_ = 0;
-			return *this;
-		}
-
-		void swap(self& other)
-		{
-			std::swap(arr_, other.arr_);
-			std::swap(size_, other.size_);
-		}
-
-		void swap(self&& other) { swap(other); }
-
-		// fill_val 填充值
-		void fill(const T& fill_val, c_size pos = 0)
-		{
-			while (pos < size_) arr_[pos++] = fill_val;
-		}
-
-		// 以迭代器填充元素
-		template<typename It>
-		void fill(It begin, It end, c_size pos = 0)
-		{
-			while (pos < size_ && begin != end)
-			{
-				arr_[pos++] = *begin;
-				++begin;
-			}
-		}
-
-		// 以Array对象填充元素
-		void fill(const self& other, c_size pos = 0)
-		{
-			fill(other.begin(), other.end(), pos);
-		}
-
-		T& __at__(c_size index) { return arr_[index]; }
-
-		const T& __at__(c_size index) const { return arr_[index]; }
-
-		// 切片[l, r)
-		self slice(c_size l, c_size r) const
-		{
-			l = neg_index(l, size_), r = neg_index(r, size_);
-
-			c_size ret_size = r - l;
-
-			self ret = self::noconstruct(ret_size);
-			for (c_size i = l; i < r; ++i)
-				ret.arr_[i - l] = arr_[l];
-
-			return ret;
-		}
-
-		// 输出的字符串形式
-		CString __str__() const
-		{
-			std::stringstream stream;
-			stream << "[";
-			for (c_size i = 0; i < size_; ++i)
-			{
-				if (i) stream << ", ";
-				stream << arr_[i];
-			}
-			stream << "]";
-
-			return CString(stream.str());
-		}
+		virtual constexpr T* data() = 0;
 		
-		// 不用构造函数构造对象
-		static self noconstruct(c_size size) 
+		virtual constexpr const T* data() const = 0;
+
+		virtual constexpr c_size size() const = 0;
+
+		constexpr T& operator[] (c_size index) { return __at__(neg_index(index, size())); }
+
+		constexpr const T& operator[] (c_size index) const { return __at__(neg_index(index, size())); }
+
+		constexpr void fill(const T& fill_val, c_size pos = 0)
 		{
-			self ret{};
-			ret.relloc(size);
-			return ret;
+			T* arr = data();
+			for (c_size i = pos; i < size(); ++i)
+				arr[i] = fill_val;
 		}
 
-		// 容器大小
-		c_size size() const { return size_; }
+		constexpr T* begin() { return data(); }
+		
+		constexpr T* end() { return data() + size(); }
 
-		// 容器底层指针
-		T* ptr() { return arr_; }
+		constexpr const T* begin() const { return data(); }
 
-		// 容器底层指针
-		const T* ptr() const { return arr_; }
+		constexpr const T* end() const { return data() + size(); }
 
-		// 先释放内存再分配
-		virtual void relloc(c_size size)
-		{
-			release(size_);
-			if (size) arr_ = ayr_alloc(T, size);
-			size_ = size;
-		}
+		constexpr T& __at__(c_size index) { return data()[index]; }
 
-		// 释放内存, size个元素调用析构函数
-		virtual void release(c_size size)
-		{
-			if (arr_ == nullptr) return;
+		constexpr const T& __at__(c_size index) const { return data()[index]; }
+	};
 
-			for (c_size i = 0; i < size; ++ i)
-				ayr_destroy(arr_ + i);
-			ayr_delloc(arr_);
+	/*
+	* 静态数组
+	* 
+	* 元素类型T, 大小N
+	* 
+	* 所有操作均可编译期完成
+	*/
+	template<typename T, size_t N>
+	class ArrayImpl : public ArrayInterface<T>
+	{
+		using self = ArrayImpl<T, N>;
 
-			arr_ = nullptr;
-			size_ = 0;
-		}
+		using super = ArrayInterface<T>;
+		
+		T arr_[N];
+	public:
+		ArrayImpl() = default;
+
+		ArrayImpl(const T& fill_val) { super::fill(fill_val, 0); }
+
+		ArrayImpl(std::initializer_list<T>&& init_list): arr_(init_list) {}
+
+		constexpr T* data() override { return arr_; }
+
+		constexpr const T* data() const override { return arr_; }
+
+		constexpr c_size size() const override { return N; }
+	};
+
+
+	template<typename T>
+	class ArrayImpl<T, 0>: public ArrayInterface<T>
+	{
+		using self = ArrayImpl<T, 0>;
+
+		using super = ArrayInterface<T>;
 
 		T* arr_ = nullptr;
 
 		c_size size_ = 0;
+	public:
+		ArrayImpl(c_size size)
+		{
+
+		}
+
+
+		T* data() override { return arr_; }
+
+		const T* data() const override { return arr_; }
+
+		c_size size() const override { return size_; }
+		
+
 	};
+
+	template<typename T, size_t N = 0>
+	using Array = ArrayImpl<T, N>;
 }
 #endif
