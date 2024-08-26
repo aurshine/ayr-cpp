@@ -6,7 +6,6 @@
 #include <law/detail/bunit.hpp>
 #include <law/Array.hpp>
 
-
 namespace ayr
 {
 	// 动态数组块的数量

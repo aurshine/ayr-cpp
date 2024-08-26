@@ -1,8 +1,6 @@
 ﻿#ifndef AYR_LAW_DETAIL_ARRAY_HPP
 #define AYR_LAW_DETAIL_ARRAY_HPP
 
-#include <sstream>
-
 #include <law/detail/printer.hpp>
 #include <law/detail/ayr_memory.hpp>
 #include <law/detail/Sequence.hpp>
@@ -13,38 +11,39 @@ namespace ayr
 	template<typename T>
 	class ArrayInterface: public Object
 	{
-		virtual constexpr T* data() = 0;
+	public:
+		virtual T* data() = 0;
 		
-		virtual constexpr const T* data() const = 0;
+		virtual const T* data() const = 0;
 
-		virtual constexpr c_size size() const = 0;
+		virtual c_size size() const = 0;
 
-		constexpr T& operator[] (c_size index) { return __at__(neg_index(index, size())); }
+		T& operator[] (c_size index) { return __at__(neg_index(index, size())); }
 
-		constexpr const T& operator[] (c_size index) const { return __at__(neg_index(index, size())); }
+		const T& operator[] (c_size index) const { return __at__(neg_index(index, size())); }
 
-		constexpr void fill(const T& fill_val, c_size pos = 0)
+		void fill(const T& fill_val, c_size pos = 0)
 		{
 			T* arr = data();
 			for (c_size i = pos; i < size(); ++i)
 				arr[i] = fill_val;
 		}
 
-		constexpr T* begin() { return data(); }
+		T* begin() { return data(); }
 		
-		constexpr T* end() { return data() + size(); }
+		T* end() { return data() + size(); }
 
-		constexpr const T* begin() const { return data(); }
+		const T* begin() const { return data(); }
 
-		constexpr const T* end() const { return data() + size(); }
+		const T* end() const { return data() + size(); }
 
-		constexpr T& __at__(c_size index) { return data()[index]; }
+		T& __at__(c_size index) { return data()[index]; }
 
-		constexpr const T& __at__(c_size index) const { return data()[index]; }
+		const T& __at__(c_size index) const { return data()[index]; }
 	};
 
 	/*
-	* 静态数组
+	* 栈上分配内存
 	* 
 	* 元素类型T, 大小N
 	* 
@@ -72,7 +71,15 @@ namespace ayr
 		constexpr c_size size() const override { return N; }
 	};
 
-
+	/*
+	* 堆上分配内存
+	* 
+	* 元素类型T, 大小N
+	* 
+	* 当只传入数组长度时，只分配内存，不调用构造函数
+	* 
+	* release()只能有效调用一次，用于调用一个区间的析构函数，并释放内存
+	*/
 	template<typename T>
 	class ArrayImpl<T, 0>: public ArrayInterface<T>
 	{
@@ -83,21 +90,44 @@ namespace ayr
 		T* arr_ = nullptr;
 
 		c_size size_ = 0;
-	public:
-		ArrayImpl(c_size size)
-		{
 
+		ArrayImpl(c_size size) : arr_(ayr_alloc(T, size)), size_(size) {}
+	public:
+		template<typename ...Args>
+		ArrayImpl(c_size size, const Args&... args): ArrayImpl(size)
+		{
+			for (c_size i = 0; i < size; ++i)
+				ayr_construct(arr_ + i, args...);
 		}
 
+		ArrayImpl(std::initializer_list<T>&& init_list) : ArrayImpl(init_list.size())
+		{
+			c_size i = 0;
+			for (auto&& item: init_list)
+				ayr_construct(arr_ + i ++, std::move(item));
+		}
+
+		~ArrayImpl() 
+		{ 
+			release();
+			ayr_delloc(arr_); 
+		}
 
 		T* data() override { return arr_; }
 
 		const T* data() const override { return arr_; }
 
 		c_size size() const override { return size_; }
-		
 
+		void release(c_size l = 0, c_size r = size_)
+		{
+			static bool has_called = false;
+			if (has_called) return;
+			
+			while (l < r) ayr_destroy(arr_ + (l ++));
+		}
 	};
+
 
 	template<typename T, size_t N = 0>
 	using Array = ArrayImpl<T, N>;
