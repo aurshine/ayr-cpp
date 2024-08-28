@@ -9,7 +9,7 @@
 namespace ayr
 {
 	// 迭代器接口
-	template<typename V>
+	template<typename V, typename Child>
 	class IteratorImpl : public Object
 	{
 		using super = Object;
@@ -35,22 +35,20 @@ namespace ayr
 
 		virtual const Value_t* operator->() const { NotImplementedError("Not implemented const Value_t& operator->() const"); return &None<Value_t>; }
 
-		virtual self& operator++() { NotImplementedError("Not implemented self& operator++()"); return *this; }
+		virtual Child operator++() { NotImplementedError("Not implemented self& operator++()"); return *this; }
 
-		virtual self& operator--() { NotImplementedError("Not implemented self& operator--()"); return *this; }
+		virtual Child operator--() { NotImplementedError("Not implemented self& operator--()"); return *this; }
 
-		virtual cmp_t __cmp__(const self& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
+		virtual cmp_t __equal__(const self& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
 
-		bool operator!=(const self& other) const { __cmp__(other) != 0; }
-
-		self operator++(int)
+		Child operator++(int)
 		{
 			self tmp = *this;
 			++(*this);
 			return tmp;
 		}
 
-		self operator--(int)
+		Child operator--(int)
 		{
 			self tmp = *this;
 			--(*this);

@@ -54,11 +54,11 @@ namespace ayr
 
 	// 哈希字典
 	template<Hashable K, typename V, typename C = Creator<KeyValue<K, V>>>
-	class Dict : public IndexContainer<Dict<K, V, C>, KeyValue<K, V>, DictGetItem<K, V, C>>
+	class Dict : public Object
 	{
 		using self = Dict<K, V, C>;
 
-		using super = IndexContainer<self, KeyValue<K, V>>;
+		using super = Object;
 	public:
 		using KV_t = KeyValue<K, V>;
 

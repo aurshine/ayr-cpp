@@ -30,11 +30,11 @@ namespace ayr
 
 			const Value_t* operator->() const { return &current_; }
 
-			self& operator++() { current_ += step_; return *this; }
+			self operator++() { return RangeIterator(current_ + step_, step_); }
 
-			self& operator--() { current_ -= step_; return *this; }
+			self operator--() { return RangeIterator(current_ - step_, step_); }
 
-			cmp_t __cmp__(const RangeIterator& other) const { return current_ - other.current_; }
+			cmp_t __equal__(const RangeIterator& other) const { return current_ == other.current_; }
 		private:
 			c_size current_, step_;
 		};

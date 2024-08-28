@@ -107,7 +107,7 @@ namespace ayr
 
 		const CharT& operator[] (c_size index) const { return __at__(index); }
 
-		const CharT& operator[] (c_size index) { return __at__(index); }
+		CharT& operator[] (c_size index) { return __at__(index); }
 
 		CharT& __at__(c_size index) { return cstr_[neg_index(index, size())]; }
 
