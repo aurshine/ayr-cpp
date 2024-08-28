@@ -9,12 +9,12 @@
 namespace ayr
 {
 	// 迭代器接口
-	template<typename V, typename Child>
+	template<typename V, typename ChildIterator>
 	class IteratorImpl : public Object
 	{
 		using super = Object;
 
-		using self = IteratorImpl<V>;
+		using self = IteratorImpl<V, ChildIterator>;
 
 	public:
 		using Value_t = V;
@@ -35,20 +35,20 @@ namespace ayr
 
 		virtual const Value_t* operator->() const { NotImplementedError("Not implemented const Value_t& operator->() const"); return &None<Value_t>; }
 
-		virtual Child operator++() { NotImplementedError("Not implemented self& operator++()"); return *this; }
+		virtual ChildIterator& operator++() { NotImplementedError("Not implemented self& operator++()"); return None<ChildIterator>; }
 
-		virtual Child operator--() { NotImplementedError("Not implemented self& operator--()"); return *this; }
+		virtual ChildIterator& operator--() { NotImplementedError("Not implemented self& operator--()"); return None<ChildIterator>; }
 
 		virtual cmp_t __equal__(const self& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
 
-		Child operator++(int)
+		ChildIterator operator++(int)
 		{
 			self tmp = *this;
 			++(*this);
 			return tmp;
 		}
 
-		Child operator--(int)
+		ChildIterator operator--(int)
 		{
 			self tmp = *this;
 			--(*this);
@@ -56,11 +56,5 @@ namespace ayr
 		}
 	};
 
-
-	template<typename V>
-	class ZipIterator : IteratorImpl<V>
-	{
-
-	};
 }
 #endif

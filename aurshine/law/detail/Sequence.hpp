@@ -20,21 +20,19 @@ namespace ayr
 	*	2. __cmp__(const self& other) const			比较两个Sequence是否相等，返回cmp_t类型
 	*	3. __str__() const							打印Sequence的内容，返回CString类型
 	*	4. contains(const Value_t& v) const			判断Sequence中是否包含指定元素，返回bool类型
-	*	5. find(const Value_t& v) const				查找Sequence中是否存在指定元素，返回ConstIterator类型
-	*	6. __iter_container__() const				返回自身，用于实现迭代器相关接口
-	*	7. 通过继承IndexContainer<Sequence<T>, T>	实现迭代器相关接口
+	*	5. find(const Value_t& v) const				查找Sequence中是否存在指定元素，返回c_size类型
 	*
 	* 需要实现的函数(虚函数)
 	* 	1. __at__(c_size) const						访问容器中指定位置的元素，返回引用，索引不能为负数
 	* 	2. size() const								返回容器中元素的数量
 	*/
 	template<typename T>
-	class Sequence : public IndexContainer<Sequence<T>, T>
+	class Sequence : public IndexContainer<T>
 	{
 	public:
 		using self = Sequence<T>;
 
-		using super = IndexContainer<self, T>;
+		using super = IndexContainer<T>;
 	public:
 		using Value_t = T;
 
@@ -47,8 +45,6 @@ namespace ayr
 		virtual const Value_t& __at__(c_size) const { NotImplementedError("Sequence::__at__ const not implemented"); return None<Value_t>; }
 
 		virtual c_size size() const { NotImplementedError("Sequence::size not implemented"); return 0; }
-
-		self& __iter_container__() const { return const_cast<self&>(*this); }
 
 		Value_t& operator[] (c_size index) { return __at__(neg_index(index, size())); }
 

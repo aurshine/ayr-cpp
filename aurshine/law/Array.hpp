@@ -14,13 +14,17 @@ namespace ayr
 
 		Range(c_size end) : Range(0, end, 1) {}
 
-		class RangeIterator: public IteratorImpl<c_size>
+		class RangeIterator: public IteratorImpl<c_size, RangeIterator>
 		{
+			using super = IteratorImpl<c_size, RangeIterator>;
+
 			using self = RangeIterator;
 
 			using Value_t = c_size;
 		public:
 			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
+
+			RangeIterator(const RangeIterator& other) : current_(other.current_), step_(other.step_) {}
 
 			Value_t& operator*() { return current_; }
 
@@ -30,9 +34,9 @@ namespace ayr
 
 			const Value_t* operator->() const { return &current_; }
 
-			self operator++() { return RangeIterator(current_ + step_, step_); }
+			self& operator++() { current_ += step_; return *this; }
 
-			self operator--() { return RangeIterator(current_ - step_, step_); }
+			self& operator--() { current_ -= step_; return *this; }
 
 			cmp_t __equal__(const RangeIterator& other) const { return current_ == other.current_; }
 		private:
