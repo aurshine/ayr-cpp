@@ -34,12 +34,15 @@ namespace ayr
 	template<typename B>
 	constexpr def highbit(const B& x) { return x >> highbit_index(x); }
 
+	// 判断二进制数是否全为1
 	template<typename B>
 	constexpr def all_one(const B& x) { return (x & x + 1) == 0; }
 
+	// 判断二进制数是否只有一个1
 	template<typename B>
 	constexpr def only_one(const B& x) { return (x & x - 1) == 0; }
 
+	// 向上取整到2的幂次方
 	template<typename B>
 	constexpr def roundup2(const B& x)
 	{

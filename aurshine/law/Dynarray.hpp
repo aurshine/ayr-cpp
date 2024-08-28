@@ -39,7 +39,7 @@ namespace ayr
 		using super = Sequence<T>;
 
 	public:
-		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, Array<T>(0)), size_(0), occupies_size_(0) {}
+		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE), size_(0), occupies_size_(0) {}
 
 		DynArray(const self& other) : DynArray()
 		{
@@ -84,13 +84,6 @@ namespace ayr
 			return *this;
 		}
 
-		void swap(self& other)
-		{
-			dynarray_.swap(other.dynarray_);
-			std::swap(size_, other.size_);
-			std::swap(occupies_size_, other.occupies_size_);
-		}
-
 		// 容器存储的数据长度
 		c_size size() const { return size_; }
 
@@ -100,21 +93,23 @@ namespace ayr
 		// 追加元素
 		T& append(const T& item)
 		{
-			if (all_one(size_))
+			if (occupied_block_has_full())
 				__wakeup__();
+			
+			++size_;
+			T& v = __at__(size_ - 1);
 
-			T& v = __at__(size_++);
 			ayr_construct(T, &v, item);
 			return v;
 		}
 
 		T& append(T&& item)
 		{
-			if (all_one(size_))
+			if (occupied_block_has_full())
 				__wakeup__();
 
-			T& v = __at__(size_++);
-
+			++size_;
+			T& v = __at__(size_ - 1);
 			ayr_construct(T, &v, std::move(item));
 			return v;
 		}
@@ -123,20 +118,23 @@ namespace ayr
 		void pop(c_size index = -1)
 		{
 			index = (index + size_) % size_;
-			T& ret = __at__(index);
-			ayr_destroy(&ret);
+			T& pop_item = __at__(index);
+			ayr_destroy(&pop_item);
 
 			for (c_size i = index; i < size_ - 1; ++i)
 				__at__(i) = std::move(__at__(i + 1));
 
-			if (all_one(--size_)) --occupies_size_;
+			--size_;
+			if (occupied_block_has_full() || size_ == 0) 
+				--occupies_size_;
 		}
 
 		// 转换为Array
 		Array<T> to_array() const
 		{
 			Array<T> arr(size_);
-			arr.fill(super::begin(), super::end());
+			for (c_size i = 0, size = size(); i < size; ++i)
+				ayr_construct(T, &arr.__at__(i), __at__(i));
 			return arr;
 		}
 
@@ -157,16 +155,11 @@ namespace ayr
 
 		void release()
 		{
-			c_size last_block_size = size_;
+			// 释放0 ~ n - 2个块
+			dynarray_.release(0, occupies_size_ - 1);
+			// 释放最后一个块
+			dynarray_[occupies_size_ - 1].release(0, size_ - (exp2(occupies_size_ - 1) - 1));
 
-			for (c_size i = 0; i < occupies_size_ - 1; ++i)
-			{
-				dynarray_[i].release(exp2(i));
-				last_block_size -= exp2(i);
-			}
-
-			if (occupies_size_)
-				dynarray_[occupies_size_ - 1].release(last_block_size);
 			size_ = 0;
 			occupies_size_ = 0;
 		}
@@ -176,7 +169,7 @@ namespace ayr
 		{
 			c_size l = _BlockCache::get(index);
 			++index;
-			return dynarray_.arr_[l].arr_[index ^ exp2(l)];
+			return dynarray_.__at__(l).__at__(index ^ exp2(l));
 		}
 
 		// 对index范围不做检查
@@ -184,17 +177,21 @@ namespace ayr
 		{
 			c_size l = _BlockCache::get(index);
 			++index;
-			return dynarray_.arr_[l].arr_[index ^ exp2(l)];
+			return dynarray_.__at__(l).__at__(index ^ exp2(l));
 		}
+
+		// 存在的块是否都已经满了
+		bool occupied_block_has_full() const { return all_one(size_); }
+
 
 		// 唤醒一个新的块
 		void __wakeup__()
 		{
 			occupies_size_++;
 
-			auto&& block = dynarray_[occupies_size_ - 1];
+			auto&& block = dynarray_.__at__(occupies_size_ - 1);
 
-			ayr_construct(Array<T>, &block, Array<T>::noconstruct(exp2(occupies_size_ - 1)));
+			ayr_construct(Array<T>, &block, Array<T>(exp2(occupies_size_ - 1)));
 		}
 	private:
 		Array<Array<T>> dynarray_;

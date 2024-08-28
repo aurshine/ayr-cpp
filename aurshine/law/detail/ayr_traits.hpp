@@ -33,6 +33,8 @@ namespace ayr
 	template<typename T, typename... Args>
 	constexpr bool isinstance = IsInstance<T, Args...>::value;
 
+
+	// 判断是否是char数组
 	template <typename T>
 	struct IsCharArray : std::false_type {};
 

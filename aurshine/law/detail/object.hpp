@@ -29,41 +29,26 @@ namespace ayr
 		virtual hash_t __hash__() const { assert(false, "not implemented __hash__()"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
-		virtual cmp_t __cmp__(const Object& other) const { return (cmp_t)this - (cmp_t)&other; }
+		virtual cmp_t __cmp__(const Object& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
 
 		virtual bool __equal__(const Object& other) const { return __cmp__(other) == 0; }
+
+		bool operator> (const Object& other) { return __cmp__(other) > 0; }
+
+		bool operator< (const Object& other) { return __cmp__(other) < 0; }
+
+		bool operator>= (const Object& other) { return __cmp__(other) >= 0; }
+
+		bool operator<= (const Object& other) { return __cmp__(other) <= 0; }
+
+		bool operator== (const Object& other) { return __equal__(other); }
+
+		bool operator!= (const Object& other) { return !__equal__(other); }
 	};
 
 	// Ayr 的派生类
 	template<typename T>
-	concept DerivedAyr = std::is_base_of_v<Ayr, T>;
+	concept DerivedAyr = isinstance<T, Object>;
 
-
-	template<DerivedAyr T>
-	std::ostream& operator<< (std::ostream& cout, const T& item) { return cout << item.__str__(); }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator> (const T1& one, const T2& other) { return one.__cmp__(other) > 0; }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator< (const T1& one, const T2& other) { return one.__cmp__(other) < 0; }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator>= (const T1& one, const T2& other) { return one.__cmp__(other) >= 0; }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator<= (const T1& one, const T2& other) { return one.__cmp__(other) <= 0; }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator== (const T1& one, const T2& other) { return one.__cmp__(other) == 0; }
-
-
-	template<DerivedAyr T1, typename T2>
-	bool operator!= (const T1& one, const T2& other) { return one.__cmp__(other) != 0; }
 }
 #endif

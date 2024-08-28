@@ -91,20 +91,22 @@ namespace ayr
 
 		c_size size_ = 0;
 
-		ArrayImpl(c_size size) : arr_(ayr_alloc(T, size)), size_(size) {}
+		bool has_released = false;
 	public:
+		ArrayImpl(c_size size) : arr_(ayr_alloc(T, size)), size_(size) {}
+
 		template<typename ...Args>
 		ArrayImpl(c_size size, const Args&... args): ArrayImpl(size)
 		{
 			for (c_size i = 0; i < size; ++i)
-				ayr_construct(arr_ + i, args...);
+				ayr_construct(T, arr_ + i, args...);
 		}
 
 		ArrayImpl(std::initializer_list<T>&& init_list) : ArrayImpl(init_list.size())
 		{
 			c_size i = 0;
 			for (auto&& item: init_list)
-				ayr_construct(arr_ + i ++, std::move(item));
+				ayr_construct(T, arr_ + i ++, std::move(item));
 		}
 
 		~ArrayImpl() 
@@ -112,19 +114,19 @@ namespace ayr
 			release();
 			ayr_delloc(arr_); 
 		}
-
+ 
 		T* data() override { return arr_; }
 
 		const T* data() const override { return arr_; }
 
 		c_size size() const override { return size_; }
 
-		void release(c_size l = 0, c_size r = size_)
+		void release(c_size l = 0, c_size r = -1)
 		{
-			static bool has_called = false;
-			if (has_called) return;
-			
+			if (has_released) return;
+			if (r == -1) r = size_;
 			while (l < r) ayr_destroy(arr_ + (l ++));
+			has_released = true;
 		}
 	};
 
