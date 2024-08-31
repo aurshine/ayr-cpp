@@ -17,7 +17,7 @@ namespace ayr
 
 
 	template<NodeTypeConcept Node, typename C = Creator<Node>>
-	class SimpleChain : public Object
+	class SimpleChain : public Object<SimpleChain<Node, C>>
 	{
 	public:
 		using Value_t = typename Node::Value_t;
@@ -177,7 +177,7 @@ namespace ayr
 
 	// Chain迭代器
 	template<NodeTypeConcept Node>
-	class ChainIterator : public Object
+	class ChainIterator : public Object<ChainIterator<Node>>
 	{
 	public:
 		using Value_t = typename Node::Value_t;
@@ -205,8 +205,6 @@ namespace ayr
 		}
 
 		cmp_t __cmp__(const ChainIterator& other) const { return current_ - other.current_; }
-
-		bool operator!=(const ChainIterator& other) const { return __cmp__(other); }
 
 	protected:
 		Node* current_;

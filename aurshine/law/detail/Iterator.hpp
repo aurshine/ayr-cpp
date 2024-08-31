@@ -10,7 +10,7 @@ namespace ayr
 {
 	// 迭代器接口
 	template<typename V, typename ChildIterator>
-	class IteratorImpl : public Object
+	class IteratorImpl : public Object<ChildIterator>
 	{
 		using super = Object;
 
@@ -39,7 +39,7 @@ namespace ayr
 
 		virtual ChildIterator& operator--() { NotImplementedError("Not implemented self& operator--()"); return None<ChildIterator>; }
 
-		virtual cmp_t __equal__(const self& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
+		virtual bool __equals__(const ChildIterator& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
 
 		ChildIterator operator++(int)
 		{

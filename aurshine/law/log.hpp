@@ -11,13 +11,13 @@
 
 namespace ayr
 {
-	class Log : Object
+	class Log : Object<Log>
 	{
 	private:
 		Log() = delete;
 
 		Log(const Log&) = delete;
-		
+
 		Log& operator=(const Log&) = delete;
 	public:
 		struct LogLevel
@@ -100,7 +100,7 @@ namespace ayr
 
 		template<ConveribleToCstr Str>
 		static void fatal(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
-	
+
 	private:
 		constexpr static int MAX_LOG_SIZE = 64;
 

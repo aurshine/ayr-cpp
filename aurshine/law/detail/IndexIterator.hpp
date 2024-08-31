@@ -1,4 +1,4 @@
-#ifndef AYR_LAW_DETAIL_INDEXITERATOR_HPP
+ï»¿#ifndef AYR_LAW_DETAIL_INDEXITERATOR_HPP
 #define AYR_LAW_DETAIL_INDEXITERATOR_HPP
 
 #include <law/detail/Iterator.hpp>
@@ -6,7 +6,7 @@
 
 namespace ayr
 {
-	// Ë÷ÒıÈİÆ÷µü´úÆ÷,
+	// ç´¢å¼•å®¹å™¨è¿­ä»£å™¨,
 	template<typename C, typename V>
 	class IndexIterator : public IteratorImpl<V, IndexIterator<C, V>>
 	{
@@ -20,7 +20,7 @@ namespace ayr
 
 		IndexIterator(Container_t& container, c_size index) : container_(container), index_(index) {}
 
-		IndexIterator(const self& other): IndexIterator(other.container_, other.index_) {}
+		IndexIterator(const self& other) : IndexIterator(other.container_, other.index_) {}
 
 		Value_t& operator*() override { return container_[index_]; }
 
@@ -30,9 +30,10 @@ namespace ayr
 
 		self& operator--() override { --index_; return *this; }
 
-		cmp_t __equal__(const self& other) const { return &conatiner_ == &other.container_ && index_ == other.index_; }
+		bool __equals__(const self& other) const { return (&container_ == &other.container_) && (index_ == other.index_); }
 
-		CString __str__() const { return CString(std::format("IndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
+		CString __str__() const override { return CString(std::format("IndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
+
 	private:
 		Container_t& container_;
 
@@ -40,7 +41,7 @@ namespace ayr
 	};
 
 
-	// ³£Á¿Ë÷ÒıÈİÆ÷µü´úÆ÷
+	// å¸¸é‡ç´¢å¼•å®¹å™¨è¿­ä»£å™¨
 	template<typename C, typename V>
 	class CIndexIterator : public IteratorImpl<V, CIndexIterator<C, V>>
 	{
@@ -64,39 +65,14 @@ namespace ayr
 
 		self& operator--() override { --index_; return *this; }
 
-		cmp_t __equal__(const self& other) const { return (&conatiner_ == &other.container_) && (index_ == other.index_); }
+		bool __equals__(const self& other) const override { return (&container_ == &other.container_) && (index_ == other.index_); }
 
-		CString __str__() const { return CString(std::format("CIndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
+		CString __str__() const override { return CString(std::format("CIndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
+
 	private:
 		const Container_t& container_;
 
 		c_size index_;
-	};
-
-
-	template<typename V>
-	class IndexContainer : Object
-	{
-		using self = IndexContainer<V>;
-	public:
-		using Iterator = IndexIterator<self, V>;
-
-		using ConstIterator = CIndexIterator<self, V>;
-
-	public:
-		virtual c_size size() const = 0;
-
-		virtual V& operator[] (c_size index) = 0;
-
-		virtual const V& operator[] (c_size index) const = 0;
-
-		virtual Iterator begin() { return Iterator(*this, 0); }
-
-		virtual Iterator end() { return Iterator(*this, size()); }
-
-		virtual ConstIterator begin() const { return ConstIterator(*this, 0); }
-
-		virtual ConstIterator end() const { return ConstIterator(*this, size()); }
 	};
 }
 

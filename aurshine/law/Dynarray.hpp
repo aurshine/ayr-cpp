@@ -12,7 +12,7 @@ namespace ayr
 	constexpr static size_t DYNARRAY_BLOCK_SIZE = sizeof(size_t) * 8;
 
 
-	struct _BlockCache : public Object
+	struct _BlockCache : public Object<_BlockCache>
 	{
 		constexpr static auto CACHE_INDEX_BOUND = 0xffff;
 
@@ -95,7 +95,7 @@ namespace ayr
 		{
 			if (occupied_block_has_full())
 				__wakeup__();
-			
+
 			++size_;
 			T& v = __at__(size_ - 1);
 
@@ -125,7 +125,7 @@ namespace ayr
 				__at__(i) = std::move(__at__(i + 1));
 
 			--size_;
-			if (occupied_block_has_full() || size_ == 0) 
+			if (occupied_block_has_full() || size_ == 0)
 				--occupies_size_;
 		}
 

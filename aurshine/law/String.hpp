@@ -41,7 +41,7 @@ namespace ayr
 
 		String(const self& other) : String(other.cstr_, other.length_) {}
 
-		String(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_){}
+		String(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_) {}
 
 		String(const CharT* str, c_size len = -1) : cstr_(nullptr), length_(0)
 		{
@@ -363,7 +363,7 @@ namespace ayr
 				else
 					result.cstr_[k++] = __at__(i);
 			}
-			
+
 			return result;
 		}
 
@@ -401,7 +401,7 @@ namespace ayr
 
 
 	template<Char CharT>
-	class Kmp : public Object
+	class Kmp : public Object<Kmp<CharT>>
 	{
 		using self = Kmp;
 

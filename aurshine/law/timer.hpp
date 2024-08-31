@@ -10,7 +10,7 @@
 
 namespace ayr
 {
-	class Date : public Object
+	class Date : public Object<Date>
 	{
 	public:
 		Date() : Date(std::time(nullptr)) {}
@@ -63,11 +63,12 @@ namespace ayr
 
 		CString week_str() const { return WEEK_STR[week_]; }
 
-		CString __str__() const { return std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_); }
-		
+		CString __str__() const override { return std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_); }
+
 		cmp_t __cmp__(const Date& date) const
 		{
-			return Array<int>{year_, month_, day_}.__cmp__(Array<int>{date.year(), date.month(), date.day()});
+			Array<int> a = Array<int>{ year_, month_, day_ }, b = Array<int>{ date.year(), date.month(), date.day() };
+			return a.__cmp__(b);
 		}
 
 		static int calc_week(int year, int month, int day)

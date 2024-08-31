@@ -12,5 +12,7 @@ using namespace ayr;
 
 int main()
 {
-	
-} 
+	Array<int> arr = { 1, 2, 3, 4, 5 };
+	Array<int> arr2 = { 1, 2, 3, 4 ,5 };
+	print(arr == arr2);
+}

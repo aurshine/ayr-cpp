@@ -7,14 +7,14 @@
 
 namespace ayr
 {
-	class Range : public Object
+	class Range : public Object<Range>
 	{
 	public:
 		Range(c_size start, c_size end, c_size step = 1) : _start(start), _end(end), _step(step) {}
 
 		Range(c_size end) : Range(0, end, 1) {}
 
-		class RangeIterator: public IteratorImpl<c_size, RangeIterator>
+		class RangeIterator : public IteratorImpl<c_size, RangeIterator>
 		{
 			using super = IteratorImpl<c_size, RangeIterator>;
 
@@ -24,7 +24,7 @@ namespace ayr
 		public:
 			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
 
-			RangeIterator(const RangeIterator& other) : current_(other.current_), step_(other.step_) {}
+			RangeIterator(const self& other) : current_(other.current_), step_(other.step_) {}
 
 			Value_t& operator*() { return current_; }
 
@@ -38,7 +38,7 @@ namespace ayr
 
 			self& operator--() { current_ -= step_; return *this; }
 
-			cmp_t __equal__(const RangeIterator& other) const { return current_ == other.current_; }
+			bool __equals__(const self& other) const { return current_ == other.current_; }
 		private:
 			c_size current_, step_;
 		};

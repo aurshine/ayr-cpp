@@ -9,18 +9,17 @@
 namespace ayr
 {
 	template<typename T>
-	class ArrayInterface: public Object
+	class ArrayInterface : public Sequence<T>
 	{
+		using self = ArrayInterface<T>;
+
+		using super = Sequence<T>;
 	public:
 		virtual T* data() = 0;
-		
+
 		virtual const T* data() const = 0;
 
 		virtual c_size size() const = 0;
-
-		T& operator[] (c_size index) { return __at__(neg_index(index, size())); }
-
-		const T& operator[] (c_size index) const { return __at__(neg_index(index, size())); }
 
 		void fill(const T& fill_val, c_size pos = 0)
 		{
@@ -29,24 +28,16 @@ namespace ayr
 				arr[i] = fill_val;
 		}
 
-		T* begin() { return data(); }
-		
-		T* end() { return data() + size(); }
+		T& __at__(c_size index) override { return data()[index]; }
 
-		const T* begin() const { return data(); }
-
-		const T* end() const { return data() + size(); }
-
-		T& __at__(c_size index) { return data()[index]; }
-
-		const T& __at__(c_size index) const { return data()[index]; }
+		const T& __at__(c_size index) const override { return data()[index]; }
 	};
 
 	/*
 	* 栈上分配内存
-	* 
+	*
 	* 元素类型T, 大小N
-	* 
+	*
 	* 所有操作均可编译期完成
 	*/
 	template<typename T, size_t N>
@@ -55,14 +46,14 @@ namespace ayr
 		using self = ArrayImpl<T, N>;
 
 		using super = ArrayInterface<T>;
-		
+
 		T arr_[N];
 	public:
 		ArrayImpl() = default;
 
 		ArrayImpl(const T& fill_val) { super::fill(fill_val, 0); }
 
-		ArrayImpl(std::initializer_list<T>&& init_list): arr_(init_list) {}
+		ArrayImpl(std::initializer_list<T>&& init_list) : arr_(init_list) {}
 
 		constexpr T* data() override { return arr_; }
 
@@ -73,15 +64,15 @@ namespace ayr
 
 	/*
 	* 堆上分配内存
-	* 
+	*
 	* 元素类型T, 大小N
-	* 
+	*
 	* 当只传入数组长度时，只分配内存，不调用构造函数
-	* 
+	*
 	* release()只能有效调用一次，用于调用一个区间的析构函数，并释放内存
 	*/
 	template<typename T>
-	class ArrayImpl<T, 0>: public ArrayInterface<T>
+	class ArrayImpl<T, 0> : public ArrayInterface<T>
 	{
 		using self = ArrayImpl<T, 0>;
 
@@ -96,7 +87,7 @@ namespace ayr
 		ArrayImpl(c_size size) : arr_(ayr_alloc(T, size)), size_(size) {}
 
 		template<typename ...Args>
-		ArrayImpl(c_size size, const Args&... args): ArrayImpl(size)
+		ArrayImpl(c_size size, const Args&... args) : ArrayImpl(size)
 		{
 			for (c_size i = 0; i < size; ++i)
 				ayr_construct(T, arr_ + i, args...);
@@ -105,16 +96,16 @@ namespace ayr
 		ArrayImpl(std::initializer_list<T>&& init_list) : ArrayImpl(init_list.size())
 		{
 			c_size i = 0;
-			for (auto&& item: init_list)
-				ayr_construct(T, arr_ + i ++, std::move(item));
+			for (auto&& item : init_list)
+				ayr_construct(T, arr_ + i++, std::move(item));
 		}
 
-		~ArrayImpl() 
-		{ 
+		~ArrayImpl()
+		{
 			release();
-			ayr_delloc(arr_); 
+			ayr_delloc(arr_);
 		}
- 
+
 		T* data() override { return arr_; }
 
 		const T* data() const override { return arr_; }
@@ -125,7 +116,7 @@ namespace ayr
 		{
 			if (has_released) return;
 			if (r == -1) r = size_;
-			while (l < r) ayr_destroy(arr_ + (l ++));
+			while (l < r) ayr_destroy(arr_ + (l++));
 			has_released = true;
 		}
 	};

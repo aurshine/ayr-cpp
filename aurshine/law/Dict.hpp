@@ -10,24 +10,26 @@ namespace ayr
 {
 	// 键值对
 	template<Hashable K, typename V>
-	struct KeyValue : public Object
+	struct KeyValue : public Object<KeyValue<K, V>>
 	{
+		using self = KeyValue<K, V>;
+
 		KeyValue() : key(), value() {}
 
 		KeyValue(const K& key, const V& value) : key(key), value(value) {}
 
 		KeyValue(K&& key, V&& value) : key(std::move(key)), value(std::move(value)) {}
 
-		KeyValue(const KeyValue& other) : key(other.key), value(other.value) {}
+		KeyValue(const self& other) : key(other.key), value(other.value) {}
 
-		KeyValue(KeyValue&& other) : key(std::move(other.key)), value(std::move(other.value)) {}
+		KeyValue(self&& other) : key(std::move(other.key)), value(std::move(other.value)) {}
 
 		size_t key_hash() const { return ayrhash(key); }
 
 		bool key_equals(const K& other) const { return key == other; }
 
 
-		KeyValue& operator=(const KeyValue& other)
+		self& operator=(const self& other)
 		{
 			key = other.key;
 			value = other.value;
@@ -35,7 +37,7 @@ namespace ayr
 		}
 
 
-		KeyValue& operator=(KeyValue&& other) noexcept
+		self& operator=(self&& other) noexcept
 		{
 			key = std::move(other.key);
 			value = std::move(other.value);
@@ -48,13 +50,9 @@ namespace ayr
 	};
 
 
-	template<Hashable K, typename V, typename Creator>
-	class DictGetItem;
-
-
 	// 哈希字典
 	template<Hashable K, typename V, typename C = Creator<KeyValue<K, V>>>
-	class Dict : public Object
+	class Dict : public Object<Dict<K, V, C>>
 	{
 		using self = Dict<K, V, C>;
 
@@ -69,8 +67,6 @@ namespace ayr
 		using SkipList_t = Array<Dist_t>;
 
 		constexpr static c_size DEF_BUCKET_SIZE = 31;
-
-		friend class DictGetItem<K, V, C>;
 	public:
 		Dict() : Dict(DEF_BUCKET_SIZE) {}
 
@@ -188,7 +184,7 @@ namespace ayr
 				expand((size() + other.size()) * 1.5);
 
 			for (auto&& kv : other)
-				if (!contains(kv.key)) 
+				if (!contains(kv.key))
 					setkv2bucket(creator_(kv));
 				else
 					get(kv.key) = kv.value;
@@ -196,7 +192,7 @@ namespace ayr
 			return *this;
 		}
 
-		CString __str__() const
+		CString __str__() const override
 		{
 			std::stringstream stream;
 			stream << "{";
@@ -285,21 +281,6 @@ namespace ayr
 		DynArray<K> keys_; // 用于迭代
 
 		C creator_;
-	};
-
-	template<Hashable K, typename V, typename Creator>
-	class DictGetItem
-	{
-		using C = Dict<K, V, Creator>;
-	public:
-
-		static KeyValue<K, V>& getitem(C& container, size_t index) { return *container.get_kv(container.keys_[index]); }
-
-		static KeyValue<K, V>* getptr(C& container, size_t index) { return container.get_kv(container.keys_[index]); }
-
-		static const KeyValue<K, V>& getcitem(const C& container, size_t index) { return *container.get_kv(container.keys_[index]); }
-
-		static const KeyValue<K, V>* getcptr(const C& container, size_t index) { return container.get_kv(container.keys_[index]); }
 	};
 }
 #endif

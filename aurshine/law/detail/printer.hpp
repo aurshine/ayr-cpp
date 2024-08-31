@@ -8,10 +8,10 @@
 
 namespace ayr
 {
-	class Printer : public Object
+	class Printer : public Object<Printer>
 	{
 	public:
-		Printer(FILE* file_ptr, CString sw=" ", CString ew="\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
+		Printer(FILE* file_ptr, CString sw = " ", CString ew = "\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
 
 		template<Printable... Args>
 		void operator()(const Args&... args) const { __print__(args...); __print__(ew_); }

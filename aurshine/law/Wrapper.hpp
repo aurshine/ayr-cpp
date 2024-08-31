@@ -6,7 +6,7 @@
 
 namespace ayr
 {
-	class Wrapper : public Object
+	class Wrapper : public Object<Wrapper>
 	{
 	public:
 		virtual void start() {}
@@ -14,13 +14,11 @@ namespace ayr
 		virtual void stop() {}
 
 		template<typename F, typename ...Args>
-		auto operator()(F&& func, Args&&... args)
+		void operator()(F&& func, Args&&... args)
 		{
 			start();
 			func(std::forward<Args>(args)...);
 			stop();
-
-			return ret;
 		}
 	};
 }

@@ -27,11 +27,12 @@ namespace ayr
 
 	// 简单节点类型，值能前向移动
 	template<typename T>
-	class SimpleNode : public Object
+	class SimpleNode : public Object<SimpleNode<T>>
 	{
 	public:
 		using Value_t = T;
 
+		using self = SimpleNode<T>;
 	public:
 		SimpleNode() : value(), next(nullptr) {}
 
@@ -39,18 +40,18 @@ namespace ayr
 
 		SimpleNode(T&& value) : value(std::move(value)), next(nullptr) {}
 
-		SimpleNode(const SimpleNode& other) : value(other.value), next(nullptr) {}
+		SimpleNode(const self& other) : value(other.value), next(nullptr) {}
 
-		SimpleNode(SimpleNode&& other) : value(std::move(other.value)), next(other.next) { other.next = nullptr; }
+		SimpleNode(self&& other) : value(std::move(other.value)), next(other.next) { other.next = nullptr; }
 
-		SimpleNode& operator=(const SimpleNode& other)
+		self& operator=(const self& other)
 		{
 			value = other.value;
 			next = nullptr;
 			return *this;
 		}
 
-		SimpleNode& operator=(SimpleNode&& other)
+		self& operator=(self&& other)
 		{
 			value = std::move(other.value);
 			next = other.next;
@@ -58,7 +59,7 @@ namespace ayr
 			return *this;
 		}
 
-		CString __str__() const
+		CString __str__() const override
 		{
 			std::stringstream stream;
 			stream << "<Node  " << value << ">";
@@ -66,26 +67,20 @@ namespace ayr
 			return CString(stream.str());
 		}
 
-		cmp_t __cmp__(const SimpleNode& other)
-		{
-			if (value < other.value) return -1;
-			if (value > other.value) return 1;
-			return 0;
-		}
-
 		T value;
 
-		SimpleNode* next;
+		self* next;
 	};
 
 
 	// 双向节点类型，值能前后移动
 	template<typename T>
-	class BiSimpleNode : public Object
+	class BiSimpleNode : public Object<BiSimpleNode<T>>
 	{
 	public:
 		using Value_t = T;
 
+		using self = BiSimpleNode<T>;
 	public:
 		BiSimpleNode() : value(), prev(nullptr), next(nullptr) {}
 
@@ -93,11 +88,11 @@ namespace ayr
 
 		BiSimpleNode(T&& value) : value(std::move(value)), prev(nullptr), next(nullptr) {}
 
-		BiSimpleNode(const BiSimpleNode& other) : value(other.value), prev(nullptr), next(nullptr) {}
+		BiSimpleNode(const self& other) : value(other.value), prev(nullptr), next(nullptr) {}
 
-		BiSimpleNode(BiSimpleNode&& other) : value(std::move(other.value)), prev(other.prev), next(other.next) { other.prev = other.next = nullptr; }
+		BiSimpleNode(self&& other) : value(std::move(other.value)), prev(other.prev), next(other.next) { other.prev = other.next = nullptr; }
 
-		BiSimpleNode& operator=(const BiSimpleNode& other)
+		self& operator=(const self& other)
 		{
 			value = other.value;
 			prev = nullptr;
@@ -105,7 +100,7 @@ namespace ayr
 			return *this;
 		}
 
-		BiSimpleNode& operator=(BiSimpleNode&& other)
+		self& operator=(self&& other)
 		{
 			value = std::move(other.value);
 			prev = other.prev;
@@ -114,7 +109,7 @@ namespace ayr
 			return *this;
 		}
 
-		CString __str__() const
+		CString __str__() const override
 		{
 			std::stringstream stream;
 			stream << "<BiNode  " << value << ">";
@@ -124,7 +119,7 @@ namespace ayr
 
 		T value;
 
-		BiSimpleNode* prev, * next;
+		self* prev, * next;
 	};
 }
 

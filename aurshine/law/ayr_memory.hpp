@@ -10,7 +10,7 @@ namespace ayr
 {
 	// 自动管理内存创建节点类型
 	template<typename T>
-	class Creator : Object
+	class Creator : Object<Creator<T>>
 	{
 	public:
 		Creator() = default;
