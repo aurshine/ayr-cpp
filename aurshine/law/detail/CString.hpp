@@ -12,7 +12,7 @@ namespace ayr
 {
 	// c 风格字符串封装
 	template<Char Ch>
-	class RawString : public Ayr
+	class RawString
 	{
 	public:
 		RawString() : RawString(1) {}

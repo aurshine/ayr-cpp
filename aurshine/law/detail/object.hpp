@@ -12,10 +12,12 @@
 namespace ayr
 {
 	template<typename Derived>
-	class Object : public Ayr
+	class Object
 	{
 		using self = Derived;
 	public:
+		using AyrObjectDerived = Derived;
+
 		// 转换为 字符串 类型
 		virtual CString __str__() const
 		{
@@ -49,5 +51,22 @@ namespace ayr
 		virtual bool operator!= (const self& other) const { return !__equals__(other); }
 	};
 
+	template<typename T>
+		requires isinstance<T, Object<T>>
+	std::ostream& operator<<(std::ostream& os, const T& obj)
+	{
+		os << obj.__str__();
+		return os;
+	}
+
+	template<typename T>
+	concept AyrObject = requires(T & t)
+	{
+		typename T::AyrObjectDerived;
+
+	}&& isinstance<T, Object<typename T::AyrObjectDerived>>;
+
+	template<typename T>
+	constexpr bool is_ayr_obj = AyrObject<T>;
 }
 #endif

@@ -5,6 +5,7 @@
 #include <source_location>
 
 #include <law/detail/object.hpp>
+#include <law/detail/CString.hpp>
 
 namespace ayr
 {
@@ -82,7 +83,7 @@ namespace ayr
 	};
 
 
-	class Color : Ayr
+	class Color : public Object<Color>
 	{
 	public:
 		constexpr static const char* CLOSE = "\033[0m";

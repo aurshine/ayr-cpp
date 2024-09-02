@@ -1,10 +1,11 @@
-#ifndef AYR_FS_FILE_HPP
+﻿#ifndef AYR_FS_FILE_HPP
 #define AYR_FS_FILE_HPP
 
 #include <cstdio>
 #include <atomic>
 
 #include <law/Printer.hpp>
+#include <law/Dynarray.hpp>
 #include "Path.hpp"
 
 
@@ -12,7 +13,7 @@ namespace ayr
 {
 	namespace fs
 	{
-		class AyrFile
+		class AyrFile : public Object<AyrFile>
 		{
 		public:
 #pragma warning(push)
@@ -41,14 +42,15 @@ namespace ayr
 					is_open = false;
 				}
 			}
-			
+
+			// 如果I可以隐式转换为const char*, 则使用fputs, 否则使用for循环逐个写入
 			template<typename I>
 			void write(const I& data) const
 			{
 				if constexpr (ConveribleToCstr<I>)
 					std::fputs(static_cast<const char*>(data), file);
 				else
-					for (const char& d: data)
+					for (const char& d : data)
 						std::fputc(d, file);
 			}
 
@@ -66,7 +68,7 @@ namespace ayr
 				}
 
 				CString ret(buffer.size());
-				for (c_size i = 0, length = buffer.size(); i < length; ++ i)
+				for (c_size i = 0, length = buffer.size(); i < length; ++i)
 					ret[i] = buffer[i];
 				return ret;
 			}

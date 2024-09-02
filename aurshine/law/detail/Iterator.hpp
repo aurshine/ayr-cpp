@@ -12,12 +12,18 @@ namespace ayr
 	template<typename V, typename ChildIterator>
 	class IteratorImpl : public Object<ChildIterator>
 	{
-		using super = Object;
+		using super = Object<ChildIterator>;
 
 		using self = IteratorImpl<V, ChildIterator>;
 
 	public:
 		using Value_t = V;
+
+		using Distance_t = std::ptrdiff_t;
+
+		using AyrIteratorDerived = ChildIterator;
+
+		using AyrIteratorDerivedValue = V;
 
 		IteratorImpl() = default;
 
@@ -41,20 +47,20 @@ namespace ayr
 
 		virtual bool __equals__(const ChildIterator& other) const { NotImplementedError("Not implemented bool __cmp__(const self& other) const"); return 0; }
 
-		ChildIterator operator++(int)
-		{
-			self tmp = *this;
-			++(*this);
-			return tmp;
-		}
-
-		ChildIterator operator--(int)
-		{
-			self tmp = *this;
-			--(*this);
-			return tmp;
-		}
+		virtual Distance_t distance(const ChildIterator& other) const { NotImplementedError("Not implemented Distance_t __distance__(const self& other) const"); return 0; }
 	};
 
+	template<typename T>
+	concept AyrIterator = requires(T & t)
+	{
+		typename T::AyrIteratorDerived;
+
+		typename T::AyrIteratorDerivedValue;
+
+	}&& isinstance<T, IteratorImpl<typename T::AyrIteratorDerivedValue, typename T::AyrIteratorDerived>>;
+
+
+	template<typename T>
+	constexpr bool is_ayr_iterator = AyrIterator<T>;
 }
 #endif

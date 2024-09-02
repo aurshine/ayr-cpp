@@ -18,8 +18,6 @@ namespace ayr
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))
 
-	class Ayr {};
-
 	// container size type 
 	using c_size = int64_t;
 	// compare type

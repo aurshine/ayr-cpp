@@ -34,6 +34,8 @@ namespace ayr
 
 		CString __str__() const override { return CString(std::format("IndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
 
+		super::Distance_t distance(const self& other) const override { return std::abs(other.index_ - index_); }
+
 	private:
 		Container_t& container_;
 
@@ -69,6 +71,7 @@ namespace ayr
 
 		CString __str__() const override { return CString(std::format("CIndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
 
+		super::Distance_t distance(const self& other) const override { return std::abs(other.index_ - index_); }
 	private:
 		const Container_t& container_;
 

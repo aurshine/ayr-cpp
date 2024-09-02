@@ -39,6 +39,8 @@ namespace ayr
 			self& operator--() { current_ -= step_; return *this; }
 
 			bool __equals__(const self& other) const { return current_ == other.current_; }
+
+			super::Distance_t distance(const self& other) const override { return (other.current_ - current_) / step_; }
 		private:
 			c_size current_, step_;
 		};
