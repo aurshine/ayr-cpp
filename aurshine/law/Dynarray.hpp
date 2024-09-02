@@ -39,6 +39,8 @@ namespace ayr
 		using super = Sequence<T>;
 
 	public:
+		using Value_t = T;
+
 		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE), size_(0), occupies_size_(0) {}
 
 		DynArray(const self& other) : DynArray()

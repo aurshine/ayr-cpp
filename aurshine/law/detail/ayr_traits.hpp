@@ -46,6 +46,15 @@ namespace ayr
 
 	template <typename T>
 	constexpr bool ischararray = IsCharArray<T>::value;
+
+	template<bool ...B>
+	constexpr bool And = B && (... && B);
+
+	template<bool ...B>
+	constexpr bool Or = B || (... || B);
+
+	template<bool B>
+	constexpr bool Not = !B;
 }
 
 #endif

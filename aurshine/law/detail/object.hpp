@@ -52,14 +52,6 @@ namespace ayr
 	};
 
 	template<typename T>
-		requires isinstance<T, Object<T>>
-	std::ostream& operator<<(std::ostream& os, const T& obj)
-	{
-		os << obj.__str__();
-		return os;
-	}
-
-	template<typename T>
 	concept AyrObject = requires(T & t)
 	{
 		typename T::AyrObjectDerived;
@@ -68,5 +60,19 @@ namespace ayr
 
 	template<typename T>
 	constexpr bool is_ayr_obj = AyrObject<T>;
+
+	template<AyrObject T>
+	std::ostream& operator<<(std::ostream& os, const T& obj)
+	{
+		os << obj.__str__().str;
+		return os;
+	}
+
+	template<typename T> requires(Not<Printable<T>>)
+		std::ostream& operator<<(std::ostream& os, const T& obj)
+	{
+		os << "<" << dtype(T) << " 0x" << std::hex << &obj << ">";
+		return os;
+	}
 }
 #endif

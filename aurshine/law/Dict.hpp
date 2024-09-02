@@ -51,16 +51,22 @@ namespace ayr
 
 
 	// 哈希字典
-	template<Hashable K, typename V, typename C = Creator<KeyValue<K, V>>>
+	template<Hashable K, typename V, typename C = Creator<std::pair<hash_t, V>>>
 	class Dict : public Object<Dict<K, V, C>>
 	{
 		using self = Dict<K, V, C>;
 
 		using super = Object;
 	public:
-		using KV_t = KeyValue<K, V>;
+		using Key_t = K;
 
-		using Bucket_t = Array<KV_t*>;
+		using Value_t = V;
+
+		using KV_t = KeyValue<Key_t, Value_t>;
+
+		using BucketValue_t = std::pair<hash_t, Value_t>;
+
+		using Bucket_t = Array<BucketValue_t*>;
 
 		using Dist_t = uint32_t;
 
@@ -75,25 +81,28 @@ namespace ayr
 		Dict(std::initializer_list<KV_t>&& kv_list) : Dict(kv_list.size() / 0.7)
 		{
 			for (auto&& kv : kv_list)
-				setkv2bucket(creator_(std::move(kv)));
+				setkv2bucket(std::move(kv.key), std::move(kv.value));
 		}
 
 		Dict(const Dict& other) : Dict(other.size() / 0.7)
 		{
 			for (auto&& kv : other)
-				setkv2bucket(creator_(kv));
+				setkv2bucket(kv.key, kv.value);
 		}
 
-		Dict(Dict&& other) : Dict(other.size() / 0.7)
+		Dict(Dict&& other)
 		{
-			for (auto&& kv : other)
-				setkv2bucket(creator_(std::move(kv)));
+			this->bucket_ = std::move(other.bucket_);
+			this->skip_list_ = std::move(other.skip_list_);
+			this->keys_ = std::move(other.keys_);
+			this->creator_ = std::move(other.creator_);
 		}
-
 
 		Dict& operator=(const Dict& other)
 		{
 			if (this == &other) return *this;
+			for (auto&& kv : other)
+				setkv2bucket(kv.key, kv.value);
 		}
 
 
@@ -118,7 +127,7 @@ namespace ayr
 		Array<K> keys() const { return keys_.to_array(); }
 
 		// 内存由该Dict内部管理, 创建一个KV_t对象，返回其指针
-		KV_t* mk_kv(const K& key, const V& value) { return creator_(key, value); }
+		// KV_t* mk_kv(const K& key, const V& value) { return creator_(key, value); }
 
 		// 重载[]运算符, key 必须存在, 否则KeyError
 		const V& operator[](const K& key) const { return get(key); }
@@ -126,16 +135,16 @@ namespace ayr
 		// 重载[]运算符, 若key不存在, 则创建并返回一个默认值
 		V& operator[](const K& key)
 		{
-			if (!contains(key)) setkv2bucket(creator_(key, V()));
-
+			if (!contains(key))
+				setkv2bucket(key, V());
 			return get(key);
 		}
 
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		V& get(const K& key)
 		{
-			KV_t* kv = get_kv(key);
-			if (kv != nullptr) return kv->value;
+			BucketValue_t* kv = get_kv(key);
+			if (kv != nullptr) return kv->second;
 
 			KeyError("Key not found in dict");
 			return None<V>;
@@ -144,8 +153,8 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		const V& get(const K& key) const
 		{
-			KV_t* kv = get_kv(key);
-			if (kv != nullptr) return kv->value;
+			BucketValue_t* kv = get_kv(key);
+			if (kv != nullptr) return kv->second;
 
 			KeyError("Key not found in dict");
 			return None<V>;
@@ -154,8 +163,8 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则返回default_value
 		V& get(const K& key, V& default_value)
 		{
-			KV_t* kv = get_kv(key);
-			if (kv != nullptr) return kv->value;
+			BucketValue_t* kv = get_kv(key);
+			if (kv != nullptr) return kv->second;
 
 			return default_value;
 		}
@@ -163,8 +172,8 @@ namespace ayr
 		// 获得key对应的value, 若key不存在, 则返回default_value
 		const V& get(const K& key, const V& default_value) const
 		{
-			KV_t* kv = get_kv(key);
-			if (kv != nullptr) return kv->value;
+			BucketValue_t* kv = get_kv(key);
+			if (kv != nullptr) return kv->second;
 
 			return default_value;
 		}
@@ -172,7 +181,7 @@ namespace ayr
 		// 若key不存在, 则添加一个默认值
 		Dict& setdefault(const K& key, const V& default_value)
 		{
-			if (!contains(key)) setkv2bucket(creator_(key, default_value));
+			if (!contains(key)) setkv2bucket(key, default_value);
 
 			return *this;
 		}
@@ -185,7 +194,7 @@ namespace ayr
 
 			for (auto&& kv : other)
 				if (!contains(kv.key))
-					setkv2bucket(creator_(kv));
+					setkv2bucket(kv.key, kv.value);
 				else
 					get(kv.key) = kv.value;
 
@@ -210,14 +219,17 @@ namespace ayr
 		// 得到key的hash值在bucket中的索引
 		c_size get_hash_index(const Bucket_t& bucket, const K& key) const { return ayrhash(key) % bucket.size(); }
 
+		c_size get_hashv_index(const Bucket_t& bucket, hash_t hashv) const { return hashv % bucket.size(); }
 
 		// 根据key获得存在dict里的KeyValue对象的指针, key不存在返回nullptr
-		KV_t* get_kv(const K& key) const
+		BucketValue_t* get_kv(const K& key) const
 		{
-			c_size start_index = get_hash_index(bucket_, key);
+			hash_t hashv = ayrhash(key);
+			c_size start_index = get_hashv_index(bucket_, hashv);
+
 			while (bucket_[start_index] != nullptr)
 			{
-				if (bucket_[start_index]->key_equals(key))
+				if (bucket_[start_index]->first == hashv)
 					return bucket_[start_index];
 
 				start_index = (start_index + 1) % bucket_.size();
@@ -227,16 +239,16 @@ namespace ayr
 		}
 
 		// 向bucket中添加元素, 并对照更新skip_list
-		void setkv2bucket_impl(Bucket_t& bucket, SkipList_t& skip_list, KV_t* kv)
+		void setkv2bucket_impl(Bucket_t& bucket, SkipList_t& skip_list, BucketValue_t* bv)
 		{
-			size_t start_index = get_hash_index(bucket, kv->key);
+			size_t start_index = get_hashv_index(bucket, bv->first);
 
 			Dist_t skipcnt = 0;
 			while (bucket[start_index] != nullptr)
 			{
 				if (skipcnt > skip_list[start_index])
 				{
-					std::swap(kv, bucket[start_index]);
+					std::swap(bv, bucket[start_index]);
 					std::swap(skipcnt, skip_list[start_index]);
 				}
 
@@ -244,35 +256,45 @@ namespace ayr
 				++skipcnt;
 			}
 
-			bucket[start_index] = kv;
+			bucket[start_index] = bv;
 			skip_list[start_index] = skipcnt;
 		}
 
 		// 向字典中添加元素，不会检查key是否已经存在
-		void setkv2bucket(KV_t* kv)
+		void setkv2bucket(const Key_t& k, const Value_t& v)
 		{
+			BucketValue_t* bv = creator_(std::make_pair(ayrhash(k), v));
 			if (1.0 * size() / bucket_.size() > 0.7) expand(bucket_.size() * 2);
 
-			setkv2bucket_impl(bucket_, skip_list_, kv);
+			setkv2bucket_impl(bucket_, skip_list_, bv);
 
-			keys_.append(kv->key);
+			keys_.append(k);
 		}
+
+		void setkv2bucket(Key_t&& k, Value_t&& v)
+		{
+			BucketValue_t* bv = creator_(std::make_pair(ayrhash(std::move(k)), std::move(v)));
+			if (1.0 * size() / bucket_.size() > 0.7) expand(bucket_.size() * 2);
+
+			setkv2bucket_impl(bucket_, skip_list_, bv);
+
+			keys_.append(k);
+		}
+
 
 		void expand(size_t expand_size)
 		{
 			Bucket_t new_bucket(expand_size, nullptr);
-			skip_list_.relloc(expand_size);
-			skip_list_.fill(0);
+			SkipList_t new_skip_list(expand_size, 0);
 
-			for (KV_t* kv : bucket_)
-				if (kv != nullptr)
-					setkv2bucket_impl(new_bucket, skip_list_, kv);
+			for (auto&& bv : bucket_)
+				if (bv != nullptr)
+					setkv2bucket_impl(new_bucket, new_skip_list, bv);
 
 			bucket_ = std::move(new_bucket);
-			new_bucket.fill(nullptr);
+			skip_list_ = std::move(new_skip_list);
+			// new_bucket.fill(nullptr);
 		}
-
-		virtual self& __iter_container__() const { return const_cast<self&>(*this); }
 	private:
 		Bucket_t bucket_;
 
