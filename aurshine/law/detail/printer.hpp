@@ -14,8 +14,16 @@ namespace ayr
 	public:
 		Printer(FILE* file_ptr, CString sw = " ", CString ew = "\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
 
-		template<Printable... Args>
-		void operator()(const Args&... args) const { __print__(args...); __print__(ew_); }
+		template<Printable T0, Printable... Args>
+		void operator()(const T0& object, const Args&... args) const
+		{
+			__print__(object);
+			if constexpr (sizeof...(args) > 0)
+				((__print__(sw_), __print__(args)), ...);
+			__print__(ew_);
+		}
+
+		void operator()() const { __print__(ew_); }
 
 		// 设置输出结束符
 		void set_end(CString ew) { ew_ = std::move(ew); }
@@ -24,9 +32,6 @@ namespace ayr
 		void set_sep(CString sw) { sw_ = std::move(sw); }
 
 	protected:
-		// 单一形参
-		void __print__() const {}
-
 		void __print__(const bool& object) const { std::fprintf(output_file_, object ? "true" : "false"); }
 
 		void __print__(const int& object) const { std::fprintf(output_file_, "%d", object); }
@@ -51,9 +56,11 @@ namespace ayr
 
 		void __print__(const char* object) const { std::fprintf(output_file_, object); }
 
-		void __print_ptr__(const void* object) const { std::fprintf(output_file_, "0x%p", object); }
+		template<typename T>
+			requires std::is_pointer_v<T>
+		void __print__(const T object) const { std::fprintf(output_file_, "0x%p", object); }
 
-		void __print__(const std::nullptr_t& object) const { std::fprintf(output_file_, "nullptr"); }
+		void __print__(std::nullptr_t) const { std::fprintf(output_file_, "nullptr"); }
 
 		void __print__(const std::string& object) const { std::fprintf(output_file_, object.c_str()); }
 
@@ -61,19 +68,6 @@ namespace ayr
 		void __print__(const T& object) const { __print__(object.__str__()); }
 
 		void __print__(const CString& object) const { std::fprintf(output_file_, "%s", object.str); }
-
-		// 可变形参
-		template<Printable T, Printable ...Args>
-		void __print__(const T& object, const Args& ...args) const
-		{
-			if constexpr (std::is_pointer_v<T>)
-				__print_ptr__(object);
-			else
-				__print__(object);
-
-			__print__(sw_);
-			__print__(args...);
-		}
 	private:
 		CString ew_; // 结束符
 

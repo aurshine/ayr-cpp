@@ -1,7 +1,8 @@
 ﻿#ifndef AYR_LAW_WRAPPER_HPP
 #define AYR_LAW_WRAPPER_HPP
 
-#include <functional>
+#include <type_traits>
+#include <law/detail/object.hpp>
 
 
 namespace ayr
@@ -14,11 +15,22 @@ namespace ayr
 		virtual void stop() {}
 
 		template<typename F, typename ...Args>
-		void operator()(F&& func, Args&&... args)
+			requires issame<std::invoke_result_t<F, Args...>, void>
+		void operator()(F&& call_, Args&&... args)
 		{
 			start();
-			func(std::forward<Args>(args)...);
+			call_(std::forward<Args>(args)...);
 			stop();
+		}
+
+		template<typename F, typename ...Args>
+			requires (!issame<std::invoke_result_t<F, Args...>, void>)
+		auto operator()(F&& call_, Args&&... args)
+		{
+			start();
+			auto result = call_(std::forward<Args>(args)...);
+			stop();
+			return result;
 		}
 	};
 }
