@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include <atomic>
+#include <memory>
 
 #include <law/Printer.hpp>
 #include <law/Dynarray.hpp>
@@ -13,16 +14,35 @@ namespace ayr
 {
 	namespace fs
 	{
+		struct BufferMode
+		{
+			using BufferModeType = int;
+
+			constexpr static BufferModeType NoBuffer = _IONBF;
+
+			constexpr static BufferModeType LineBuffer = _IOLBF;
+
+			constexpr static BufferModeType FullBuffer = _IOFBF;
+		};
+
+		def fclose_(FILE* file)
+		{
+			std::fflush(file);
+			std::fclose(file);
+		}
+
 		class AyrFile : public Object<AyrFile>
 		{
 		public:
 #pragma warning(push)
 #pragma warning(disable: 4996)
 			template<ConveribleToCstr S1, ConveribleToCstr S2>
-			AyrFile(const S1& filename, const S2& mode) : file(std::fopen(filename, mode)), is_open(false)
+			AyrFile(const S1& filename, const S2& mode, c_size buffer_size = DefaultBufferSize, BufferMode::BufferModeType buffer_mode = BufferMode::LineBuffer)
+				: file_(std::fopen(filename, mode)), buffer_size_(buffer_size), buffer_(new char[buffer_size])
 			{
+				std::setvbuf(file_, buffer_.get(), buffer_mode, buffer_size);
 				const char* c_filename = static_cast<const char*>(filename);
-				if (file == nullptr)
+				if (file_ == nullptr)
 				{
 					if (!fs::isfile(filename))
 						FileNotFoundError(std::format("file not found in {}", c_filename));
@@ -32,51 +52,49 @@ namespace ayr
 			}
 #pragma warning(pop)
 
-			~AyrFile() { close(); }
-
-			void close()
-			{
-				if (is_open)
-				{
-					std::fclose(file);
-					is_open = false;
-				}
-			}
+			~AyrFile() { std::fclose(file_); }
 
 			// 如果I可以隐式转换为const char*, 则使用fputs, 否则使用for循环逐个写入
 			template<typename I>
 			void write(const I& data) const
 			{
 				if constexpr (ConveribleToCstr<I>)
-					std::fputs(static_cast<const char*>(data), file);
+				{
+					const char* c_data = static_cast<const char*>(data);
+					std::fwrite(c_data, 1, strlen(c_data), file_);
+				}
 				else
 					for (const char& d : data)
-						std::fputc(d, file);
+						std::fputc(d, file_);
 			}
 
-			void flush() const { fflush(file); }
+			void flush() const { fflush(file_); }
 
 			CString readline() const
 			{
-				DynArray<char> buffer;
-				while (true)
-				{
-					char c = std::fgetc(file);
-					if (c == EOF || c == '\n')
-						break;
-					buffer.append(c);
-				}
+				if (fgets(buffer_.get(), buffer_size_, file_))
+					RuntimeError("buffer_size is small, failed to readline");
 
-				CString ret(buffer.size());
-				for (c_size i = 0, length = buffer.size(); i < length; ++i)
-					ret[i] = buffer[i];
-				return ret;
+				return CString(buffer_.get());
 			}
 
+			Array<CString> readlines() const
+			{
 
-			std::FILE* file;
+			}
 
-			std::atomic<bool> is_open;
+			CString read() const
+			{
+
+			}
+
+			FILE* file_;
+
+			c_size buffer_size_;
+
+			std::unique_ptr<char[]> buffer_;
+
+			static constexpr c_size DefaultBufferSize = 1024;
 		};
 	}
 }

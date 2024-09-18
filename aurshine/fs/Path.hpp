@@ -1,4 +1,4 @@
-#ifndef AYR_FS_PATH_HPP
+﻿#ifndef AYR_FS_PATH_HPP
 #define AYR_FS_PATH_HPP
 
 #include <law/Printer.hpp>
@@ -14,28 +14,28 @@ namespace ayr
 {
 	namespace fs
 	{
-		der(bool) exists(const char* path)
+		def exists(const char* path)
 		{
 			DWORD attributes = GetFileAttributesA(path);
 			return (attributes != INVALID_FILE_ATTRIBUTES);
 		}
 
 
-		der(bool) isfile(const char* path)
+		def isfile(const char* path)
 		{
 			DWORD attr = GetFileAttributesA(path);
 			return (attr != INVALID_FILE_ATTRIBUTES) && ((attr & FILE_ATTRIBUTE_DIRECTORY) == 0);
 		}
 
 
-		der(bool) isdir(const char* path)
+		def isdir(const char* path)
 		{
 			DWORD attr = GetFileAttributesA(path);
 			return (attr != INVALID_FILE_ATTRIBUTES) && ((attr & FILE_ATTRIBUTE_DIRECTORY) != 0);
 		}
 
 
-		der(void) mkdir(const char* path)
+		def mkdir(const char* path)
 		{
 			BOOL state = CreateDirectoryA(path, nullptr);
 
@@ -48,7 +48,7 @@ namespace ayr
 			}
 		}
 
-		der(void) mkdir(const CString& path) { mkdir(path.str); }
+		def mkdir(const CString& path) { mkdir(path.str); }
 	}
 }
 #elif __linux__

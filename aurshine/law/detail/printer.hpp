@@ -162,7 +162,8 @@ namespace ayr
 					loc.function_name()),
 				msg
 			);
-			throw std::runtime_error(msg);
+
+			std::terminate();
 		}
 	}
 
