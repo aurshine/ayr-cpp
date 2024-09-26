@@ -67,7 +67,7 @@ namespace ayr
 		template<AyrPrintable T>
 		void __print__(const T& object) const { __print__(object.__str__()); }
 
-		void __print__(const CString& object) const { std::fprintf(output_file_, "%s", object.str); }
+		void __print__(const CString& object) const { std::fprintf(output_file_, "%s", object.data()); }
 	private:
 		CString ew_; // 结束符
 

@@ -10,6 +10,21 @@ namespace ayr
 {
 	using Byte = char;
 
+	constexpr def encode_byte_count(const Byte* data)
+	{
+		if ((data[0] & 0x80) == 0)         // 以0    开头 (0xxxxxxx),1字节编码
+			return 1;
+		else if ((data[0] & 0xE0) == 0xC0) // 以110  开头 (110xxxxx),2字节编码
+			return  2;
+		else if ((data[0] & 0xF0) == 0xE0) // 以1110 开头 (1110xxxx),3字节编码
+			return 3;
+		else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 (11110xxx),4字节编码
+			return 4;
+		else
+			ValueError("Invalid code point");
+		return 0;
+	}
+
 	class CodePoint : public Object<CodePoint>
 	{
 		using self = CodePoint;
@@ -17,20 +32,9 @@ namespace ayr
 		using super = Object<CodePoint>;
 
 	public:
-		constexpr CodePoint(const Byte* data)
+		CodePoint(const Byte* data)
 		{
-
-			if ((data[0] & 0x80) == 0)         // 以0    开头 (0xxxxxxx),1字节编码
-				code_size_ = 1;
-			else if ((data[0] & 0xE0) == 0xC0) // 以110  开头 (110xxxxx),2字节编码
-				code_size_ = 2;
-			else if ((data[0] & 0xF0) == 0xE0) // 以1110 开头 (1110xxxx),3字节编码
-				code_size_ = 3;
-			else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 (11110xxx),4字节编码
-				code_size_ = 4;
-			else
-				ValueError("Invalid code point");
-
+			code_size_ = encode_byte_count(data);
 			byte_code_ = std::make_unique<Byte[]>(code_size_);
 			std::memcpy(byte_code_.get(), data, sizeof(Byte) * code_size_);
 		}

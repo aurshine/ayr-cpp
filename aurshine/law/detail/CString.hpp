@@ -13,9 +13,11 @@ namespace ayr
 	class CString
 	{
 	public:
-		CString() : CString(0) {}
+		CString() : str(std::make_unique<char[]>(1)) {}
 
 		CString(c_size len) : str(std::make_unique<char[]>(len + 1)) {}
+
+		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
 
 		CString(const char* str_, c_size len_) : CString(len_) { std::memcpy(data(), str_, sizeof(char) * len_); }
 

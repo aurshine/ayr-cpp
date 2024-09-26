@@ -48,7 +48,7 @@ namespace ayr
 			}
 		}
 
-		def mkdir(const CString& path) { mkdir(path.str); }
+		def mkdir(const CString& path) { mkdir(path.data()); }
 	}
 }
 #elif __linux__

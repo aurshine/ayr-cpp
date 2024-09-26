@@ -9,48 +9,46 @@
 
 namespace ayr
 {
-	template<Char CharT>
-	class String : public Sequence<CharT>
+	class Atring : public Sequence<char>
 	{
-		using self = String<CharT>;
+		using self = Atring;
 
-		using super = Sequence<CharT>;
+		using super = Sequence<char>;
 
-		CharT* cstr_;
+		char* cstr_;
 
 		c_size length_;
 
-		std::shared_ptr<CharT[]> shared_head_;
+		std::shared_ptr<char[]> shared_head_;
 
-		String(CharT c, c_size len)
+		Atring(char c, c_size len)
 		{
-			shared_head_ = std::make_shared<CharT[]>(len + 1);
+			length_ = len;
+			shared_head_ = std::make_shared<char[]>(length_ + 1, c);
 			cstr_ = shared_head_.get();
-
-			std::memset(cstr_, c, len * sizeof(CharT));
-			cstr_[len] = '\0';
 			length_ = len;
 		}
 
 	public:
-		String() : String("", 0) {}
+		Atring() : Atring("", 0) {}
 
-		String(self&& other) : String(other) {}
+		Atring(self&& other) : Atring(other) {}
 
-		String(const RawString<CharT>& other) : String(other.str) {}
+		Atring(const CString& other) : Atring(other.data(), other.size()) {}
 
-		String(const self& other) : String(other.cstr_, other.length_) {}
+		Atring(const char* str) : Atring(str, std::strlen(str)) {}
 
-		String(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_) {}
-
-		String(const CharT* str, c_size len) : cstr_(nullptr), length_(len)
+		Atring(const char* str, c_size len) : cstr_(nullptr), length_(len)
 		{
-			shared_head_ = std::make_shared<CharT[]>(length_ + 1);
+			shared_head_ = std::make_shared<char[]>(length_ + 1);
 			cstr_ = shared_head_.get();
 
-			std::memcpy(cstr_, str, length_ * sizeof(CharT));
-			cstr_[length_] = '\0';
+			std::memcpy(cstr_, str, length_ * sizeof(char));
 		}
+
+		Atring(const self& other) : Atring(other.cstr_, other.length_) {}
+
+		Atring(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_) {}
 
 		self& operator= (self& other)
 		{
@@ -103,21 +101,21 @@ namespace ayr
 			return result;
 		}
 
-		const CharT& operator[] (c_size index) const { return __at__(index); }
+		const char& operator[] (c_size index) const { return __at__(index); }
 
-		CharT& operator[] (c_size index) { return __at__(index); }
+		char& operator[] (c_size index) { return __at__(index); }
 
-		CharT& __at__(c_size index) { return cstr_[neg_index(index, size())]; }
+		char& __at__(c_size index) { return cstr_[neg_index(index, size())]; }
 
-		const CharT& __at__(c_size index) const { return cstr_[neg_index(index, size())]; }
+		const char& __at__(c_size index) const { return cstr_[neg_index(index, size())]; }
 
 		c_size size() const override { return length_; }
 
-		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(cstr_), length_ * sizeof(CharT)); }
+		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(cstr_), length_ * sizeof(char)); }
 
 		CString __str__() const { return CString(cstr_, length_); }
 
-		c_size find(CharT c, c_size pos) const
+		c_size find(char c, c_size pos) const
 		{
 			for (c_size i = pos; i < length_; ++i)
 				if (cstr_[i] == c)
@@ -173,7 +171,7 @@ namespace ayr
 		self slice(c_size start, c_size end) const
 		{
 			c_size length = end - start;
-			return String(cstr_ + start, length);
+			return Atring(cstr_ + start, length);
 		}
 
 		self slice(c_size start) const { return slice(start, size()); }
@@ -375,7 +373,7 @@ namespace ayr
 
 		}
 
-		self match(CharT lmatch, CharT rmatch) const
+		self match(char lmatch, char rmatch) const
 		{
 			c_size l = find(lmatch, 0);
 			if (l == -1)
@@ -398,12 +396,11 @@ namespace ayr
 	};
 
 
-	template<Char CharT>
-	class Kmp : public Object<Kmp<CharT>>
+	class Kmp : public Object<Kmp>
 	{
 		using self = Kmp;
 
-		using Str_t = ayr::String<CharT>;
+		using Str_t = Atring;
 
 		Str_t kmp_str_;
 	public:
@@ -411,8 +408,6 @@ namespace ayr
 		Kmp(S&& str) : kmp_str_(std::forward<S>(str)) {}
 	};
 
-
-	using Atring = String<char>;
 
 	inline Atring operator ""as(const char* str, size_t len) { return Atring(str, len); }
 }
