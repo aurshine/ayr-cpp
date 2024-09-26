@@ -10,80 +10,56 @@
 
 namespace ayr
 {
-	// c 风格字符串封装
-	template<Char Ch>
-	class RawString
+	class CString
 	{
 	public:
-		RawString() : RawString(1) {}
+		CString() : CString(0) {}
 
-		RawString(const Ch* str_) : RawString(str_, std::strlen(str_ == nullptr ? "" : str_)) {}
+		CString(c_size len) : str(std::make_unique<char[]>(len + 1)) {}
 
-		RawString(const std::basic_string<Ch>& str_) : RawString(str_.c_str(), str_.size()) {}
+		CString(const char* str_, c_size len_) : CString(len_) { std::memcpy(data(), str_, sizeof(char) * len_); }
 
-		RawString(c_size len)
-		{
-			str = ayr_alloc<Ch>(len + 1);
-			std::memset(str, 0, sizeof(Ch) * (len + 1));
-		}
+		CString(const std::basic_string<char>& str_) : CString(str_.c_str(), str_.size()) {}
 
-		RawString(const Ch* str_, c_size len_) : RawString(len_)
-		{
-			for (c_size i = 0; i < len_; ++i)
-				str[i] = str_[i];
-		}
+		CString(const CString& other) : CString(other.data(), other.size()) {}
 
-		RawString(const RawString& other) : RawString(other.str) {}
+		CString(CString&& other) noexcept : str(std::move(other.str)) {}
 
-		RawString(RawString&& other) noexcept : str(other.str) { other.str = nullptr; }
-
-		~RawString() { release(); }
-
-		RawString& operator=(const RawString& other)
+		CString& operator=(const CString& other)
 		{
 			if (this == &other)
 				return *this;
 
-			c_size ostr_len = other.size();
-			if (size() < ostr_len)
-			{
-				release();
-				str = ayr_alloc<Ch>(ostr_len + 1);
-			}
-
-			std::memcpy(str, other.str, sizeof(Ch) * (ostr_len + 1));
-			return *this;
+			return *ayr_construct(this, other);
 		}
 
-		RawString& operator=(RawString&& other) noexcept
+		CString& operator=(CString&& other) noexcept
 		{
 			if (this == &other)
 				return *this;
 
-			release();
-			str = other.str;
-			other.str = nullptr;
-
-			return *this;
+			return *ayr_construct(this, std::move(other));
 		}
 
-		operator const Ch* () const { return str; }
+		operator const char* () const { return data(); }
 
-		operator Ch* () { return str; }
+		operator char* () { return data(); }
 
-		Ch& operator[] (c_size index) { return str[index]; }
+		char& operator[] (c_size index) { return str[index]; }
 
-		const Ch& operator[] (c_size index) const { return str[index]; }
+		const char& operator[] (c_size index) const { return str[index]; }
 
-		size_t size() const { return std::strlen(str); }
+		size_t size() const { return std::strlen(data()); }
 
-		const Ch* __str__() const { return str; }
+		char* data() { return str.get(); }
 
-		size_t __hash__() const { return bytes_hash(str, std::strlen(str)); }
+		const char* data() const { return str.get(); }
 
-		void release() { ayr_delloc(str); }
+		CString __str__() const { return *this; }
 
-		cmp_t __cmp__(const RawString& other) const
+		size_t __hash__() const { return bytes_hash(data(), size()); }
+
+		cmp_t __cmp__(const CString& other) const
 		{
 			for (size_t i = 0; str[i] || other.str[i]; ++i)
 				if (str[i] != other.str[i])
@@ -92,10 +68,8 @@ namespace ayr
 			return 0;
 		}
 
-		Ch* str;
+		std::unique_ptr<char[]> str;
 	};
-
-	using CString = RawString<char>;
 
 	inline CString cstr(int64_t value) { return std::to_string(value); }
 
@@ -103,8 +77,8 @@ namespace ayr
 
 	inline CString cstr(double value) { return std::to_string(value); }
 
-	inline CString cstr(bool value) { return  ifelse(value, "true", "false"); }
+	inline CString cstr(bool value) { return  ifelse(value, CString("true", 4), CString("false", 5)); }
 
-	inline CString cstr(const char* str_) { return str_; }
+	inline CString cstr(const char* str_) { return CString(str_, std::strlen(str_)); }
 }
 #endif // AYR_LAW_DETAIL_CSTRING_HPP

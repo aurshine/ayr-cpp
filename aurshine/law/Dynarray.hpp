@@ -14,7 +14,7 @@ namespace ayr
 
 	struct _BlockCache : public Object<_BlockCache>
 	{
-		constexpr static auto CACHE_INDEX_BOUND = 0xffff;
+		constexpr static auto CACHE_INDEX_BOUND = 0xFFFF;
 
 		static c_size get(c_size index)
 		{
