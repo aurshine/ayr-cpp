@@ -150,25 +150,32 @@ namespace ayr
 	}
 
 	template<Printable T>
+	inline void error_exec(const T& msg, const ::std::source_location& loc = ::std::source_location::current())
+	{
+		ayr_error(
+			std::format("file: {}  column: {} line: {} function_name: {} \n"\
+				"error: ",
+				loc.file_name(),
+				loc.column(),
+				loc.line(),
+				loc.function_name()),
+			msg
+		);
+
+		std::terminate();
+	}
+
+	template<Printable T>
 	inline void error_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		if (!condition)
 		{
-			ayr_error(
-				std::format("file: {}\nline: {}\ncolumn: {}\nfunction_name: {}\nerror: ",
-					loc.file_name(),
-					loc.line(),
-					loc.column(),
-					loc.function_name()),
-				msg
-			);
-
-			std::terminate();
+			error_exec(msg, loc);
 		}
 	}
 
 
-#define Error(errorname, msg) error_assert(false, std::format("{}: {}", errorname, msg))
+#define Error(errorname, msg) error_exec(std::format("{}: {}", errorname, msg))
 
 #define KeyError(msg) Error("KeyError", msg)
 

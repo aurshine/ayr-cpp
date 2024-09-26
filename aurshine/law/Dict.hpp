@@ -293,7 +293,6 @@ namespace ayr
 
 			bucket_ = std::move(new_bucket);
 			skip_list_ = std::move(new_skip_list);
-			// new_bucket.fill(nullptr);
 		}
 	private:
 		Bucket_t bucket_;

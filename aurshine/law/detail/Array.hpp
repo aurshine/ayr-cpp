@@ -97,20 +97,20 @@ namespace ayr
 
 		bool has_released = false;
 	public:
-		ArrayImpl(c_size size) : arr_(ayr_alloc(T, size)), size_(size) {}
+		ArrayImpl(c_size size) : arr_(ayr_alloc<T>(size)), size_(size) {}
 
 		template<typename ...Args>
 		ArrayImpl(c_size size, const Args&... args) : ArrayImpl(size)
 		{
 			for (c_size i = 0; i < size; ++i)
-				ayr_construct(T, arr_ + i, args...);
+				ayr_construct(arr_ + i, args...);
 		}
 
 		ArrayImpl(std::initializer_list<T>&& init_list) : ArrayImpl(init_list.size())
 		{
 			c_size i = 0;
 			for (auto&& item : init_list)
-				ayr_construct(T, arr_ + i++, std::move(item));
+				ayr_construct(arr_ + i++, std::move(item));
 		}
 
 		~ArrayImpl()

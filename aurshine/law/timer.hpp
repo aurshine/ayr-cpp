@@ -61,27 +61,33 @@ namespace ayr
 
 		int week() const { return week_; }
 
-		CString week_str() const { return WEEK_STR[week_]; }
+		// 返回当前是周几
+		CString week_str() const { return WEEK_STR[week()]; }
 
 		CString __str__() const override { return std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_); }
 
-		cmp_t __cmp__(const Date& date) const
+		cmp_t __cmp__(const Date& date) const override
 		{
 			Array<int> a = Array<int>{ year_, month_, day_ }, b = Array<int>{ date.year(), date.month(), date.day() };
 			return a.__cmp__(b);
 		}
 
+		// 计算星期
 		static int calc_week(int year, int month, int day)
 		{
 			return (day + 2 * month + 3 * (month + 1) / 5 + year + year / 4 - year / 100 + year / 400 + 1) % 7;
 		}
 
+		// 判断闰年
 		static bool check_run_year(int year) { return year % 4 == 0 && (year % 100 != 0 || year % 400 == 0); }
 
+		// 1970-01-01是星期四，星期天为0
 		constexpr static const int WEEK_DAY_FROM_1970_01_01 = 4;
 
+		// 每月天数
 		constexpr static int MONTHS[13]{ 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 
+		// 星期字符串
 		constexpr static const char* WEEK_STR[7]{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 
 	private:
@@ -94,6 +100,7 @@ namespace ayr
 	public:
 		Timer() : dvd(100) {};
 
+		// 构造函数，传入单位，单位为s、ms、us
 		Timer(const CString& sec_option) : dvd(0)
 		{
 			if (sec_option == "s")
@@ -103,7 +110,7 @@ namespace ayr
 			else if (sec_option == "us")
 				dvd = 1;
 			else
-				error_assert(false, std::format("ValueError: invalid option for Timer(sec_option)"));
+				ValueError(std::format("invalid option for Timer sec_option {}"), sec_option.__str__());
 		}
 
 

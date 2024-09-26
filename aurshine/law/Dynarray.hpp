@@ -101,7 +101,7 @@ namespace ayr
 			++size_;
 			T& v = __at__(size_ - 1);
 
-			ayr_construct(T, &v, item);
+			ayr_construct(&v, item);
 			return v;
 		}
 
@@ -112,7 +112,7 @@ namespace ayr
 
 			++size_;
 			T& v = __at__(size_ - 1);
-			ayr_construct(T, &v, std::move(item));
+			ayr_construct(&v, std::move(item));
 			return v;
 		}
 
@@ -136,7 +136,7 @@ namespace ayr
 		{
 			Array<T> arr(size_);
 			for (c_size i = 0, size = size(); i < size; ++i)
-				ayr_construct(T, &arr.__at__(i), __at__(i));
+				ayr_construct(&arr.__at__(i), __at__(i));
 			return arr;
 		}
 
@@ -193,7 +193,7 @@ namespace ayr
 
 			auto&& block = dynarray_.__at__(occupies_size_ - 1);
 
-			ayr_construct(Array<T>, &block, Array<T>(exp2(occupies_size_ - 1)));
+			ayr_construct(&block, Array<T>(exp2(occupies_size_ - 1)));
 		}
 	private:
 		Array<Array<T>> dynarray_;

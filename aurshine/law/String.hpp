@@ -24,8 +24,8 @@ namespace ayr
 
 		String(CharT c, c_size len)
 		{
-			cstr_ = ayr_alloc(CharT, len + 1);
-			shared_head_.reset(cstr_);
+			shared_head_ = std::make_shared<CharT[]>(len + 1);
+			cstr_ = shared_head_.get();
 
 			std::memset(cstr_, c, len * sizeof(CharT));
 			cstr_[len] = '\0';
@@ -43,12 +43,10 @@ namespace ayr
 
 		String(self& other) : cstr_(other.cstr_), length_(other.length_), shared_head_(other.shared_head_) {}
 
-		String(const CharT* str, c_size len = -1) : cstr_(nullptr), length_(0)
+		String(const CharT* str, c_size len) : cstr_(nullptr), length_(len)
 		{
-			length_ = ifelse(len >= 0, len, std::strlen(str));
-
-			cstr_ = ayr_alloc(CharT, length_ + 1);
-			shared_head_.reset(cstr_);
+			shared_head_ = std::make_shared<CharT[]>(length_ + 1);
+			cstr_ = shared_head_.get();
 
 			std::memcpy(cstr_, str, length_ * sizeof(CharT));
 			cstr_[length_] = '\0';
@@ -59,7 +57,7 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			ayr_construct(self, this, other);
+			ayr_construct(this, other);
 			return *this;
 		}
 
@@ -70,7 +68,7 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			ayr_construct(self, this, other);
+			ayr_construct(this, other);
 			return *this;
 		}
 

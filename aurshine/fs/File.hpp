@@ -25,12 +25,6 @@ namespace ayr
 			constexpr static BufferModeType FullBuffer = _IOFBF;
 		};
 
-		def fclose_(FILE* file)
-		{
-			std::fflush(file);
-			std::fclose(file);
-		}
-
 		class AyrFile : public Object<AyrFile>
 		{
 		public:
@@ -38,13 +32,13 @@ namespace ayr
 #pragma warning(disable: 4996)
 			template<ConveribleToCstr S1, ConveribleToCstr S2>
 			AyrFile(const S1& filename, const S2& mode, c_size buffer_size = DefaultBufferSize, BufferMode::BufferModeType buffer_mode = BufferMode::LineBuffer)
-				: file_(std::fopen(filename, mode)), buffer_size_(buffer_size), buffer_(new char[buffer_size])
+				: file_(std::fopen(filename, mode)), buffer_size_(buffer_size), buffer_(std::make_unique<char[]>(buffer_size))
 			{
 				std::setvbuf(file_, buffer_.get(), buffer_mode, buffer_size);
 				const char* c_filename = static_cast<const char*>(filename);
 				if (file_ == nullptr)
 				{
-					if (!fs::isfile(filename))
+					if (!fs::isfile(c_filename))
 						FileNotFoundError(std::format("file not found in {}", c_filename));
 					else
 						RuntimeError(std::format("failed to open file {}", c_filename));
@@ -54,7 +48,7 @@ namespace ayr
 
 			~AyrFile() { std::fclose(file_); }
 
-			// 如果I可以隐式转换为const char*, 则使用fputs, 否则使用for循环逐个写入
+			// 如果I可以隐式转换为const char*, 则使用fwrite, 否则使用for循环逐个写入
 			template<typename I>
 			void write(const I& data) const
 			{

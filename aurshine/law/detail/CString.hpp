@@ -23,7 +23,7 @@ namespace ayr
 
 		RawString(c_size len)
 		{
-			str = ayr_alloc(Ch, len + 1);
+			str = ayr_alloc<Ch>(len + 1);
 			std::memset(str, 0, sizeof(Ch) * (len + 1));
 		}
 
@@ -48,7 +48,7 @@ namespace ayr
 			if (size() < ostr_len)
 			{
 				release();
-				str = ayr_alloc(Ch, ostr_len + 1);
+				str = ayr_alloc<Ch>(ostr_len + 1);
 			}
 
 			std::memcpy(str, other.str, sizeof(Ch) * (ostr_len + 1));
