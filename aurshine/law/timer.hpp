@@ -103,14 +103,14 @@ namespace ayr
 		// 构造函数，传入单位，单位为s、ms、us
 		Timer(const CString& sec_option) : dvd(0)
 		{
-			if (sec_option == "s")
+			if (sec_option == cstr("s"))
 				dvd = 1000000;
-			else if (sec_option == "ms")
+			else if (sec_option == cstr("ms"))
 				dvd = 1000;
-			else if (sec_option == "us")
+			else if (sec_option == cstr("us"))
 				dvd = 1;
 			else
-				ValueError(std::format("invalid option for Timer sec_option {}"), sec_option.__str__());
+				ValueError(std::format("invalid option for Timer sec_option {}", sec_option.data()));
 		}
 
 

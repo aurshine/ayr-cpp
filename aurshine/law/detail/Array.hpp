@@ -9,9 +9,9 @@
 namespace ayr
 {
 	template<typename T>
-	class ArrayInterface : public Sequence<T>
+	class ArrayImpl : public Sequence<T>
 	{
-		using self = ArrayInterface<T>;
+		using self = ArrayImpl<T>;
 
 		using super = Sequence<T>;
 	public:
@@ -54,19 +54,19 @@ namespace ayr
 	* 所有操作均可编译期完成
 	*/
 	template<typename T, size_t N>
-	class ArrayImpl : public ArrayInterface<T>
+	class Array_ : public ArrayImpl<T>
 	{
-		using self = ArrayImpl<T, N>;
+		using self = Array_<T, N>;
 
-		using super = ArrayInterface<T>;
+		using super = ArrayImpl<T>;
 
 		T arr_[N];
 	public:
-		ArrayImpl() = default;
+		Array_() = default;
 
-		ArrayImpl(const T& fill_val) { super::fill(fill_val, 0); }
+		Array_(const T& fill_val) { super::fill(fill_val, 0); }
 
-		ArrayImpl(std::initializer_list<T>&& init_list) : arr_(init_list) {}
+		Array_(std::initializer_list<T>&& init_list) : arr_(init_list) {}
 
 		constexpr T* data() override { return arr_; }
 
@@ -85,11 +85,11 @@ namespace ayr
 	* release()只能有效调用一次，用于调用一个区间的析构函数，并释放内存
 	*/
 	template<typename T>
-	class ArrayImpl<T, 0> : public ArrayInterface<T>
+	class Array_<T, 0> : public ArrayImpl<T>
 	{
-		using self = ArrayImpl<T, 0>;
+		using self = Array_<T, 0>;
 
-		using super = ArrayInterface<T>;
+		using super = ArrayImpl<T>;
 
 		T* arr_ = nullptr;
 
@@ -97,23 +97,23 @@ namespace ayr
 
 		bool has_released = false;
 	public:
-		ArrayImpl(c_size size) : arr_(ayr_alloc<T>(size)), size_(size) {}
+		Array_(c_size size) : arr_(ayr_alloc<T>(size)), size_(size) {}
 
 		template<typename ...Args>
-		ArrayImpl(c_size size, const Args&... args) : ArrayImpl(size)
+		Array_(c_size size, const Args&... args) : Array_(size)
 		{
 			for (c_size i = 0; i < size; ++i)
 				ayr_construct(arr_ + i, args...);
 		}
 
-		ArrayImpl(std::initializer_list<T>&& init_list) : ArrayImpl(init_list.size())
+		Array_(std::initializer_list<T>&& init_list) : Array_(init_list.size())
 		{
 			c_size i = 0;
 			for (auto&& item : init_list)
 				ayr_construct(arr_ + i++, std::move(item));
 		}
 
-		~ArrayImpl()
+		~Array_()
 		{
 			release();
 			ayr_delloc(arr_);
@@ -136,6 +136,6 @@ namespace ayr
 
 
 	template<typename T, size_t N = 0>
-	using Array = ArrayImpl<T, N>;
+	using Array = Array_<T, N>;
 }
 #endif

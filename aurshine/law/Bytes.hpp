@@ -8,28 +8,54 @@
 
 namespace ayr
 {
-	using Byte = uint8_t;
+	using Byte = char;
+	static_assert(sizeof(Byte) == 1, "Byte must be 1 byte");
 
-	struct Encodings
+
+	class Encodings : public Object<Encodings>
 	{
-		using EncodingType = uint16_t;
+		using self = Encodings;
 
-		constexpr static EncodingType UTF8 = 0x0001;
+		using super = Object<self>;
 
-		constexpr static EncodingType UTF16 = 0x0002;
+	public:
+		virtual CString __str__() const { return "Encoding"; }
 
-		constexpr static EncodingType UTF32 = 0x0004;
+		// 返回当前编码方式，开头字符的字节数
+		virtual int byte_count(const Byte* data) const = 0;
 
-		constexpr static EncodingType ASCII = 0x0008;
+		// 返回当前编码方式的克隆
+		virtual Encodings* clone() const = 0;
 
-		constexpr static EncodingType GB2312 = 0x0010;
+		virtual ~Encodings() = default;
+	};
 
-		static constexpr int byte_count(const Byte* data, EncodingType encoding)
-		{
 
-		}
+	class ASCII : public Encodings
+	{
+		using self = ASCII;
 
-		static constexpr int _utf8_byte_count(const Byte* data)
+		using super = Encodings;
+
+	public:
+		virtual CString __str__() const { return "ASCII"; }
+
+		virtual int byte_count(const Byte* data) const { return 1; }
+
+		virtual ASCII* clone() const override { return new ASCII(); }
+	};
+
+
+	class UTF8 : public Encodings
+	{
+		using self = UTF8;
+
+		using super = Encodings;
+
+	public:
+		virtual CString __str__() const override { return "UTF-8"; }
+
+		virtual int byte_count(const Byte* data) const override
 		{
 			if ((data[0] & 0x80) == 0)         // 以0    开头 (0xxxxxxx),1字节编码
 				return 1;
@@ -40,34 +66,89 @@ namespace ayr
 			else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 (11110xxx),4字节编码
 				return 4;
 			else
-				ValueError("Invalid code point");
+				ValueError("Invalid CodePoint");
 			return 0;
 		}
 
+		virtual UTF8* clone() const override { return new UTF8(); }
 	};
 
+
+	class UTF16 : public Encodings
+	{
+		using self = UTF16;
+
+		using super = Encodings;
+
+	public:
+		virtual CString __str__() const { return "UTF-16"; }
+
+		virtual int byte_count(const Byte* data) const
+		{
+			if ((data[0] & 0xFC) == 0xD8) // 以110110开头 (110110xx 110111xx),4字节编码
+				return 4;
+			else
+				return 2;
+		}
+
+		virtual UTF16* clone() const override { return new UTF16(); }
+	};
+
+
+	class UTF32 : public Encodings
+	{
+		using self = UTF32;
+
+		using super = Encodings;
+
+	public:
+		virtual CString __str__() const { return "UTF-32"; }
+
+		virtual int byte_count(const Byte* data) const { return 4; }
+
+		virtual UTF32* clone() const override { return new UTF32(); }
+	};
+
+
+
+	class GB2312 : public Encodings
+	{
+		using self = GB2312;
+
+		using super = Encodings;
+
+	public:
+		virtual CString __str__() const { return "GB2312"; }
+
+		virtual int byte_count(const Byte* data) const { return 0; }
+
+		virtual GB2312* clone() const override { return new GB2312(); }
+	};
+
+
+	// 码点
 	class CodePoint : public Object<CodePoint>
 	{
 		using self = CodePoint;
 
-		using super = Object<CodePoint>;
+		using super = Object<self>;
 
 	public:
-		CodePoint(const Byte* data, Encodings::EncodingType encoding) : encoding_(encoding)
+		CodePoint(const Byte* bytes, const Encodings* encoding)
 		{
-			int code_size = Encodings::byte_count(data, encoding_);
-			byte_code_ = std::make_unique<Byte[]>(code_size);
-			std::memcpy(byte_code_.get(), data, sizeof(Byte) * code_size);
+			code_size_ = encoding->byte_count(bytes);
+			byte_code_ = std::make_unique<Byte[]>(code_size_);
+			std::memcpy(byte_code_.get(), bytes, code_size_);
 		}
 
-		CodePoint(const self& other) : encoding_(other.encoding_)
+		CodePoint(const self& other)
 		{
-			int code_size = other.size();
-			byte_code_ = std::make_unique<Byte[]>(code_size);
-			std::memcpy(byte_code_.get(), other.data(), sizeof(Byte) * code_size);
+			code_size_ = other.size();
+			byte_code_ = std::make_unique<Byte[]>(code_size_);
+			std::memcpy(byte_code_.get(), other.bytes(), code_size_);
 		}
 
-		CodePoint(self&& other) noexcept : encoding_(other.encoding()), byte_code_(std::move(other.byte_code_)) {}
+		CodePoint(self&& other) noexcept : byte_code_(std::move(other.byte_code_)), code_size_(other.code_size_) {}
 
 		~CodePoint() = default;
 
@@ -87,15 +168,15 @@ namespace ayr
 			return *ayr_construct(this, std::move(other));
 		}
 
-		const Byte* data() const noexcept { return byte_code_.get(); }
+		// 返回字节码
+		const Byte* bytes() const noexcept { return byte_code_.get(); }
 
-		const Encodings::EncodingType& encoding() const noexcept { return encoding_; }
+		// 返回字节码长度
+		c_size size() const noexcept { return code_size_; }
 
-		c_size size() const noexcept { return Encodings::byte_count(data(), encoding()); }
+		CString __str__() const override { return CString(reinterpret_cast<const char*>(bytes()), size()); }
 
-		CString __str__() const override { return CString(reinterpret_cast<const char*>(data()), size()); }
-
-		hash_t __hash__() const override { return bytes_hash(reinterpret_cast<const char*>(data()), size()); }
+		hash_t __hash__() const override { return bytes_hash(reinterpret_cast<const char*>(bytes()), size()); }
 
 		cmp_t __cmp__(const self& other)
 		{
@@ -103,13 +184,13 @@ namespace ayr
 			if (m_size != o_size)
 				return m_size - o_size;
 
-			return std::memcmp(data(), other.data(), m_size);
+			return std::memcmp(bytes(), other.bytes(), m_size);
 		}
 
 	private:
 		std::unique_ptr<Byte[]> byte_code_;
 
-		Encodings::EncodingType encoding_;
+		int8_t code_size_;
 	};
 }
 

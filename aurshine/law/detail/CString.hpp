@@ -4,13 +4,14 @@
 #include <cstring>
 #include <string>
 
+#include <law/detail/object.hpp>
 #include <law/detail/hash.hpp>
 #include <law/detail/ayr_memory.hpp>
 
 
 namespace ayr
 {
-	class CString
+	class CString : public Object<CString>
 	{
 	public:
 		CString() : str(std::make_unique<char[]>(1)) {}
@@ -19,7 +20,7 @@ namespace ayr
 
 		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
 
-		CString(const char* str_, c_size len_) : CString(len_) { std::memcpy(data(), str_, sizeof(char) * len_); }
+		CString(const char* str_, c_size len_) : CString(len_) { std::memcpy(data(), str_, len_); }
 
 		CString(const std::basic_string<char>& str_) : CString(str_.c_str(), str_.size()) {}
 
@@ -70,6 +71,7 @@ namespace ayr
 			return 0;
 		}
 
+	private:
 		std::unique_ptr<char[]> str;
 	};
 

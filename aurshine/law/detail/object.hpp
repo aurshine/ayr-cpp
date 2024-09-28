@@ -5,12 +5,13 @@
 #include <sstream>
 #include <typeinfo>
 
-#include <law/detail/CString.hpp>
 #include <law/detail/ayr_concepts.hpp>
 
 
 namespace ayr
 {
+	class CString;
+
 	template<typename Derived>
 	class Object
 	{

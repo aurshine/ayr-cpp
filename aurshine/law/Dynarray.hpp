@@ -8,28 +8,6 @@
 
 namespace ayr
 {
-	// 动态数组块的数量
-	constexpr static size_t DYNARRAY_BLOCK_SIZE = sizeof(size_t) * 8;
-
-
-	struct _BlockCache : public Object<_BlockCache>
-	{
-		constexpr static auto CACHE_INDEX_BOUND = 0xFFFF;
-
-		static c_size get(c_size index)
-		{
-			static Array<c_size> INDEX_CACHE_IN_BLOCK = make_array<c_size>(CACHE_INDEX_BOUND + 1, [](c_size& x) {
-				return highbit_index(x + 1);
-				});
-
-			if (index ^ CACHE_INDEX_BOUND)
-				return highbit_index(index + 1);
-
-			return INDEX_CACHE_IN_BLOCK[index];
-		}
-	};
-
-
 	// 动态数组
 	template<typename T>
 	class DynArray : public Sequence<T>
@@ -40,6 +18,9 @@ namespace ayr
 
 	public:
 		using Value_t = T;
+
+		// 动态数组块的数量
+		constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
 
 		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE), size_(0), occupies_size_(0) {}
 
@@ -96,7 +77,7 @@ namespace ayr
 		T& append(const T& item)
 		{
 			if (occupied_block_has_full())
-				__wakeup__();
+				wakeup();
 
 			++size_;
 			T& v = __at__(size_ - 1);
@@ -108,7 +89,7 @@ namespace ayr
 		T& append(T&& item)
 		{
 			if (occupied_block_has_full())
-				__wakeup__();
+				wakeup();
 
 			++size_;
 			T& v = __at__(size_ - 1);
@@ -119,7 +100,7 @@ namespace ayr
 		// 移除指定位置的元素
 		void pop(c_size index = -1)
 		{
-			index = (index + size_) % size_;
+			index = neg_index(index, size_);
 			T& pop_item = __at__(index);
 			ayr_destroy(&pop_item);
 
@@ -135,8 +116,8 @@ namespace ayr
 		Array<T> to_array() const
 		{
 			Array<T> arr(size_);
-			for (c_size i = 0, size = size(); i < size; ++i)
-				ayr_construct(&arr.__at__(i), __at__(i));
+			for (c_size i = 0, _size = size(); i < _size; ++i)
+				ayr_construct(&arr[i], __at__(i));
 			return arr;
 		}
 
@@ -169,31 +150,47 @@ namespace ayr
 		// 对index范围不做检查
 		T& __at__(c_size index)
 		{
-			c_size l = _BlockCache::get(index);
+			c_size l = _get_block_index(index);
 			++index;
-			return dynarray_.__at__(l).__at__(index ^ exp2(l));
+			return dynarray_[l][index ^ exp2(l)];
 		}
 
 		// 对index范围不做检查
 		const T& __at__(c_size index) const
 		{
-			c_size l = _BlockCache::get(index);
+			c_size l = _get_block_index(index);
 			++index;
 			return dynarray_.__at__(l).__at__(index ^ exp2(l));
 		}
 
 		// 存在的块是否都已经满了
-		bool occupied_block_has_full() const { return all_one(size_); }
+		bool occupied_block_has_full() const { return all_one(size_) || size_ == 0; }
 
 
 		// 唤醒一个新的块
-		void __wakeup__()
+		void wakeup()
 		{
 			occupies_size_++;
 
 			auto&& block = dynarray_.__at__(occupies_size_ - 1);
 
-			ayr_construct(&block, Array<T>(exp2(occupies_size_ - 1)));
+			ayr_construct(&block, exp2(occupies_size_ - 1));
+		}
+
+	private:
+		// 得到index表示的块的索引
+		static c_size _get_block_index(c_size index)
+		{
+			constexpr static int MAX_CACHE_SIZE = 0xFFFF;
+
+			static Array<c_size> INDEX_CACHE_IN_BLOCK = make_array<c_size>(MAX_CACHE_SIZE, [](c_size& x) {
+				return highbit_index(x + 1);
+				});
+
+			if (index < MAX_CACHE_SIZE)
+				return INDEX_CACHE_IN_BLOCK[index];
+
+			return highbit_index(index + 1);
 		}
 	private:
 		Array<Array<T>> dynarray_;

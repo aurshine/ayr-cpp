@@ -38,12 +38,10 @@ namespace ayr
 
 		Atring(const char* str) : Atring(str, std::strlen(str)) {}
 
-		Atring(const char* str, c_size len) : cstr_(nullptr), length_(len)
+		Atring(const char* str, c_size len) : shared_head_(std::make_shared<char[]>(len + 1)), length_(len)
 		{
-			shared_head_ = std::make_shared<char[]>(length_ + 1);
 			cstr_ = shared_head_.get();
-
-			std::memcpy(cstr_, str, length_ * sizeof(char));
+			std::memcpy(cstr_, str, length_);
 		}
 
 		Atring(const self& other) : Atring(other.cstr_, other.length_) {}
