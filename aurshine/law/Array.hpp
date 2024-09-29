@@ -1,6 +1,7 @@
 ﻿#ifndef AYR_LAW_ARRAY_HPP
 #define AYR_LAW_ARRAY_HPP
 
+
 #include <law/detail/Array.hpp>
 #include <law/detail/ayr_concepts.hpp>
 
@@ -61,6 +62,15 @@ namespace ayr
 			arr[i] = func(i);
 
 		return arr;
+	}
+
+	template<Iteratable T, typename Init>
+	def sum(T&& obj, Init init = Init()) -> Init
+	{
+		for (auto&& elem : obj)
+			init += elem;
+
+		return init;
 	}
 }
 

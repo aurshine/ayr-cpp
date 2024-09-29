@@ -70,6 +70,12 @@ namespace ayr
 			return buffer_[last_++];
 		}
 
+		void pop_back()
+		{
+			ayr_destroy(buffer_ + last_);
+			--last_;
+		}
+
 		// 重新分配内存
 		void resize(c_size size)
 		{

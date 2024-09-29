@@ -22,7 +22,7 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		DynArray() : dynarray_(DYNARRAY_BLOCK_SIZE, 0), size_(0), occupies_size_(0) {}
+		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), occupies_size_(0) {}
 
 		DynArray(const self& other) : DynArray()
 		{
@@ -30,8 +30,7 @@ namespace ayr
 				append(item);
 		}
 
-
-		DynArray(self&& other) : dynarray_(std::move(other.dynarray_)), size_(other.size_), occupies_size_(other.occupies_size_) {}
+		DynArray(self&& other) : blocks_(std::move(other.blocks_)), occupies_size_(other.occupies_size_) {}
 
 		~DynArray() = default;
 
@@ -40,8 +39,7 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			dynarray_ = other.dynarray_;
-			size_ = other.size_;
+			blocks_ = other.blocks_;
 			occupies_size_ = other.occupies_size_;
 			return *this;
 		}
@@ -51,14 +49,19 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			dynarray_ = std::move(other.dynarray_);
-			size_ = other.size_;
+			blocks_ = std::move(other.blocks_);
 			occupies_size_ = other.occupies_size_;
 			return *this;
 		}
 
 		// 容器存储的数据长度
-		c_size size() const { return size_; }
+		c_size size() const
+		{
+			c_size size = 0;
+			for (c_size i = 0; i < occupies_size_; ++i)
+				size += blocks_.at(i).size();
+			return size;
+		}
 
 		// 容器已经占用的块
 		c_size occupy_size() const { return occupies_size_; }
@@ -69,8 +72,7 @@ namespace ayr
 			if (occupied_block_has_full())
 				wakeup();
 
-			++size_;
-			return dynarray_[occupies_size_ - 1].append(item);
+			return blocks_.at(occupies_size_ - 1).append(item);
 		}
 
 		T& append(T&& item)
@@ -78,29 +80,41 @@ namespace ayr
 			if (occupied_block_has_full())
 				wakeup();
 
-			++size_;
-			return dynarray_[occupies_size_ - 1].append(item);
+			return blocks_.at(occupies_size_ - 1).append(item);
 		}
+
 
 		// 移除指定位置的元素
 		void pop(c_size index = -1)
 		{
+			c_size size_ = size();
 			index = neg_index(index, size_);
 
-			for (c_size i = index; i < size_ - 1; ++i)
-				__at__(i) = std::move(__at__(i + 1));
+			for (c_size i = index + 1; i < size_; ++i)
+				at(i - 1) = std::move(at(i));
 
-			--size_;
-			if (occupied_block_has_full() || size_ == 0)
-				--occupies_size_;
+			blocks_.at(occupies_size_ - 1).pop_back();
+			if (occupied_block_has_full())
+				pop_back_block();
 		}
 
 		// 转换为Array
 		Array<T> to_array() const
 		{
+			c_size size_ = size();
 			Array<T> arr(size_);
 			for (c_size i = 0; i < size_; ++i)
-				ayr_construct(&arr[i], __at__(i));
+				ayr_construct(&arr.at(i), at(i));
+			return arr;
+		}
+
+		// 移动数组
+		Array<T>& move_array()
+		{
+			c_size size_ = size();
+			Array<T> arr(size_);
+			for (c_size i = 0; i < size_; ++i)
+				ayr_construct(&arr.at(i), std::move(at(i)));
 			return arr;
 		}
 
@@ -109,35 +123,47 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "[";
-			for (c_size i = 0; i < size_; ++i)
+			for (c_size i = 0, size_ = size(); i < size_; ++i)
 			{
 				if (i) stream << ", ";
-				stream << __at__(i);
+				stream << at(i);
 			}
 			stream << "]";
 
 			return CString(stream.str());
 		}
 
-	private:
 		// 对index范围不做检查
-		T& __at__(c_size index)
+		T& at(c_size index)
 		{
-			c_size l = _get_block_index(index);
+			c_size block_index = _get_block_index(index);
 			++index;
-			return dynarray_[l][index ^ exp2(l)];
+			return blocks_.at(block_index).at(index ^ exp2(block_index));
 		}
 
 		// 对index范围不做检查
-		const T& __at__(c_size index) const
+		const T& at(c_size index) const
 		{
-			c_size l = _get_block_index(index);
+			c_size block_index = _get_block_index(index);
 			++index;
-			return dynarray_[l][index ^ exp2(l)];
+			return blocks_.at(block_index).at(index ^ exp2(block_index));
 		}
+
+	private:
+		// 移除最后一个块
+		void pop_back_block()
+		{
+			blocks_.at(occupies_size_ - 1).resize(0);
+			--occupies_size_;
+		}
+
 
 		// 存在的块是否都已经满了
-		bool occupied_block_has_full() const { return all_one(size_) || size_ == 0; }
+		bool occupied_block_has_full() const
+		{
+			c_size size_ = size();
+			return all_one(size_) || size_ == 0;
+		}
 
 
 		// 唤醒一个新的块
@@ -145,18 +171,18 @@ namespace ayr
 		{
 			occupies_size_++;
 
-			auto&& block = dynarray_.__at__(occupies_size_ - 1);
+			Buffer<T>& block = blocks_.at(occupies_size_ - 1);
 
-			ayr_construct(&block, exp2(occupies_size_ - 1));
+			block.resize(exp2(occupies_size_ - 1));
 		}
 
 	private:
 		// 得到index表示的块的索引
 		static c_size _get_block_index(c_size index) { return highbit_index(index + 1); }
 	private:
-		Array<Buffer<T>> dynarray_;
+		Array<Buffer<T>> blocks_;
 
-		c_size size_, occupies_size_;
+		c_size occupies_size_;
 	};
 }
 

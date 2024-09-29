@@ -7,10 +7,7 @@ namespace ayr
 
 
 	template<typename B>
-	constexpr def lowbit(const B& x)
-	{
-		return x & -x;
-	}
+	constexpr def lowbit(const B& x) { return x & -x; }
 
 
 	template<typename B>

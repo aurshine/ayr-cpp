@@ -28,9 +28,9 @@ namespace ayr
 				arr[i] = fill_val;
 		}
 
-		T& __at__(c_size index) override { return data()[index]; }
+		T& at(c_size index) override { return data()[index]; }
 
-		const T& __at__(c_size index) const override { return data()[index]; }
+		const T& at(c_size index) const override { return data()[index]; }
 
 		virtual CString __str__() const override
 		{
@@ -39,7 +39,7 @@ namespace ayr
 			for (c_size i = 0; i < size(); ++i)
 			{
 				if (i != 0) stream << ", ";
-				stream << __at__(i);
+				stream << at(i);
 			}
 			stream << "]";
 			return stream.str();
@@ -93,7 +93,7 @@ namespace ayr
 
 
 	public:
-		Array_(c_size size) : size_(size), arr_(std::make_unique<T[]>(size)) {}
+		Array_(c_size size) : size_(size), arr_(ayr_alloc<T>(size)) {}
 
 		template<typename ...Args>
 		Array_(c_size size, const Args&... args) : Array_(size)

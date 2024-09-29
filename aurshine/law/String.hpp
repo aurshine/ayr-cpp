@@ -73,7 +73,7 @@ namespace ayr
 			self result(size() + other.size(), '\0');
 			size_t self_size = size(), other_size = other.size();
 			for (size_t i = 0; i < self_size; ++i)
-				result[i] = __at__(i);
+				result[i] = at(i);
 
 			for (size_t i = 0; i < other_size; ++i)
 				result[self_size + i] = other[i];
@@ -94,18 +94,18 @@ namespace ayr
 			size_t pos = 0, self_size = size();
 			while (n--)
 				for (size_t i = 0; i < self_size; ++i)
-					result.cstr_[pos++] = __at__(i);
+					result.cstr_[pos++] = at(i);
 
 			return result;
 		}
 
-		const char& operator[] (c_size index) const { return __at__(index); }
+		const char& operator[] (c_size index) const { return at(index); }
 
-		char& operator[] (c_size index) { return __at__(index); }
+		char& operator[] (c_size index) { return at(index); }
 
-		char& __at__(c_size index) { return cstr_[neg_index(index, size())]; }
+		char& at(c_size index) { return cstr_[neg_index(index, size())]; }
 
-		const char& __at__(c_size index) const { return cstr_[neg_index(index, size())]; }
+		const char& at(c_size index) const { return cstr_[neg_index(index, size())]; }
 
 		c_size size() const override { return length_; }
 
@@ -129,7 +129,7 @@ namespace ayr
 			{
 				bool flag = true;
 				for (c_size j = 0; flag && j < pattern_size; ++j)
-					flag &= (__at__(i + j) == pattern.__at__(j));
+					flag &= (at(i + j) == pattern.at(j));
 
 				if (flag) return i;
 			}
@@ -180,7 +180,7 @@ namespace ayr
 				return false;
 
 			for (c_size i = 0; i < prefix.size(); ++i)
-				if (prefix.__at__(i) != __at__(i))
+				if (prefix.at(i) != at(i))
 					return false;
 
 			return true;
@@ -193,7 +193,7 @@ namespace ayr
 
 			c_size suffix_size = suffix.size();
 			for (c_size i = 0; i < suffix_size; ++i)
-				if (suffix.__at__(i) != __at__(size() - suffix_size + i))
+				if (suffix.at(i) != at(size() - suffix_size + i))
 					return false;
 
 			return true;
@@ -203,7 +203,7 @@ namespace ayr
 		{
 			self result = *this;
 			for (c_size i = 0; i < size(); ++i)
-				result.__at__(i) = std::toupper(result.__at__(i));
+				result.at(i) = std::toupper(result.at(i));
 			return result;
 		}
 
@@ -211,15 +211,15 @@ namespace ayr
 		{
 			self result = *this;
 			for (c_size i = 0; i < size(); ++i)
-				result.__at__(i) = std::tolower(result.__at__(i));
+				result.at(i) = std::tolower(result.at(i));
 			return result;
 		}
 
 		self& strip_()
 		{
 			c_size l = 0, r = size();
-			while (l < r && std::isspace(__at__(l))) ++l;
-			while (l < r && std::isspace(__at__(r - 1))) --r;
+			while (l < r && std::isspace(at(l))) ++l;
+			while (l < r && std::isspace(at(r - 1))) --r;
 			return slice_(l, r);
 		}
 
@@ -256,7 +256,7 @@ namespace ayr
 		self& lstrip_()
 		{
 			c_size l = 0;
-			while (l < size() && std::isspace(__at__(l))) ++l;
+			while (l < size() && std::isspace(at(l))) ++l;
 			return slice_(l);
 		}
 
@@ -286,7 +286,7 @@ namespace ayr
 		self& rstrip_()
 		{
 			c_size r = size();
-			while (r > 0 && std::isspace(__at__(r - 1))) --r;
+			while (r > 0 && std::isspace(at(r - 1))) --r;
 			return slice_(0, r);
 		}
 
@@ -325,10 +325,10 @@ namespace ayr
 			for (auto&& elem : iter)
 			{
 				for (c_size i = 0; i < elem.size(); ++i)
-					result.__at__(pos++) = elem.__at__(i);
+					result.at(pos++) = elem.at(i);
 
 				for (c_size i = 0; i < size() && pos < new_length; ++i)
-					result.__at__(pos++) = __at__(i);
+					result.at(pos++) = at(i);
 			}
 
 			return result;
@@ -355,7 +355,7 @@ namespace ayr
 					j++;
 				}
 				else
-					result.cstr_[k++] = __at__(i);
+					result.cstr_[k++] = at(i);
 			}
 
 			return result;
@@ -380,9 +380,9 @@ namespace ayr
 			c_size match_cnt = 0;
 			for (c_size i = l; i < size(); ++i)
 			{
-				if (__at__(i) == lmatch)
+				if (at(i) == lmatch)
 					++match_cnt;
-				else if (__at__(i) == rmatch)
+				else if (at(i) == rmatch)
 					--match_cnt;
 
 				if (match_cnt == 0)

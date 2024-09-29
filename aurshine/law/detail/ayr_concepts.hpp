@@ -64,5 +64,14 @@ namespace ayr
 
 	template<typename T>
 	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
+
+	// 可迭代类型约束概念
+	template<typename T>
+	concept Iteratable = requires(T obj)
+	{
+		{ obj.begin() };
+		{ obj.end() };
+		{ obj.size() };
+	};
 }
 #endif

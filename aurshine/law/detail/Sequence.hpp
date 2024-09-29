@@ -21,9 +21,9 @@ namespace ayr
 
 		using ConstIterator = CIndexIterator<self, Value_t>;
 
-		virtual Value_t& __at__(c_size) = 0;
+		virtual Value_t& at(c_size) = 0;
 
-		virtual const Value_t& __at__(c_size) const = 0;
+		virtual const Value_t& at(c_size) const = 0;
 
 		virtual c_size size() const = 0;
 
@@ -65,16 +65,16 @@ namespace ayr
 
 		virtual ConstIterator end() const { return ConstIterator(*this, size()); }
 
-		Value_t& operator[] (c_size index) { return __at__(neg_index(index, size())); }
+		Value_t& operator[] (c_size index) { return at(neg_index(index, size())); }
 
-		const Value_t& operator[] (c_size index) const { return __at__(neg_index(index, size())); }
+		const Value_t& operator[] (c_size index) const { return at(neg_index(index, size())); }
 
 		bool contains(const Value_t& v) const { return find_it(v) != end(); }
 
 		c_size find(const Value_t& v) const
 		{
 			for (c_size i = 0, size = size(); i < size; ++i)
-				if (__at__(i) == v)
+				if (at(i) == v)
 					return i;
 
 			return -1;
