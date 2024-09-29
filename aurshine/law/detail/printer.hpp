@@ -4,8 +4,8 @@
 #include <format>
 #include <source_location>
 
-#include <law/detail/object.hpp>
 #include <law/detail/CString.hpp>
+#include <law/detail/Object.hpp>
 
 namespace ayr
 {

@@ -5,13 +5,12 @@
 #include <sstream>
 #include <typeinfo>
 
+#include <law/detail/CString.hpp>
 #include <law/detail/ayr_concepts.hpp>
 
 
 namespace ayr
 {
-	class CString;
-
 	template<typename Derived>
 	class Object
 	{
@@ -27,7 +26,7 @@ namespace ayr
 
 			auto&& str = std::format(R"(<{} 0x{}>)", dtype(Derived), addr.str());
 
-			return CString(str.c_str());
+			return CString(str);
 		}
 
 		// hash 编码
@@ -65,7 +64,7 @@ namespace ayr
 	template<AyrObject T>
 	std::ostream& operator<<(std::ostream& os, const T& obj)
 	{
-		os << obj.__str__().str;
+		os << obj.__str__().data();
 		return os;
 	}
 

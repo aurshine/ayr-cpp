@@ -91,47 +91,43 @@ namespace ayr
 
 		using super = ArrayImpl<T>;
 
-		T* arr_ = nullptr;
 
-		c_size size_ = 0;
-
-		bool has_released = false;
 	public:
-		Array_(c_size size) : arr_(ayr_alloc<T>(size)), size_(size) {}
+		Array_(c_size size) : size_(size), arr_(std::make_unique<T[]>(size)) {}
 
 		template<typename ...Args>
 		Array_(c_size size, const Args&... args) : Array_(size)
 		{
 			for (c_size i = 0; i < size; ++i)
-				ayr_construct(arr_ + i, args...);
+				ayr_construct(data() + i, args...);
 		}
 
 		Array_(std::initializer_list<T>&& init_list) : Array_(init_list.size())
 		{
 			c_size i = 0;
 			for (auto&& item : init_list)
-				ayr_construct(arr_ + i++, std::move(item));
+				ayr_construct(data() + i++, std::move(item));
 		}
 
-		~Array_()
+		Array_(const self& other) : Array_(other.size())
 		{
-			release();
-			ayr_delloc(arr_);
+			for (c_size i = 0; i < size_; ++i)
+				ayr_construct(data() + i, other.data()[i]);
 		}
 
-		T* data() override { return arr_; }
+		Array_(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) {}
 
-		const T* data() const override { return arr_; }
+		~Array_() = default;
+
+		T* data() override { return arr_.get(); }
+
+		const T* data() const override { return arr_.get(); }
 
 		c_size size() const override { return size_; }
+	private:
+		std::unique_ptr<T[]> arr_;
 
-		void release(c_size l = 0, c_size r = -1)
-		{
-			if (has_released) return;
-			if (r == -1) r = size_;
-			while (l < r) ayr_destroy(arr_ + (l++));
-			has_released = true;
-		}
+		c_size size_ = 0;
 	};
 
 

@@ -98,7 +98,7 @@ namespace ayr
 	class Timer : public Wrapper
 	{
 	public:
-		Timer() : dvd(100) {};
+		Timer() : Timer("ms") {};
 
 		// 构造函数，传入单位，单位为s、ms、us
 		Timer(const CString& sec_option) : dvd(0)
@@ -124,11 +124,11 @@ namespace ayr
 		{
 			CString sign = "";
 			if (dvd == 1000)
-				sign = "ms";
+				sign = cstr("ms");
 			else if (dvd == 1000000)
-				sign = "s";
+				sign = cstr("s");
 			else if (dvd == 1)
-				sign = "us";
+				sign = cstr("us");
 			print(std::format("pass time: {:.2f}", get_pass_time()), sign);
 		}
 

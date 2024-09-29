@@ -4,15 +4,15 @@
 #include <cstring>
 #include <string>
 
-#include <law/detail/object.hpp>
 #include <law/detail/hash.hpp>
 #include <law/detail/ayr_memory.hpp>
 
 
 namespace ayr
 {
-	class CString : public Object<CString>
+	class CString
 	{
+		using self = CString;
 	public:
 		CString() : str(std::make_unique<char[]>(1)) {}
 
@@ -62,14 +62,22 @@ namespace ayr
 
 		size_t __hash__() const { return bytes_hash(data(), size()); }
 
-		cmp_t __cmp__(const CString& other) const
+		cmp_t __cmp__(const self& other) const
 		{
-			for (size_t i = 0; str[i] || other.str[i]; ++i)
-				if (str[i] != other.str[i])
-					return str[i] - other.str[i];
-
-			return 0;
+			return std::strcmp(data(), other.data());
 		}
+
+		bool operator> (const self& other) const { return __cmp__(other) > 0; }
+
+		bool operator< (const self& other) const { return __cmp__(other) < 0; }
+
+		bool operator>= (const self& other) const { return __cmp__(other) >= 0; }
+
+		bool operator<= (const self& other) const { return __cmp__(other) <= 0; }
+
+		bool operator== (const self& other) const { return __cmp__(other) == 0; }
+
+		bool operator!= (const self& other) const { return __cmp__(other) != 0; }
 
 	private:
 		std::unique_ptr<char[]> str;
