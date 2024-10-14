@@ -1,6 +1,8 @@
 ﻿#ifndef AYR_LAW_DETAIL_ARRAY_HPP
 #define AYR_LAW_DETAIL_ARRAY_HPP
 
+#include <algorithm>
+
 #include <law/detail/printer.hpp>
 #include <law/detail/ayr_memory.hpp>
 #include <law/detail/Sequence.hpp>
@@ -91,10 +93,9 @@ namespace ayr
 
 		using super = ArrayImpl<T>;
 
-
-	public:
+		// 构造函数, 每个元素不会调用构造函数
 		Array_(c_size size) : size_(size), arr_(ayr_alloc<T>(size)) {}
-
+	public:
 		template<typename ...Args>
 		Array_(c_size size, const Args&... args) : Array_(size)
 		{
@@ -109,23 +110,27 @@ namespace ayr
 				ayr_construct(data() + i++, std::move(item));
 		}
 
+		Array_(T* arr, c_size size) : size_(size), arr_(arr) {}
+
 		Array_(const self& other) : Array_(other.size())
 		{
 			for (c_size i = 0; i < size_; ++i)
 				ayr_construct(data() + i, other.data()[i]);
 		}
 
-		Array_(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) {}
+		Array_(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.size_ = 0; }
 
-		~Array_() = default;
+		~Array_() { ayr_delloc(arr_); };
 
-		T* data() override { return arr_.get(); }
+		T* data() override { return arr_; }
 
-		const T* data() const override { return arr_.get(); }
+		const T* data() const override { return arr_; }
 
 		c_size size() const override { return size_; }
+
+		void resize(c_size new_size) { arr_ = ayr_alloc<T>(new_size); size_ = new_size; }
 	private:
-		std::unique_ptr<T[]> arr_;
+		T* arr_;
 
 		c_size size_ = 0;
 	};

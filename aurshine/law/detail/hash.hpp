@@ -16,7 +16,6 @@ namespace ayr
 	template<Hashable K>
 	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key, std::bool_constant<AyrLikeHashable<K>>{}); }
 
-
 	inline uint32_t decode_fixed32(const char* ptr)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(ptr);

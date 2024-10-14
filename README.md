@@ -32,10 +32,11 @@ int main()
 ayr::DynArray<std::string> das;
 std::vector<std::string> vs;
 
-constexpr int N = 100000;
+constexpr int N = 1e6;
 
 void test_das()
 {
+	print("test_das");
 	for (int i = 0; i < N; ++i)
 	{
 		das.append("hello");
@@ -44,6 +45,7 @@ void test_das()
 
 void test_vs()
 {
+	print("test_vs");
 	for (int i = 0; i < N; ++i)
 	{
 		vs.push_back("hello");
@@ -52,7 +54,7 @@ void test_vs()
 
 int main()
 {
-	auto tm = ayr::Timer();
+	auto tm = ayr::Timer("ms");
 
 	tm(test_das);
 	tm(test_vs);
@@ -62,7 +64,9 @@ int main()
 
 /*
 输出：
-Time elapsed: 63251 microseconds
-Time elapsed: 169696 microseconds
+test_das
+pass time: 1395.45 ms
+test_vs
+pass time: 2782.59 ms
 */
 ```

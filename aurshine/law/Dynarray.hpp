@@ -32,7 +32,7 @@ namespace ayr
 
 		DynArray(self&& other) : blocks_(std::move(other.blocks_)), occupies_size_(other.occupies_size_) {}
 
-		~DynArray() = default;
+		~DynArray() {};
 
 		self& operator=(const self& other)
 		{
@@ -102,20 +102,22 @@ namespace ayr
 		Array<T> to_array() const
 		{
 			c_size size_ = size();
-			Array<T> arr(size_);
+			Buffer<T> buffer(size_);
 			for (c_size i = 0; i < size_; ++i)
-				ayr_construct(&arr.at(i), at(i));
-			return arr;
+				buffer.append(at(i));
+
+			return buffer.move_array();
 		}
 
 		// 移动数组
 		Array<T>& move_array()
 		{
 			c_size size_ = size();
-			Array<T> arr(size_);
+			Buffer<T> buffer(size_);
 			for (c_size i = 0; i < size_; ++i)
-				ayr_construct(&arr.at(i), std::move(at(i)));
-			return arr;
+				buffer.append(std::move(at(i)));
+
+			return buffer.move_array();
 		}
 
 		// 容器的字符串形式
@@ -149,6 +151,12 @@ namespace ayr
 			return blocks_.at(block_index).at(index ^ exp2(block_index));
 		}
 
+		void clear()
+		{
+			for (auto&& block : blocks_)
+				block.resize(0);
+			occupies_size_ = 0;
+		}
 	private:
 		// 移除最后一个块
 		void pop_back_block()
@@ -176,7 +184,6 @@ namespace ayr
 			block.resize(exp2(occupies_size_ - 1));
 		}
 
-	private:
 		// 得到index表示的块的索引
 		static c_size _get_block_index(c_size index) { return highbit_index(index + 1); }
 	private:

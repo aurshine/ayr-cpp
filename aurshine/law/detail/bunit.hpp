@@ -40,13 +40,12 @@ namespace ayr
 	constexpr def only_one(const B& x) { return (x & x - 1) == 0; }
 
 	// 向上取整到2的幂次方
-	template<typename B>
-	constexpr def roundup2(const B& x)
+	constexpr def roundup2(size_t x) -> size_t
 	{
 		if (x <= 1)	return 1;
 
 		--x;
-		for (size_t i = 1; i < sizeof(B) * 8; i <<= 1)
+		for (size_t i = 1; i < sizeof(size_t) * 8; i <<= 1)
 			x |= x >> i;
 
 		return x + 1;

@@ -32,9 +32,9 @@ namespace ayr
 
 	// 释放ptr指向的内存
 	template<typename T>
-	def ayr_delloc(T* ptr, size_t size = 1)
+	def ayr_delloc(T* ptr)
 	{
-		::operator delete(ptr, sizeof(T) * size);
+		::operator delete(ptr);
 	}
 }
 #endif 

@@ -5,6 +5,8 @@
 
 #include <law/detail/printer.hpp>
 #include <law/detail/ayr_memory.hpp>
+#include <law/detail/Array.hpp>
+
 
 namespace ayr
 {
@@ -15,19 +17,20 @@ namespace ayr
 		using super = Object<self>;
 
 	public:
-		Buffer() : last_(0), capacity_(0), buffer_(nullptr) {}
+		Buffer() : size_(0), capacity_(0), buffer_(nullptr) {}
 
-		Buffer(size_t size) : last_(0), capacity_(size), buffer_(ayr_alloc<T>(capacity_)) {}
+		Buffer(size_t size) : size_(0), capacity_(size), buffer_(ayr_alloc<T>(capacity_)) {}
 
-		Buffer(const Buffer& other) : last_(other.last_), capacity_(other.capacity_), buffer_(ayr_alloc<T>(capacity_))
+		Buffer(const Buffer& other) : size_(other.size_), capacity_(other.capacity_), buffer_(ayr_alloc<T>(capacity_))
 		{
-			std::memcpy(buffer_, other.buffer_, sizeof(T) * last_);
+			for (c_size i = 0; i < other.size(); ++i)
+				ayr_construct(buffer_ + i, other.buffer_ + i);
 		}
 
-		Buffer(Buffer&& other) : last_(other.last_), capacity_(other.capacity_), buffer_(other.buffer_)
+		Buffer(Buffer&& other) : size_(other.size_), capacity_(other.capacity_), buffer_(other.buffer_)
 		{
 			other.buffer_ = nullptr;
-			other.last_ = 0;
+			other.size_ = 0;
 			other.capacity_ = 0;
 		}
 
@@ -51,12 +54,12 @@ namespace ayr
 
 		~Buffer()
 		{
-			for (c_size i = 0; i < last_; ++i)
+			for (c_size i = 0; i < size(); ++i)
 				ayr_destroy(buffer_ + i);
-			ayr_delloc(buffer_, capacity_);
+			ayr_delloc(buffer_);
 		}
 
-		c_size size() const { return last_; }
+		c_size size() const { return size_; }
 
 		c_size capacity() const { return capacity_; }
 
@@ -66,14 +69,14 @@ namespace ayr
 		template<typename... Args>
 		T& append(Args&&... args)
 		{
-			ayr_construct(buffer_ + last_, std::forward<Args>(args)...);
-			return buffer_[last_++];
+			ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
+			return buffer_[size_++];
 		}
 
 		void pop_back()
 		{
-			ayr_destroy(buffer_ + last_);
-			--last_;
+			ayr_destroy(buffer_ + size_);
+			--size_;
 		}
 
 		// 重新分配内存
@@ -87,12 +90,22 @@ namespace ayr
 
 		T& at(c_size index) { return buffer_[index]; }
 
-		const T& operator[](c_size index) const { return at(neg_index(index, last_)); }
+		const T& operator[](c_size index) const { return at(neg_index(index, size_)); }
 
-		T& operator[](c_size index) { return at(neg_index(index, last_)); }
+		T& operator[](c_size index) { return at(neg_index(index, size_)); }
+
+		Array<T> to_array() const { return self(*this).move_array(); }
+
+		Array<T> move_array()
+		{
+			Array<T> arr(data(), size());
+			size_ = capacity_ = 0;
+			buffer_ = nullptr;
+			return arr;
+		}
 	private:
 
-		c_size last_, capacity_;
+		c_size size_, capacity_;
 
 		T* buffer_;
 	};
