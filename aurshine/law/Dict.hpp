@@ -3,7 +3,6 @@
 
 #include <law/ayr_memory.hpp>
 #include <law/detail/bunit.hpp>
-#include <law/detail/hash.hpp>
 #include <law/detail/hash_bucket.hpp>
 #include <law/detail/Iterator.hpp>
 
@@ -99,9 +98,7 @@ namespace ayr
 
 		using Bucket_t = HashBucketImpl<Value_t>;
 
-		Dict() : Dict(MIN_BUCKET_SIZE) {}
-
-		Dict(c_size bucket_size) : bucket_(std::make_unique<RobinSegmentHashBucket<Value_t>>(bucket_size)), keys_() {}
+		Dict(c_size bucket_size = MIN_BUCKET_SIZE) : bucket_(std::make_unique<RobinHashBucket<Value_t>>(bucket_size)), keys_() {}
 
 		Dict(Bucket_t* bucket) : bucket_(bucket), keys_() {}
 
@@ -218,20 +215,22 @@ namespace ayr
 		// 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
 		void insert(const K& key, const V& value)
 		{
-			Value_t* m_value = bucket_->try_get(ayrhash(key));
+			hash_t hashv = ayrhash(key);
+			Value_t* m_value = bucket_->try_get(hashv);
 			if (m_value != nullptr)
 				*m_value = value;
 			else
-				insert_impl(key, value);
+				insert_impl(key, value, hashv);
 		}
 
 		void insert(K&& key, V&& value)
 		{
-			Value_t* m_value = bucket_->try_get(ayrhash(key));
+			hash_t hashv = ayrhash(key);
+			Value_t* m_value = bucket_->try_get(hashv);
 			if (m_value != nullptr)
 				*m_value = std::move(value);
 			else
-				insert_impl(std::move(key), std::move(value));
+				insert_impl(std::move(key), std::move(value), hashv);
 		}
 
 		void clear() { bucket_->clear(); keys_.clear(); }
@@ -257,28 +256,28 @@ namespace ayr
 	private:
 		bool contains_hashv(hash_t hashv) const { return bucket_->contains(hashv); }
 
-		void expand() { bucket_->expand(std::max(bucket_->capacity() * 2, MIN_BUCKET_SIZE)); }
+		void expand() { bucket_->expand(std::max(capacity() * 2, MIN_BUCKET_SIZE)); }
 
 		// 插入一个key-value对, 不对key是否存在做检查
-		void insert_impl(const K& key, const V& value)
+		void insert_impl(const K& key, const V& value, hash_t hashv = ayrhash(key))
 		{
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_->set_store(value, ayrhash(key));
+			bucket_->set_store(value, hashv);
 			keys_.append(key);
 		}
 
-		void insert_impl(K&& key, V&& value)
+		void insert_impl(K&& key, V&& value, hash_t hashv = ayrhash(key))
 		{
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_->set_store(std::move(value), ayrhash(key));
+			bucket_->set_store(std::move(value), hashv);
 			keys_.append(std::move(key));
 		}
 	private:
-		std::unique_ptr<HashBucketImpl<Value_t>> bucket_;
+		std::unique_ptr<Bucket_t> bucket_;
 
 		DynArray<Key_t> keys_;
 

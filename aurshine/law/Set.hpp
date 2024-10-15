@@ -1,0 +1,100 @@
+﻿#ifndef AYR_LAW_SER_HPP
+#define AYR_LAW_SER_HPP
+
+#include <algorithm>
+#include <law/ayr_memory.hpp>
+#include <law/detail/bunit.hpp>
+#include <law/detail/hash_bucket.hpp>
+#include <law/detail/Iterator.hpp>
+
+namespace ayr
+{
+	template<Hashable T>
+	class Set : public Object<Set<T>>
+	{
+		using self = Set<T>;
+
+		using Bucket_t = HashBucketImpl<T>;
+
+	public:
+		using Value_t = T;
+
+		Set(c_size size = MIN_BUCKET_SIZE) : size_(0), bucket_(std::make_unique<RobinHashBucket<T>>(size)) {}
+
+		Set(Bucket_t* bucket, c_size size = 0) : size_(size), bucket_(bucket) {}
+
+		Set(std::initializer_list<Value_t>&& il) : Set(roundup2(c_size(il.size() / MAX_LOAD_FACTOR)))
+		{
+			for (auto& v : il)
+				insert_impl(std::move(v), ayrhash(v));
+		}
+
+		Set(const Set& other) : bucket_(other.bucket_->clone()) {}
+
+		Set(Set&& other) noexcept : bucket_(std::move(other.bucket_)) {}
+
+		~Set() = default;
+
+		Set& operator=(const Set& other)
+		{
+			if (this != &other)
+				bucket_ = other.bucket_->clone();
+			return *this;
+		}
+
+		Set& operator=(Set&& other) noexcept
+		{
+			if (this != &other)
+				bucket_ = std::move(other.bucket_);
+			return *this;
+		}
+
+		c_size size() const { return size_; }
+
+		c_size capacity() const { return bucket_->capacity(); }
+
+		bool contains(const Value_t& value) const { return contains_hash(ayrhash(value)); }
+
+		double load_factor() const { return 1.0 * size() / capacity(); }
+
+		void insert(const Value_t& value)
+		{
+			hash_t hashv = ayrhash(value);
+			if (!contains_hash(hashv))
+				insert_impl(value, hashv);
+		}
+
+	private:
+		bool contains_hash(hash_t hashv) const { return bucket_->contains(hashv); }
+
+		void expand() { bucket_->expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
+
+		void insert_impl(const Value_t& value, hash_t hashv)
+		{
+			if (load_factor() >= MAX_LOAD_FACTOR)
+				expand();
+
+			bucket_->set_store(value, hashv);
+			++size_;
+		}
+
+		void insert_impl(Value_t&& value, hash_t hashv)
+		{
+			if (load_factor() >= MAX_LOAD_FACTOR)
+				expand();
+
+			bucket_->set_store(std::move(value), hashv);
+			++size_;
+		}
+
+	private:
+		std::unique_ptr<Bucket_t> bucket_;
+
+		c_size size_;
+
+		static constexpr double MAX_LOAD_FACTOR = 0.75;
+
+		static constexpr c_size MIN_BUCKET_SIZE = 8;
+	};
+}
+#endif

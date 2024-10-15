@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <functional>
 
+#include <law/printer.hpp>
 #include <law/detail/Array.hpp>
 #include <law/detail/hash.hpp>
 
@@ -136,9 +137,9 @@ namespace ayr
 
 
 	template<typename Store>
-	class RobinSegmentHashBucket : public HashBucketImpl<Store>
+	class RobinHashBucket : public HashBucketImpl<Store>
 	{
-		using self = RobinSegmentHashBucket<Store>;
+		using self = RobinHashBucket<Store>;
 
 		using super = HashBucketImpl<Store>;
 	public:
@@ -146,15 +147,15 @@ namespace ayr
 
 		using Manager_t = RobinManager<Store_t>;
 
-		RobinSegmentHashBucket() : RobinSegmentHashBucket(0) {}
+		RobinHashBucket() : RobinHashBucket(0) {}
 
-		RobinSegmentHashBucket(c_size size) : robin_managers_(size, Manager_t{}) { }
+		RobinHashBucket(c_size size) : robin_managers_(size, Manager_t{}) { }
 
-		RobinSegmentHashBucket(const RobinSegmentHashBucket& other) : robin_managers_(other.robin_managers_) {}
+		RobinHashBucket(const RobinHashBucket& other) : robin_managers_(other.robin_managers_) {}
 
-		RobinSegmentHashBucket(RobinSegmentHashBucket&& other) noexcept : robin_managers_(std::move(other.robin_managers_)) {}
+		RobinHashBucket(RobinHashBucket&& other) noexcept : robin_managers_(std::move(other.robin_managers_)) {}
 
-		~RobinSegmentHashBucket() {}
+		~RobinHashBucket() {}
 
 		c_size capacity() const override { return robin_managers_.size(); }
 
@@ -208,6 +209,7 @@ namespace ayr
 				store_manager.add_move_dist();
 			}
 
+			error_assert(ret != nullptr, "RobinHashBucket: set_store failed, no empty slot found.");
 			return ret;
 		}
 

@@ -94,16 +94,16 @@ namespace ayr
 		using super = ArrayImpl<T>;
 
 		// 构造函数, 每个元素不会调用构造函数
-		Array_(c_size size) : size_(size), arr_(ayr_alloc<T>(size)) {}
+		Array_(c_size size, std::false_type) : size_(size), arr_(ayr_alloc<T>(size)) {}
 	public:
 		template<typename ...Args>
-		Array_(c_size size, const Args&... args) : Array_(size)
+		Array_(c_size size, const Args&... args) : Array_(size, std::false_type{})
 		{
 			for (c_size i = 0; i < size; ++i)
 				ayr_construct(data() + i, args...);
 		}
 
-		Array_(std::initializer_list<T>&& init_list) : Array_(init_list.size())
+		Array_(std::initializer_list<T>&& init_list) : Array_(init_list.size(), std::false_type{})
 		{
 			c_size i = 0;
 			for (auto&& item : init_list)
@@ -112,15 +112,15 @@ namespace ayr
 
 		Array_(T* arr, c_size size) : size_(size), arr_(arr) {}
 
-		Array_(const self& other) : Array_(other.size())
+		Array_(const self& other) : Array_(other.size(), std::false_type{})
 		{
 			for (c_size i = 0; i < size_; ++i)
 				ayr_construct(data() + i, other.data()[i]);
 		}
 
-		Array_(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.size_ = 0; }
+		Array_(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.arr_ = nullptr; other.size_ = 0; }
 
-		~Array_() { ayr_delloc(arr_); };
+		~Array_() { ayr_delloc(arr_); size_ = 0; };
 
 		T* data() override { return arr_; }
 
@@ -128,7 +128,12 @@ namespace ayr
 
 		c_size size() const override { return size_; }
 
-		void resize(c_size new_size) { arr_ = ayr_alloc<T>(new_size); size_ = new_size; }
+		template<typename ...Args>
+		void resize(c_size new_size, const Args&... args)
+		{
+			ayr_destroy(this);
+			ayr_construct(this, new_size, args...);
+		}
 	private:
 		T* arr_;
 
