@@ -1,16 +1,15 @@
 ﻿#ifndef AYR_LAW_DETAIL_INDEXITERATOR_HPP
 #define AYR_LAW_DETAIL_INDEXITERATOR_HPP
 
-#include <law/detail/Iterator.hpp>
-
+#include <law/detail/Object.hpp>
 
 namespace ayr
 {
 	// 索引容器迭代器,
 	template<typename C, typename V>
-	class IndexIterator : public IteratorImpl<V, IndexIterator<C, V>>
+	class IndexIterator : public Object<IndexIterator<C, V>>
 	{
-		using super = IteratorImpl<C, IndexIterator<C, V>>;
+		using super = Object<IndexIterator>;
 
 		using self = IndexIterator;
 	public:
@@ -22,19 +21,25 @@ namespace ayr
 
 		IndexIterator(const self& other) : IndexIterator(other.container_, other.index_) {}
 
-		Value_t& operator*() override { return container_[index_]; }
+		Value_t& operator*() { return container_[index_]; }
 
-		Value_t* operator->() override { return &container_[index_]; }
+		const Value_t& operator*() const { return container_[index_]; }
 
-		self& operator++() override { ++index_; return *this; }
+		Value_t* operator->() { return &container_[index_]; }
 
-		self& operator--() override { --index_; return *this; }
+		const Value_t* operator->() const { return &container_[index_]; }
 
-		bool __equals__(const self& other) const { return (&container_ == &other.container_) && (index_ == other.index_); }
+		self& operator++() { ++index_; return *this; }
 
-		CString __str__() const override { return CString(std::format("IndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
+		self operator++(int) { self tmp(*this); ++index_; return tmp; }
 
-		super::Distance_t distance(const self& other) const override { return std::abs(other.index_ - index_); }
+		self& operator--() { --index_; return *this; }
+
+		self operator--(int) { self tmp(*this); --index_; return tmp; }
+
+		bool __equals__(const self& other) const override { return (&container_ == &other.container_) && (index_ == other.index_); }
+
+		c_size distance(const self& other) const { return std::abs(other.index_ - index_); }
 
 	private:
 		Container_t& container_;
@@ -45,11 +50,11 @@ namespace ayr
 
 	// 常量索引容器迭代器
 	template<typename C, typename V>
-	class CIndexIterator : public IteratorImpl<V, CIndexIterator<C, V>>
+	class CIndexIterator : public Object<CIndexIterator<C, V>>
 	{
-		using super = IteratorImpl<C, CIndexIterator<C, V>>;
-
 		using self = CIndexIterator<C, V>;
+
+		using super = Object<self>;
 	public:
 		using Container_t = C;
 
@@ -59,19 +64,21 @@ namespace ayr
 
 		CIndexIterator(const self& other) : CIndexIterator(other.container_, other.index_) {}
 
-		const Value_t& operator*() const override { return container_[index_]; }
+		const Value_t& operator*() const { return container_[index_]; }
 
-		const Value_t* operator->() const override { return &container_[index_]; }
+		const Value_t* operator->() const { return &container_[index_]; }
 
-		self& operator++() override { ++index_; return *this; }
+		self& operator++() { ++index_; return *this; }
 
-		self& operator--() override { --index_; return *this; }
+		self operator++(int) { self tmp(*this); ++index_; return tmp; }
+
+		self& operator--() { --index_; return *this; }
+
+		self operator--(int) { self tmp(*this); --index_; return tmp; }
 
 		bool __equals__(const self& other) const override { return (&container_ == &other.container_) && (index_ == other.index_); }
 
-		CString __str__() const override { return CString(std::format("CIndexIterator<{}, {}>(index={})", dtype(C), dtype(V), index_)); }
-
-		super::Distance_t distance(const self& other) const override { return std::abs(other.index_ - index_); }
+		c_size distance(const self& other) const { return std::abs(other.index_ - index_); }
 	private:
 		const Container_t& container_;
 

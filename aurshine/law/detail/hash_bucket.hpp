@@ -223,6 +223,7 @@ namespace ayr
 		}
 
 		void clear() override { robin_managers_.resize(0); }
+
 	private:
 		Array<Manager_t> robin_managers_;
 	};

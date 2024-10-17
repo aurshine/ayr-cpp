@@ -7,6 +7,13 @@
 
 namespace ayr
 {
+	template<typename SeqContainer>
+	class SequenceCell
+	{
+
+	};
+
+
 	template<typename T>
 	class Sequence : public Object<Sequence<T>>
 	{

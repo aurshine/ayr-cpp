@@ -15,11 +15,11 @@ namespace ayr
 
 		Range(c_size end) : Range(0, end, 1) {}
 
-		class RangeIterator : public IteratorImpl<c_size, RangeIterator>
+		class RangeIterator : public Object<RangeIterator>
 		{
-			using super = IteratorImpl<c_size, RangeIterator>;
-
 			using self = RangeIterator;
+
+			using super = Object<self>;
 
 			using Value_t = c_size;
 		public:
@@ -37,11 +37,15 @@ namespace ayr
 
 			self& operator++() { current_ += step_; return *this; }
 
+			self operator++(int) { self tmp(*this); ++(*this); return tmp; }
+
 			self& operator--() { current_ -= step_; return *this; }
 
-			bool __equals__(const self& other) const { return current_ == other.current_; }
+			self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
-			super::Distance_t distance(const self& other) const override { return (other.current_ - current_) / step_; }
+			bool __equals__(const self& other) const override { return current_ == other.current_; }
+
+			c_size distance(const self& other) const { return (other.current_ - current_) / step_; }
 		private:
 			c_size current_, step_;
 		};
