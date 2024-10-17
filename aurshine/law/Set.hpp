@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <law/ayr_memory.hpp>
 #include <law/detail/bunit.hpp>
-#include <law/detail/hash_bucket.hpp>
+#include <law/detail/HashBucket.hpp>
 #include <law/detail/RelationIterator.hpp>
 
 namespace ayr
@@ -18,6 +18,10 @@ namespace ayr
 
 	public:
 		using Value_t = T;
+
+		using Iterator = Bucket_t::Iterator;
+
+		using ConstIterator = Bucket_t::ConstIterator;
 
 		Set(c_size size = MIN_BUCKET_SIZE) : size_(0), bucket_(std::make_unique<RobinHashBucket<T>>(size)) {}
 
@@ -87,6 +91,13 @@ namespace ayr
 			++size_;
 		}
 
+		Iterator begin() { return bucket_->begin(); }
+
+		Iterator end() { return bucket_->end(); }
+
+		ConstIterator begin() const { return bucket_->begin(); }
+
+		ConstIterator end() const { return bucket_->end(); }
 	private:
 		std::unique_ptr<Bucket_t> bucket_;
 

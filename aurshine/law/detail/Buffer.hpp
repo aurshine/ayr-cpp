@@ -6,7 +6,7 @@
 #include <law/detail/printer.hpp>
 #include <law/detail/ayr_memory.hpp>
 #include <law/detail/Array.hpp>
-
+#include <law/detail/RelationIterator.hpp>
 
 namespace ayr
 {
@@ -14,9 +14,14 @@ namespace ayr
 	class Buffer : public Object<Buffer<T>>
 	{
 		using self = Buffer<T>;
+
 		using super = Object<self>;
 
 	public:
+		using Iterator = RelationIterator<SelfAddMove<T*>>;
+
+		using ConstIterator = RelationIterator<SelfAddMove<const T*>>;
+
 		Buffer() : size_(0), capacity_(0), buffer_(nullptr) {}
 
 		Buffer(size_t size) : size_(0), capacity_(size), buffer_(ayr_alloc<T>(capacity_)) {}
@@ -103,6 +108,14 @@ namespace ayr
 			buffer_ = nullptr;
 			return arr;
 		}
+
+		Iterator begin() { return Iterator(buffer_); }
+
+		ConstIterator begin() const { return ConstIterator(buffer_); }
+
+		Iterator end() { return Iterator(buffer_ + size_); }
+
+		ConstIterator end() const { return ConstIterator(buffer_ + size_); }
 	private:
 
 		c_size size_, capacity_;

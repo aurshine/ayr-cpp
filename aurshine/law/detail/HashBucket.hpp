@@ -3,19 +3,22 @@
 
 #include <algorithm>
 #include <functional>
+#include <chrono>
+#include <thread>
 
 #include <law/printer.hpp>
 #include <law/detail/Array.hpp>
 #include <law/detail/hash.hpp>
+#include <law/detail/RelationIterator.hpp>
 
 namespace ayr
 {
-	template<typename Store>
-	class HashBucketImpl : public Object<HashBucketImpl<Store>>
+	template<typename T>
+	class HashBucketImpl : public Object<HashBucketImpl<T>>
 	{
-		using self = HashBucketImpl<Store>;
+		using self = HashBucketImpl<T>;
 	public:
-		using Store_t = Store;
+		using Value_t = T;
 
 		HashBucketImpl() = default;
 
@@ -28,12 +31,12 @@ namespace ayr
 		virtual self* clone() const = 0;
 
 		// 尝试根据hash值获取元素，返回指针，如果没有则返回nullptr
-		virtual Store_t* try_get(hash_t hashv) = 0;
+		virtual Value_t* try_get(hash_t hashv) = 0;
 
-		virtual const Store_t* try_get(hash_t hashv) const = 0;
+		virtual const Value_t* try_get(hash_t hashv) const = 0;
 
 		// 放置元素，不检查元素是否存在，不考虑是否超过容量, 返回指针
-		virtual Store_t* set_store(const Store_t& store, hash_t hashv) = 0;
+		virtual Value_t* set_store(const Value_t& store, hash_t hashv) = 0;
 
 		virtual void expand(c_size new_capacity) noexcept = 0;
 
@@ -46,9 +49,9 @@ namespace ayr
 		virtual bool contains(hash_t hashv) const { return try_get(hashv) != nullptr; }
 
 		// 放入元素，返回被放入的元素指针
-		virtual Store_t* try_set(const Store_t& store, hash_t hashv)
+		virtual Value_t* try_set(const Value_t& store, hash_t hashv)
 		{
-			Store_t* ret = try_get(hashv);
+			Value_t* ret = try_get(hashv);
 			if (ret == nullptr)
 				ret = set_store(store, hashv);
 
@@ -64,7 +67,7 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		RobinManager() : _move_dist(MOVED_NOTHING), _hashv(0), _value() {}
+		RobinManager() : _move_dist(MOVED_NOTHING), _hashv(0), _value(1111111) {}
 
 		RobinManager(const Value_t& value, hash_t hashv, uint32_t move_dist) :
 			_move_dist(move_dist),
@@ -125,6 +128,7 @@ namespace ayr
 			std::swap(_hashv, other._hashv);
 			std::swap(_value, other._value);
 		}
+
 	private:
 		uint32_t _move_dist;
 
@@ -136,16 +140,75 @@ namespace ayr
 	};
 
 
-	template<typename Store>
-	class RobinHashBucket : public HashBucketImpl<Store>
+	template<IteratorLike I>
+	class RobinHashBucketIterator : public Object<RobinHashBucketIterator<I>>
 	{
-		using self = RobinHashBucket<Store>;
-
-		using super = HashBucketImpl<Store>;
+		using self = RobinHashBucketIterator<I>;
 	public:
-		using Store_t = super::Store_t;
+		using Iterator = I;
 
-		using Manager_t = RobinManager<Store_t>;
+		using Value_t = std::remove_reference_t<decltype(*std::declval<Iterator>())>::Value_t;
+
+		using Reference_t = Value_t&;
+
+		RobinHashBucketIterator(Iterator iter, Iterator end) : iter_(iter), end_(end) {}
+
+		RobinHashBucketIterator(const self& other) : iter_(other.iter_), end_(other.end_) {}
+
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+
+			iter_ = other.iter_;
+			end_ = other.end_;
+			return *this;
+		}
+
+		Reference_t operator*() { return iter_->value(); }
+
+		const Reference_t operator*() const { return iter_->value(); }
+
+		Value_t* operator->() { return &iter_->value(); }
+
+		const Value_t* operator->() const { return &iter_->value(); }
+
+		self& operator++()
+		{
+			while (++iter_ != end_ && !iter_->is_managed());
+			return *this;
+		}
+
+		self operator++ (int)
+		{
+			Iterator temp = iter_;
+			++*this;
+			return self(temp);
+		}
+
+		bool __equals__(const self& other) const override
+		{
+			return iter_ == other.iter_;
+		}
+	private:
+		Iterator iter_, end_;
+	};
+
+
+	template<typename T>
+	class RobinHashBucket : public HashBucketImpl<T>
+	{
+		using self = RobinHashBucket<T>;
+
+		using super = HashBucketImpl<T>;
+
+	public:
+		using Value_t = super::Value_t;
+
+		using Manager_t = RobinManager<Value_t>;
+
+		using Iterator = RobinHashBucketIterator<typename Array<Manager_t>::Iterator>;
+
+		using ConstIterator = RobinHashBucketIterator<typename Array<Manager_t>::ConstIterator>;
 
 		RobinHashBucket() : RobinHashBucket(0) {}
 
@@ -161,7 +224,7 @@ namespace ayr
 
 		self* clone() const override { return new self(*this); }
 
-		Store_t* try_get(hash_t hashv) override
+		Value_t* try_get(hash_t hashv) override
 		{
 			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
 			{
@@ -175,7 +238,7 @@ namespace ayr
 			return nullptr;
 		}
 
-		const Store_t* try_get(hash_t hashv) const override
+		const Value_t* try_get(hash_t hashv) const override
 		{
 			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
 			{
@@ -189,10 +252,10 @@ namespace ayr
 			return nullptr;
 		}
 
-		Store_t* set_store(const Store_t& store, hash_t hashv)
+		Value_t* set_store(const Value_t& store, hash_t hashv)
 		{
 			Manager_t store_manager{ store, hashv, 0 };
-			Store_t* ret = nullptr;
+			Value_t* ret = nullptr;
 			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
 			{
 				Manager_t& manager = robin_managers_.at(index);
@@ -222,8 +285,28 @@ namespace ayr
 				set_store(manager.value(), manager.hashv());
 		}
 
+
 		void clear() override { robin_managers_.resize(0); }
 
+		Iterator begin()
+		{
+			for (auto it = robin_managers_.begin(); it != robin_managers_.end(); ++it)
+				if (it->is_managed())
+					return Iterator(it, robin_managers_.end());
+			return end();
+		}
+
+		Iterator end() { return Iterator(robin_managers_.end(), robin_managers_.end()); }
+
+		ConstIterator begin() const
+		{
+			for (auto it = robin_managers_.begin(); it != robin_managers_.end(); ++it)
+				if (it->is_managed())
+					return ConstIterator(it, robin_managers_.end());
+			return end();
+		}
+
+		ConstIterator end() const { return ConstIterator(robin_managers_.end(), robin_managers_.end()); }
 	private:
 		Array<Manager_t> robin_managers_;
 	};

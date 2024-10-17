@@ -21,6 +21,8 @@ namespace ayr
 
 		IndexIterator(const self& other) : IndexIterator(other.container_, other.index_) {}
 
+		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
+
 		Value_t& operator*() { return container_[index_]; }
 
 		const Value_t& operator*() const { return container_[index_]; }
@@ -63,6 +65,8 @@ namespace ayr
 		CIndexIterator(const Container_t& container, c_size index) : container_(container), index_(index) {}
 
 		CIndexIterator(const self& other) : CIndexIterator(other.container_, other.index_) {}
+
+		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
 
 		const Value_t& operator*() const { return container_[index_]; }
 

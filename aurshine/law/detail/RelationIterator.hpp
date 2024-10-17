@@ -3,11 +3,29 @@
 
 #include <law/detail/object.hpp>
 #include <law/detail/ayr_concepts.hpp>
+#include <law/detail/printer.hpp>
+
 
 namespace ayr
 {
 	template<IteratorLike I>
-	class SelfAddMove
+	class IterMoveImpl : public Object<IterMoveImpl<I>>
+	{
+	public:
+		using Iterator = I;
+
+		using Value_t = std::remove_reference_t<decltype(*std::declval<Iterator>())>;
+
+		using Reference_t = Value_t&;
+
+		static Iterator& next(Iterator& iter) { NotImplementedError("next not implemented"); return None<I>; }
+
+		static Iterator& prev(Iterator& iter) { NotImplementedError("prev not implemented"); return None<I>; }
+	};
+
+
+	template<IteratorLike I>
+	class SelfAddMove : public IterMoveImpl<I>
 	{
 		using self = SelfAddMove;
 	public:
@@ -19,33 +37,35 @@ namespace ayr
 	};
 
 
-	template<IteratorLike I, typename IterMove>
-	class RelationIterator : Object<RelationIterator<I, IterMove>>
+	template<typename IterMove>
+	class RelationIterator : public Object<RelationIterator<IterMove>>
 	{
-		using self = RelationIterator<I, IterMove>;
+		using self = RelationIterator<IterMove>;
 
 		using super = Object<self>;
 
 	public:
-		using Value_t = std::remove_reference_t<decltype(*std::declval<I>())>;
+		using Iterator = typename IterMove::Iterator;
 
-		using Iter_t = I;
+		using Value_t = typename IterMove::Value_t;
+
+		using Reference_t = typename IterMove::Reference_t;
 
 		using Move_t = IterMove;
 
-		RelationIterator(const Iter_t& iter) : iter_(iter) {}
+		RelationIterator(const Iterator& iter) : iter_(iter) {}
 
 		RelationIterator(const self& other) : iter_(other.iter_) {};
 
 		RelationIterator(self&& other) : iter_(std::move(other.iter_)) {}
 
-		Value_t& operator*() { return *iter_; }
+		Reference_t operator*() { return *iter_; }
 
-		const Value_t& operator*() const { return *iter_; }
+		const Reference_t operator*() const { return *iter_; }
 
-		Value_t* operator->() { return &*iter_; }
+		Value_t* operator->() { return &(*iter_); }
 
-		const Value_t* operator->() const { return &*iter_; }
+		const Value_t* operator->() const { return &(*iter_); }
 
 		self& operator++()
 		{
@@ -55,7 +75,7 @@ namespace ayr
 
 		self operator++ (int)
 		{
-			Iter_t temp = iter_;
+			Iterator temp = iter_;
 			++*this;
 			return self(temp);
 		}
@@ -68,7 +88,7 @@ namespace ayr
 
 		self operator--(int)
 		{
-			Iter_t temp = iter_;
+			Iterator temp = iter_;
 			--*this;
 			return self(temp);
 		}
@@ -78,7 +98,7 @@ namespace ayr
 			return iter_ == other.iter_;
 		}
 	private:
-		Iter_t iter_;
+		Iterator iter_;
 	};
 }
 #endif

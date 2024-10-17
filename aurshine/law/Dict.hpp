@@ -3,7 +3,7 @@
 
 #include <law/ayr_memory.hpp>
 #include <law/detail/bunit.hpp>
-#include <law/detail/hash_bucket.hpp>
+#include <law/detail/HashBucket.hpp>
 #include <law/detail/RelationIterator.hpp>
 
 namespace ayr
