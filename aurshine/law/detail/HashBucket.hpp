@@ -140,60 +140,6 @@ namespace ayr
 	};
 
 
-	template<IteratorLike I>
-	class RobinHashBucketIterator : public Object<RobinHashBucketIterator<I>>
-	{
-		using self = RobinHashBucketIterator<I>;
-	public:
-		using Iterator = I;
-
-		using Value_t = std::remove_reference_t<decltype(*std::declval<Iterator>())>::Value_t;
-
-		using Reference_t = Value_t&;
-
-		RobinHashBucketIterator(Iterator iter, Iterator end) : iter_(iter), end_(end) {}
-
-		RobinHashBucketIterator(const self& other) : iter_(other.iter_), end_(other.end_) {}
-
-		self& operator=(const self& other)
-		{
-			if (this == &other) return *this;
-
-			iter_ = other.iter_;
-			end_ = other.end_;
-			return *this;
-		}
-
-		Reference_t operator*() { return iter_->value(); }
-
-		const Reference_t operator*() const { return iter_->value(); }
-
-		Value_t* operator->() { return &iter_->value(); }
-
-		const Value_t* operator->() const { return &iter_->value(); }
-
-		self& operator++()
-		{
-			while (++iter_ != end_ && !iter_->is_managed());
-			return *this;
-		}
-
-		self operator++ (int)
-		{
-			Iterator temp = iter_;
-			++*this;
-			return self(temp);
-		}
-
-		bool __equals__(const self& other) const override
-		{
-			return iter_ == other.iter_;
-		}
-	private:
-		Iterator iter_, end_;
-	};
-
-
 	template<typename T>
 	class RobinHashBucket : public HashBucketImpl<T>
 	{
@@ -205,10 +151,6 @@ namespace ayr
 		using Value_t = super::Value_t;
 
 		using Manager_t = RobinManager<Value_t>;
-
-		using Iterator = RobinHashBucketIterator<typename Array<Manager_t>::Iterator>;
-
-		using ConstIterator = RobinHashBucketIterator<typename Array<Manager_t>::ConstIterator>;
 
 		RobinHashBucket() : RobinHashBucket(0) {}
 
@@ -285,28 +227,100 @@ namespace ayr
 				set_store(manager.value(), manager.hashv());
 		}
 
-
 		void clear() override { robin_managers_.resize(0); }
+
+
+		template<bool IsConst>
+		class RobinHashBucketIterator : public Object<RobinHashBucketIterator<IsConst>>
+		{
+			using self = RobinHashBucketIterator;
+		public:
+			using Container_t = std::conditional_t<IsConst, const RobinHashBucket, RobinHashBucket>;
+
+			using iterator_category = std::forward_iterator_tag;
+
+			using value_type = std::conditional_t<IsConst, const Value_t, Value_t>;
+
+			using difference_type = std::ptrdiff_t;
+
+			using pointer = value_type*;
+
+			using const_pointer = const value_type*;
+
+			using reference = value_type&;
+
+			using const_reference = const value_type&;
+
+			RobinHashBucketIterator() : bucket_ptr_(nullptr), index_(0) {}
+
+			RobinHashBucketIterator(Container_t* bucket_ptr, c_size index) : bucket_ptr_(bucket_ptr), index_(index) {}
+
+			RobinHashBucketIterator(const self& other) : bucket_ptr_(other.bucket_ptr_), index_(other.index_) {}
+
+			self& operator=(const self& other)
+			{
+				if (this == &other) return *this;
+
+				bucket_ptr_ = other.bucket_ptr_;
+				index_ = other.index_;
+				return *this;
+			}
+
+			reference operator*() { return bucket_ptr_->robin_managers_[index_].value(); }
+
+			const_reference operator*() const { return bucket_ptr_->robin_managers_[index_].value(); }
+
+			pointer operator->() { return &bucket_ptr_->robin_managers_[index_].value(); }
+
+			const_pointer operator->() const { return &bucket_ptr_->robin_managers_[index_].value(); }
+
+			self& operator++()
+			{
+				while (++index_ < bucket_ptr_->capacity() && !bucket_ptr_->robin_managers_[index_].is_managed());
+				return *this;
+			}
+
+			self operator++ (int)
+			{
+				self temp = *this;
+				++*this;
+				return temp;
+			}
+
+			bool __equals__(const self& other) const override
+			{
+				return bucket_ptr_ == other.bucket_ptr_ && index_ == other.index_;
+			}
+		private:
+			Container_t* bucket_ptr_;
+
+			c_size index_;
+		};
+
+		using Iterator = RobinHashBucketIterator<false>;
+
+		using ConstIterator = RobinHashBucketIterator<true>;
 
 		Iterator begin()
 		{
-			for (auto it = robin_managers_.begin(); it != robin_managers_.end(); ++it)
-				if (it->is_managed())
-					return Iterator(it, robin_managers_.end());
+			for (c_size i = 0; i < capacity(); ++i)
+				if (robin_managers_.at(i).is_managed())
+					return Iterator(this, i);
 			return end();
 		}
-
-		Iterator end() { return Iterator(robin_managers_.end(), robin_managers_.end()); }
 
 		ConstIterator begin() const
 		{
-			for (auto it = robin_managers_.begin(); it != robin_managers_.end(); ++it)
-				if (it->is_managed())
-					return ConstIterator(it, robin_managers_.end());
+			for (c_size i = 0; i < capacity(); ++i)
+				if (robin_managers_.at(i).is_managed())
+					return ConstIterator(this, i);
 			return end();
 		}
 
-		ConstIterator end() const { return ConstIterator(robin_managers_.end(), robin_managers_.end()); }
+		Iterator end() { return Iterator(this, capacity()); }
+
+		ConstIterator end() const { return ConstIterator(this, capacity()); }
+
 	private:
 		Array<Manager_t> robin_managers_;
 	};

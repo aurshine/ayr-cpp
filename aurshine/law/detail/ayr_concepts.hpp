@@ -65,9 +65,6 @@ namespace ayr
 	template<typename T>
 	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
 
-	template<typename T>
-	concept Reference = std::is_reference_v<T>;
-
 	// 可迭代类型约束概念
 	template<typename T>
 	concept Iteratable = requires(T obj)
@@ -75,18 +72,6 @@ namespace ayr
 		{ obj.begin() };
 		{ obj.end() };
 		{ obj.size() };
-	};
-
-	template<typename I>
-	concept IteratorLike = requires(I obj, I other)
-	{
-		{ ++obj } -> std::same_as<I&>;
-		{ obj++ } -> std::same_as<I>;
-		{ *obj } -> Reference;
-		{ I(obj) };
-		{ obj = other };
-		{ obj == other };
-		{ obj != other };
 	};
 }
 #endif

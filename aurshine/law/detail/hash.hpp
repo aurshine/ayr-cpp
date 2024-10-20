@@ -11,7 +11,7 @@ namespace ayr
 	inline hash_t ayr_hash_impl(const K& key, std::true_type) { return key.__hash__(); }
 
 	template<Hashable K>
-	inline hash_t ayr_hash_impl(const K& key, std::false_type) { return std::hash<K>()(key); }
+	inline hash_t ayr_hash_impl(const K& key, std::false_type) { return std::hash<K>{}(key); }
 
 	template<Hashable K>
 	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key, std::bool_constant<AyrLikeHashable<K>>{}); }

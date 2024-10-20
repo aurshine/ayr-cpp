@@ -7,13 +7,6 @@
 
 namespace ayr
 {
-	template<typename SeqContainer>
-	class SequenceCell
-	{
-
-	};
-
-
 	template<typename T>
 	class Sequence : public Object<Sequence<T>>
 	{
@@ -24,9 +17,9 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		using Iterator = IndexIterator<self, Value_t>;
+		using Iterator = IndexIterator<false, self, Value_t>;
 
-		using ConstIterator = CIndexIterator<self, Value_t>;
+		using ConstIterator = IndexIterator<true, self, Value_t>;
 
 		virtual Value_t& at(c_size) = 0;
 
@@ -64,13 +57,13 @@ namespace ayr
 			return __cmp__(other) == 0;
 		}
 
-		virtual Iterator begin() { return Iterator(*this, 0); }
+		virtual Iterator begin() { return Iterator(this, 0); }
 
-		virtual Iterator end() { return Iterator(*this, size()); }
+		virtual Iterator end() { return Iterator(this, size()); }
 
-		virtual ConstIterator begin() const { return ConstIterator(*this, 0); }
+		virtual ConstIterator begin() const { return ConstIterator(this, 0); }
 
-		virtual ConstIterator end() const { return ConstIterator(*this, size()); }
+		virtual ConstIterator end() const { return ConstIterator(this, size()); }
 
 		Value_t& operator[] (c_size index) { return at(neg_index(index, size())); }
 

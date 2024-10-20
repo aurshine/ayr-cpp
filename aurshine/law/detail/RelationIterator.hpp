@@ -8,15 +8,15 @@
 
 namespace ayr
 {
-	template<IteratorLike I>
+	template<std::input_or_output_iterator I>
 	class IterMoveImpl : public Object<IterMoveImpl<I>>
 	{
 	public:
 		using Iterator = I;
 
-		using Value_t = std::remove_reference_t<decltype(*std::declval<Iterator>())>;
+		using iterator_category = std::bidirectional_iterator_tag;
 
-		using Reference_t = Value_t&;
+		using value_type = std::remove_reference_t<decltype(*std::declval<Iterator>())>;
 
 		static Iterator& next(Iterator& iter) { NotImplementedError("next not implemented"); return None<I>; }
 
@@ -24,11 +24,19 @@ namespace ayr
 	};
 
 
-	template<IteratorLike I>
+	template<std::input_or_output_iterator I>
 	class SelfAddMove : public IterMoveImpl<I>
 	{
 		using self = SelfAddMove;
+
+		using super = IterMoveImpl<I>;
 	public:
+		using Iterator = I;
+
+		using iterator_category = std::bidirectional_iterator_tag;
+
+		using value_type = std::remove_reference_t<decltype(*std::declval<Iterator>())>;
+
 		// 移动到下一个元素， 修改自身
 		static I& next(I& iter) { return ++iter; }
 
@@ -43,15 +51,26 @@ namespace ayr
 		using self = RelationIterator<IterMove>;
 
 		using super = Object<self>;
-
 	public:
 		using Iterator = typename IterMove::Iterator;
 
-		using Value_t = typename IterMove::Value_t;
-
-		using Reference_t = typename IterMove::Reference_t;
-
 		using Move_t = IterMove;
+
+		using iterator_category = typename IterMove::iterator_category;
+
+		using value_type = typename IterMove::value_type;
+
+		using difference_type = std::ptrdiff_t;
+
+		using pointer = value_type*;
+
+		using const_pointer = const value_type*;
+
+		using reference = value_type&;
+
+		using const_reference = const value_type&;
+
+		RelationIterator() : iter_() {};
 
 		RelationIterator(const Iterator& iter) : iter_(iter) {}
 
@@ -59,13 +78,20 @@ namespace ayr
 
 		RelationIterator(self&& other) : iter_(std::move(other.iter_)) {}
 
-		Reference_t operator*() { return *iter_; }
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+			iter_ = other.iter_;
+			return *this;
+		}
 
-		const Reference_t operator*() const { return *iter_; }
+		reference operator*() { return *iter_; }
 
-		Value_t* operator->() { return &(*iter_); }
+		const_reference operator*() const { return *iter_; }
 
-		const Value_t* operator->() const { return &(*iter_); }
+		pointer operator->() { return &(*iter_); }
+
+		const_pointer operator->() const { return &(*iter_); }
 
 		self& operator++()
 		{

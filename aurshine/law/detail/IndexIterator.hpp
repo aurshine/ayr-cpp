@@ -6,71 +6,44 @@
 namespace ayr
 {
 	// 索引容器迭代器,
-	template<typename C, typename V>
-	class IndexIterator : public Object<IndexIterator<C, V>>
+	template<bool IsConst, typename C, typename V>
+	class IndexIterator : public Object<IndexIterator<IsConst, C, V>>
 	{
 		using super = Object<IndexIterator>;
 
 		using self = IndexIterator;
 	public:
-		using Container_t = C;
+		using Container_t = std::conditional_t<IsConst, const C, C>;
 
-		using Value_t = V;
+		using iterator_category = std::random_access_iterator_tag;
 
-		IndexIterator(Container_t& container, c_size index) : container_(container), index_(index) {}
+		using value_type = std::conditional_t<IsConst, const V, V>;
+
+		using difference_type = std::ptrdiff_t;
+
+		using pointer = value_type*;
+
+		using const_pointer = const value_type*;
+
+		using reference = value_type&;
+
+		using const_reference = const value_type&;
+
+		IndexIterator() : container_(nullptr), index_(0) {}
+
+		IndexIterator(Container_t* container, c_size index) : container_(container), index_(index) {}
 
 		IndexIterator(const self& other) : IndexIterator(other.container_, other.index_) {}
 
 		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
 
-		Value_t& operator*() { return container_[index_]; }
+		reference operator*() { return container_->operator[](index_); }
 
-		const Value_t& operator*() const { return container_[index_]; }
+		const_reference operator*() const { return container_->operator[](index_); }
 
-		Value_t* operator->() { return &container_[index_]; }
+		pointer operator->() { return &container_->operator[](index_); }
 
-		const Value_t* operator->() const { return &container_[index_]; }
-
-		self& operator++() { ++index_; return *this; }
-
-		self operator++(int) { self tmp(*this); ++index_; return tmp; }
-
-		self& operator--() { --index_; return *this; }
-
-		self operator--(int) { self tmp(*this); --index_; return tmp; }
-
-		bool __equals__(const self& other) const override { return (&container_ == &other.container_) && (index_ == other.index_); }
-
-		c_size distance(const self& other) const { return std::abs(other.index_ - index_); }
-
-	private:
-		Container_t& container_;
-
-		c_size index_;
-	};
-
-
-	// 常量索引容器迭代器
-	template<typename C, typename V>
-	class CIndexIterator : public Object<CIndexIterator<C, V>>
-	{
-		using self = CIndexIterator<C, V>;
-
-		using super = Object<self>;
-	public:
-		using Container_t = C;
-
-		using Value_t = V;
-
-		CIndexIterator(const Container_t& container, c_size index) : container_(container), index_(index) {}
-
-		CIndexIterator(const self& other) : CIndexIterator(other.container_, other.index_) {}
-
-		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
-
-		const Value_t& operator*() const { return container_[index_]; }
-
-		const Value_t* operator->() const { return &container_[index_]; }
+		const_pointer operator->() const { return &container_->operator[](index_); }
 
 		self& operator++() { ++index_; return *this; }
 
@@ -80,11 +53,20 @@ namespace ayr
 
 		self operator--(int) { self tmp(*this); --index_; return tmp; }
 
-		bool __equals__(const self& other) const override { return (&container_ == &other.container_) && (index_ == other.index_); }
+		self operator+(difference_type n) const { return self(container_, index_ + n); }
 
-		c_size distance(const self& other) const { return std::abs(other.index_ - index_); }
+		self operator-(difference_type n) const { return self(container_, index_ - n); }
+
+		self& operator+=(difference_type n) { index_ += n; return *this; }
+
+		self& operator-=(difference_type n) { index_ -= n; return *this; }
+
+		difference_type operator-(const self& other) const { return index_ - other.index_; }
+
+		bool __equals__(const self& other) const override { return container_ == other.container_ && index_ == other.index_; }
+
 	private:
-		const Container_t& container_;
+		Container_t* container_;
 
 		c_size index_;
 	};
