@@ -2,7 +2,7 @@
 #define AYR_JSON_TRAIT_HPP
 
 #include <law/detail/ayr_concepts.hpp>
-#include <law/String.hpp>
+#include <law/Atring.hpp>
 #include <law/DynArray.hpp>
 #include <law/Dict.hpp>
 

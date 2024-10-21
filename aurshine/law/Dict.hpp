@@ -7,6 +7,7 @@
 #include <law/detail/bunit.hpp>
 #include <law/detail/HashBucket.hpp>
 #include <law/detail/RelationIterator.hpp>
+#include <law/Atring.hpp>
 
 namespace ayr
 {
@@ -200,19 +201,29 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "{";
-			for (int i = 0, key_size = keys_.size(); i < key_size; i++)
+			for (auto& item : *this)
 			{
-				auto&& key = keys_[i];
-				if (i) stream << ", ";
-				if constexpr (issame<K, CString>)
-					stream << "\"" << key << "\": " << get(key);
+				if constexpr (issame<Key_t, CString, Atring, std::string>)
+					stream << "\"" << item.key() << "\"";
 				else
-					stream << key << ": " << get(key);
+					stream << item.key();
+				stream << ": ";
+				if constexpr (issame<Value_t, CString, Atring, std::string>)
+					stream << "\"" << item.value() << "\"";
+				else
+					stream << item.value();
+				stream << ", ";
 			}
 
-			stream << "}";
+			std::string str = stream.str();
+			if (str.size() > 2)
+			{
+				str.pop_back();
+				str.pop_back();
+			}
+			str.push_back('}');
 
-			return stream.str();
+			return str;
 		}
 
 		class DictIterator : public Object<DictIterator>

@@ -6,15 +6,17 @@
 #include <law/detail/bunit.hpp>
 #include <law/detail/HashBucket.hpp>
 #include <law/detail/RelationIterator.hpp>
+#include <law/Atring.hpp>
+
 
 namespace ayr
 {
-	template<Hashable T>
-	class Set : public Object<Set<T>>
+	template<Hashable T, typename Bucket = RobinHashBucket<T>>
+	class Set : public Object<Set<T, Bucket>>
 	{
 		using self = Set<T>;
 
-		using Bucket_t = HashBucketImpl<T>;
+		using Bucket_t = Bucket;
 
 	public:
 		using Value_t = T;
@@ -23,9 +25,7 @@ namespace ayr
 
 		using ConstIterator = Bucket_t::ConstIterator;
 
-		Set(c_size size = MIN_BUCKET_SIZE) : size_(0), bucket_(std::make_unique<RobinHashBucket<T>>(size)) {}
-
-		Set(Bucket_t* bucket, c_size size = 0) : size_(size), bucket_(bucket) {}
+		Set(c_size size = MIN_BUCKET_SIZE) : size_(0), bucket_(size) {}
 
 		Set(std::initializer_list<Value_t>&& il) : Set(roundup2(c_size(il.size() / MAX_LOAD_FACTOR)))
 		{
@@ -33,7 +33,7 @@ namespace ayr
 				insert_impl(std::move(v), ayrhash(v));
 		}
 
-		Set(const Set& other) : bucket_(other.bucket_->clone()) {}
+		Set(const Set& other) : bucket_(other.bucket_) {}
 
 		Set(Set&& other) noexcept : bucket_(std::move(other.bucket_)) {}
 
@@ -42,7 +42,7 @@ namespace ayr
 		Set& operator=(const Set& other)
 		{
 			if (this != &other)
-				bucket_ = other.bucket_->clone();
+				bucket_ = other.bucket_;
 			return *this;
 		}
 
@@ -55,7 +55,7 @@ namespace ayr
 
 		c_size size() const { return size_; }
 
-		c_size capacity() const { return bucket_->capacity(); }
+		c_size capacity() const { return bucket_.capacity(); }
 
 		bool contains(const Value_t& value) const { return contains_hash(ayrhash(value)); }
 
@@ -68,17 +68,34 @@ namespace ayr
 				insert_impl(value, hashv);
 		}
 
-	private:
-		bool contains_hash(hash_t hashv) const { return bucket_->contains(hashv); }
+		CString __str__() const
+		{
+			std::stringstream stream;
+			stream << "{";
+			for (auto v : *this)
+				stream << v << ", ";
 
-		void expand() { bucket_->expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
+			std::string str = stream.str();
+			if (str.size() > 2)
+			{
+				str.pop_back();
+				str.pop_back();
+			}
+			str.push_back('}');
+
+			return str;
+		}
+	private:
+		bool contains_hash(hash_t hashv) const { return bucket_.contains(hashv); }
+
+		void expand() { bucket_.expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
 
 		void insert_impl(const Value_t& value, hash_t hashv)
 		{
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_->set_store(value, hashv);
+			bucket_.set_store(value, hashv);
 			++size_;
 		}
 
@@ -87,19 +104,20 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_->set_store(std::move(value), hashv);
+			bucket_.set_store(std::move(value), hashv);
 			++size_;
 		}
 
-		Iterator begin() { return bucket_->begin(); }
 
-		Iterator end() { return bucket_->end(); }
+		Iterator begin() { return bucket_.begin(); }
 
-		ConstIterator begin() const { return bucket_->begin(); }
+		Iterator end() { return bucket_.end(); }
 
-		ConstIterator end() const { return bucket_->end(); }
+		ConstIterator begin() const { return bucket_.begin(); }
+
+		ConstIterator end() const { return bucket_.end(); }
 	private:
-		std::unique_ptr<Bucket_t> bucket_;
+		Bucket_t bucket_;
 
 		c_size size_;
 
