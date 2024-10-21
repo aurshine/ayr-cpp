@@ -83,21 +83,19 @@ namespace ayr
 		std::unique_ptr<char[]> str;
 	};
 
-	inline CString cstr(int64_t value) { return std::to_string(value); }
-
-	inline CString cstr(uint64_t value) { return std::to_string(value); }
-
-	inline CString cstr(double value) { return std::to_string(value); }
-
-	inline CString cstr(bool value) { return  ifelse(value, CString("true", 4), CString("false", 5)); }
-
-	inline CString cstr(const char* value) { return CString(value, std::strlen(value)); }
-
 	template<AyrPrintable T>
-	inline CString cstr(const T& value) { return value.__str__(); }
+	inline CString _cstr_impl(const T& value) { return value.__str__(); }
 
-	template<AyrPrintable T>
-	inline const char* stdstr(const T& value) { return cstr(value).data(); }
+	template<StdPrintable T>
+	inline CString _cstr_impl(const T& value)
+	{
+		std::stringstream stream;
+		stream << value;
+		return stream.str();
+	}
+
+	template<Printable T>
+	inline CString cstr(const T& value) { return _cstr_impl(value); }
 
 	inline const char* stdstr(const CString& value) { return value.data(); }
 }

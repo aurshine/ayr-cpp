@@ -48,18 +48,17 @@ namespace ayr
 
 			~AyrFile() { std::fclose(file_); }
 
-			// 如果I可以隐式转换为const char*, 则使用fwrite, 否则使用for循环逐个写入
-			template<typename I>
-			void write(const I& data) const
+			template<Printable T>
+			void write(const T& data) const { write(cstr(data)); }
+
+			void write(const CString& data) const
 			{
-				if constexpr (ConveribleToCstr<I>)
-				{
-					const char* c_data = static_cast<const char*>(data);
-					std::fwrite(c_data, 1, strlen(c_data), file_);
-				}
-				else
-					for (const char& d : data)
-						std::fputc(d, file_);
+				std::fwrite(stdstr(data), 1, data.size(), file_);
+			}
+
+			void write(const char* data) const
+			{
+				std::fwrite(data, 1, std::strlen(data), file_);
 			}
 
 			void flush() const { fflush(file_); }

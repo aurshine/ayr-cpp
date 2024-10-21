@@ -56,7 +56,11 @@ namespace ayr
 					if (c == '.' && !float_flag)
 						float_flag = true;
 					else
-						ValueError(stdstr(json_str));
+					{
+						CString _cstr = cstr(json_str);
+						ValueError(stdstr(_cstr));
+					}
+
 
 			CString _cstr = cstr(json_str);
 			const char* _stdstr = stdstr(_cstr);
@@ -74,7 +78,10 @@ namespace ayr
 			else if (json_str == "false"as)
 				return Json(false);
 			else
-				ValueError(stdstr(json_str));
+			{
+				CString _cstr = cstr(json_str);
+				ValueError(stdstr(_cstr));
+			}
 		}
 
 
@@ -83,7 +90,10 @@ namespace ayr
 			if (json_str == JsonType::JsonStr("null", 4))
 				return Json(JsonType::JsonNull());
 			else
-				ValueError(stdstr(json_str));
+			{
+				CString _cstr = cstr(json_str);
+				ValueError(stdstr(_cstr));
+			}
 		}
 
 
@@ -96,7 +106,10 @@ namespace ayr
 			else if (json_str[0] == 't' || json_str[0] == 'f') // bool类型
 				return __parse_bool(json_str);
 			else
-				ValueError(stdstr(json_str));
+			{
+				CString _cstr = cstr(json_str);
+				ValueError(stdstr(_cstr));
+			}
 		}
 
 

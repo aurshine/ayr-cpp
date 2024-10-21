@@ -26,10 +26,10 @@ namespace ayr
 		void operator()() const { __print__(ew_); }
 
 		// 设置输出结束符
-		void set_end(CString ew) { ew_ = std::move(ew); }
+		void setend(CString ew) { ew_ = std::move(ew); }
 
 		// 设置输出分隔符
-		void set_sep(CString sw) { sw_ = std::move(sw); }
+		void setsep(CString sw) { sw_ = std::move(sw); }
 
 	protected:
 		void __print__(const bool& object) const { std::fprintf(output_file_, object ? "true" : "false"); }
