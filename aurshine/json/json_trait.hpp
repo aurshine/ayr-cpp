@@ -23,7 +23,7 @@ namespace ayr
 
 			using JsonBool = bool;
 
-			using JsonStr = String<char>;
+			using JsonStr = Atring;
 
 			using JsonArray = DynArray<Json>;
 

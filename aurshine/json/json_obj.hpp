@@ -8,7 +8,7 @@ namespace ayr
 {
 	namespace json
 	{
-		class Json : public Object
+		class Json : public Object<Json>
 		{
 		public:
 			template<JsonTypeStrictConcept T>

@@ -91,6 +91,12 @@ namespace ayr
 
 	inline CString cstr(bool value) { return  ifelse(value, CString("true", 4), CString("false", 5)); }
 
-	inline CString cstr(const char* str_) { return CString(str_, std::strlen(str_)); }
+	inline CString cstr(const char* value) { return CString(value, std::strlen(value)); }
+
+	template<AyrPrintable T>
+	inline CString cstr(const T& value) { return value.__str__(); }
+
+	template<AyrPrintable T>
+	inline const char* stdstr(const T& value) { return cstr(value).data(); }
 }
 #endif // AYR_LAW_DETAIL_CSTRING_HPP

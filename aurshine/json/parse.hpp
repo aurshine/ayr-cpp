@@ -56,7 +56,7 @@ namespace ayr
 					if (c == '.' && !float_flag)
 						float_flag = true;
 					else
-						ValueError(json_str.__str__().str);
+						ValueError(json_str.__str__());
 
 			Json ret = float_flag ? Json(make_float(atof(json_str.__str__())))
 				: Json(make_int(atoll(json_str.__str__())));
@@ -72,7 +72,7 @@ namespace ayr
 			else if (json_str == "false"as)
 				return Json(false);
 			else
-				ValueError(json_str.__str__().str);
+				ValueError(stdstr(json_str));
 		}
 
 
@@ -81,7 +81,7 @@ namespace ayr
 			if (json_str == JsonType::JsonStr("null", 4))
 				return Json(JsonType::JsonNull());
 			else
-				ValueError(json_str.__str__().str);
+				ValueError(stdstr(json_str));
 		}
 
 
@@ -94,7 +94,7 @@ namespace ayr
 			else if (json_str[0] == 't' || json_str[0] == 'f') // bool类型
 				return __parse_bool(json_str);
 			else
-				ValueError(json_str.__str__().str);
+				ValueError(stdstr(json_str));
 		}
 
 
