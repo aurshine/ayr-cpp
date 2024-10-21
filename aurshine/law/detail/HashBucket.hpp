@@ -67,7 +67,7 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		RobinManager() : _move_dist(MOVED_NOTHING), _hashv(0), _value(1111111) {}
+		RobinManager() : _move_dist(MOVED_NOTHING), _hashv(0), _value() {}
 
 		RobinManager(const Value_t& value, hash_t hashv, uint32_t move_dist) :
 			_move_dist(move_dist),

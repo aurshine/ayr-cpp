@@ -70,7 +70,7 @@ namespace ayr
 
 		self operator+ (const self& other) const
 		{
-			self result(size() + other.size(), '\0');
+			self result('\0', size() + other.size());
 			size_t self_size = size(), other_size = other.size();
 			for (size_t i = 0; i < self_size; ++i)
 				result[i] = at(i);
@@ -168,8 +168,9 @@ namespace ayr
 
 		self slice(c_size start, c_size end) const
 		{
-			c_size length = end - start;
-			return Atring(cstr_ + start, length);
+			start = neg_index(start, size());
+			end = neg_index(end, size());
+			return Atring(cstr_ + start, end - start);
 		}
 
 		self slice(c_size start) const { return slice(start, size()); }

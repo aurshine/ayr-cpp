@@ -170,11 +170,11 @@ namespace ayr
 				case GetJsonTypeID<JsonType::JsonBool>::ID:
 					return cstr(transform<JsonType::JsonBool>());
 				case GetJsonTypeID<JsonType::JsonStr>::ID:
-					return transform<JsonType::JsonStr>().__str__();
+					return cstr("\""as + transform<JsonType::JsonStr>() + "\""as);
 				case GetJsonTypeID<JsonType::JsonArray>::ID:
-					return transform<JsonType::JsonArray>().__str__();
+					return cstr(transform<JsonType::JsonArray>());
 				case GetJsonTypeID<JsonType::JsonDict>::ID:
-					return transform<JsonType::JsonDict>().__str__();
+					return cstr(transform<JsonType::JsonDict>());
 				case GetJsonTypeID<JsonType::JsonNull>::ID:
 					return cstr("null");
 				default:

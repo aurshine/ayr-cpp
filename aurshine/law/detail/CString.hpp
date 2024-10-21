@@ -98,5 +98,7 @@ namespace ayr
 
 	template<AyrPrintable T>
 	inline const char* stdstr(const T& value) { return cstr(value).data(); }
+
+	inline const char* stdstr(const CString& value) { return value.data(); }
 }
 #endif // AYR_LAW_DETAIL_CSTRING_HPP

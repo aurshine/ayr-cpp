@@ -56,10 +56,12 @@ namespace ayr
 					if (c == '.' && !float_flag)
 						float_flag = true;
 					else
-						ValueError(json_str.__str__());
+						ValueError(stdstr(json_str));
 
-			Json ret = float_flag ? Json(make_float(atof(json_str.__str__())))
-				: Json(make_int(atoll(json_str.__str__())));
+			CString _cstr = cstr(json_str);
+			const char* _stdstr = stdstr(_cstr);
+			Json ret = float_flag ? Json(make_float(atof(_stdstr)))
+				: Json(make_int(atoll(_stdstr)));
 
 			return ret;
 		}
@@ -101,7 +103,7 @@ namespace ayr
 		def parse_first_object(JsonType::JsonStr& json_str, char stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
 			json_str.strip_();
-			error_assert(json_str.size() == 0, "json_str is empty");
+			error_assert(json_str.size() != 0, "json_str is empty");
 
 			JsonType::JsonStr match;
 			if (json_str[0] == '[')
