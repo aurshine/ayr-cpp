@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_FS_PATH_HPP
 #define AYR_FS_PATH_HPP
 
-#include <ayr/Printer.hpp>
+#include <ayr/detail/Printer.hpp>
 
 #ifdef _WIN32
 

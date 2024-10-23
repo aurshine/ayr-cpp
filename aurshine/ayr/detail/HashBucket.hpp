@@ -6,7 +6,6 @@
 #include <chrono>
 #include <thread>
 
-#include <ayr/printer.hpp>
 #include <ayr/detail/Array.hpp>
 #include <ayr/detail/hash.hpp>
 #include <ayr/detail/RelationIterator.hpp>
