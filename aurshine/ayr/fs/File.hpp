@@ -5,7 +5,6 @@
 #include <atomic>
 #include <memory>
 
-#include <ayr/Printer.hpp>
 #include <ayr/Dynarray.hpp>
 #include "Path.hpp"
 
