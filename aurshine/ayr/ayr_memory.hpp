@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_AYR_MEMORY_HPP
-#define AYR_LAW_AYR_MEMORY_HPP
+﻿#ifndef AYR_AYR_MEMORY_HPP
+#define AYR_AYR_MEMORY_HPP
 
 #include <ayr/detail/ayr_memory.hpp>
 #include <ayr/detail/ayr_traits.hpp>

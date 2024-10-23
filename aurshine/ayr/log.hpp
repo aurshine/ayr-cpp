@@ -1,10 +1,10 @@
-﻿#ifndef AYR_LAW_LOG_HPP
-#define AYR_LAW_LOG_HPP
+﻿#ifndef AYR_LOG_HPP
+#define AYR_LOG_HPP
 
 #include <ctime>
 #include <functional>
 
-#include <ayr/printer.hpp>
+#include <ayr/detail/printer.hpp>
 #include <ayr/timer.hpp>
 #include <ayr/Array.hpp>
 

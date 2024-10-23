@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_WRAPPER_HPP
-#define AYR_LAW_WRAPPER_HPP
+﻿#ifndef AYR_WRAPPER_HPP
+#define AYR_WRAPPER_HPP
 
 #include <type_traits>
 #include <ayr/detail/object.hpp>

@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DYNAARRAY_HPP
-#define AYR_LAW_DYNAARRAY_HPP
+﻿#ifndef AYR_DYNAARRAY_HPP
+#define AYR_DYNAARRAY_HPP
 
 #include <utility>
 

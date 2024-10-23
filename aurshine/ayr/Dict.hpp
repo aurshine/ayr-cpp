@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DICT_HPP
-#define AYR_LAW_DICT_HPP
+﻿#ifndef AYR_DICT_HPP
+#define AYR_DICT_HPP
 
 #include <ranges>
 

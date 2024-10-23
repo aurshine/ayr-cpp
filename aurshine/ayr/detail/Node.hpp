@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_NODE_HPP
-#define AYR_LAW_DETIAL_NODE_HPP
+﻿#ifndef AYR_DETAIL_NODE_HPP
+#define AYR_DETIAL_NODE_HPP
 
 #include <ayr/detail/printer.hpp>
 

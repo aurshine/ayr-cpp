@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_AYR_CONCEPTS_HPP
-#define AYR_LAW_DETAIL_AYR_CONCEPTS_HPP
+﻿#ifndef AYR_DETAIL_AYR_CONCEPTS_HPP
+#define AYR_DETAIL_AYR_CONCEPTS_HPP
 
 #include <iostream>
 #include <concepts>

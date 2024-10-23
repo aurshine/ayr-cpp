@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_CSTRING_HPP
-#define AYR_LAW_DETAIL_CSTRING_HPP
+﻿#ifndef AYR_DETAIL_CSTRING_HPP
+#define AYR_DETAIL_CSTRING_HPP
 
 #include <cstring>
 #include <string>
@@ -99,4 +99,4 @@ namespace ayr
 
 	inline const char* stdstr(const CString& value) { return value.data(); }
 }
-#endif // AYR_LAW_DETAIL_CSTRING_HPP
+#endif // AYR_DETAIL_CSTRING_HPP

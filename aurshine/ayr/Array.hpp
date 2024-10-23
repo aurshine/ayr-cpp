@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_ARRAY_HPP
-#define AYR_LAW_ARRAY_HPP
+﻿#ifndef AYR_ARRAY_HPP
+#define AYR_ARRAY_HPP
 
 
 #include <ayr/detail/Array.hpp>

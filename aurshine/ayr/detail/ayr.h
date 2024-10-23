@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_AYR_H
-#define AYR_LAW_DETAIL_AYR_H
+﻿#ifndef AYR_DETAIL_AYR_H
+#define AYR_DETAIL_AYR_H
 
 #include <cstdint>
 #include <cassert>

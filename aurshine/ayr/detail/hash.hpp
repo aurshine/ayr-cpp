@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_HASH_HPP
-#define AYR_LAW_DETAIL_HASH_HPP
+﻿#ifndef AYR_DETAIL_HASH_HPP
+#define AYR_DETAIL_HASH_HPP
 
 #include <ayr/detail/ayr_concepts.hpp>
 #include <ayr/detail/ayr.h>

@@ -1,5 +1,5 @@
-#ifndef AYR_LAW_DETIAL_RELATIONITERATOR_HPP
-#define AYR_LAW_DETIAL_RELATIONITERATOR_HPP
+#ifndef AYR_DETIAL_RELATIONITERATOR_HPP
+#define AYR_DETIAL_RELATIONITERATOR_HPP
 
 #include <ayr/detail/object.hpp>
 #include <ayr/detail/ayr_concepts.hpp>

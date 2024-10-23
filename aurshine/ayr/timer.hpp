@@ -1,10 +1,10 @@
-﻿#ifndef AYR_LAW_TIMER_HPP
-#define AYR_LAW_TIMER_HPP
+﻿#ifndef AYR_TIMER_HPP
+#define AYR_TIMER_HPP
 
 #include <ctime>
 #include <chrono>
 
-#include <ayr/Printer.hpp>
+#include <ayr/detail/Printer.hpp>
 #include <ayr/Array.hpp>
 #include <ayr/Wrapper.hpp>
 

@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETIAL_BUNIT_HPP
-#define AYR_LAW_DETIAL_BUNIT_HPP
+﻿#ifndef AYR_DETIAL_BUNIT_HPP
+#define AYR_DETIAL_BUNIT_HPP
 
 namespace ayr
 {

@@ -1,8 +1,8 @@
-﻿#ifndef AYR_LAW_STRING_HPP
-#define AYR_LAW_STRING_HPP
+﻿#ifndef AYR_STRING_HPP
+#define AYR_STRING_HPP
 
 
-#include <ayr/printer.hpp>
+#include <ayr/detail/printer.hpp>
 #include <ayr/Dynarray.hpp>
 #include <ayr/ayr_memory.hpp>
 

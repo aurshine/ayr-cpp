@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETIAL_OBJECT_HPP
-#define AYR_LAW_DETIAL_OBJECT_HPP
+﻿#ifndef AYR_DETIAL_OBJECT_HPP
+#define AYR_DETIAL_OBJECT_HPP
 
 #include <format>
 #include <sstream>

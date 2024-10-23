@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAWLBYTES_HPP
-#define AYR_LAWLBYTES_HPP
+﻿#ifndef AYRLBYTES_HPP
+#define AYRLBYTES_HPP
 
 #include <cstdint>
 

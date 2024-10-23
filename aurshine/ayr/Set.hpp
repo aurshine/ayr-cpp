@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_SER_HPP
-#define AYR_LAW_SER_HPP
+﻿#ifndef AYR_SER_HPP
+#define AYR_SER_HPP
 
 #include <algorithm>
 #include <ayr/ayr_memory.hpp>

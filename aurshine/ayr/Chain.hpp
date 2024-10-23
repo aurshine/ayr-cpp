@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_CHAIN_HPP
-#define AYR_LAW_CHAIN_HPP
+﻿#ifndef AYR_CHAIN_HPP
+#define AYR_CHAIN_HPP
 
 #include <ayr/detail/Node.hpp>
 #include <ayr/ayr_memory.hpp>

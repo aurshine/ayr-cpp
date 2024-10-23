@@ -1,5 +1,5 @@
-﻿#ifndef AYR_LAW_DETAIL_HASH_BUCKET_HPP
-#define AYR_LAW_DETAIL_HASH_BUCKET_HPP
+﻿#ifndef AYR_DETAIL_HASH_BUCKET_HPP
+#define AYR_DETAIL_HASH_BUCKET_HPP
 
 #include <algorithm>
 #include <functional>

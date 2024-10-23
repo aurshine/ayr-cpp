@@ -1,7 +1,7 @@
 ﻿#pragma once
 
-#ifndef AYR_LAW_DETAIL_BUFFER_HPP
-#define AYR_LAW_DETAIL_BUFFER_HPP
+#ifndef AYR_DETAIL_BUFFER_HPP
+#define AYR_DETAIL_BUFFER_HPP
 
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/ayr_memory.hpp>
