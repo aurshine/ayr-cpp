@@ -4,14 +4,13 @@
 #include <queue>
 #include <functional>
 
-#include <ayr/object.hpp>
 #include <ayr/Array.hpp>
 
 
 namespace ayr
 {
 	/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
-	class ThreadPool : public Object
+	class ThreadPool : public Object<ThreadPool>
 	{
 	public:
 		ThreadPool(const ThreadPool& pool) = delete;
@@ -67,7 +66,7 @@ namespace ayr
 
 
 	private:
-		std::Array<std::thread> threads;
+		Array<std::thread> threads;
 
 		std::queue<std::function<void()>> tasks;
 
