@@ -26,7 +26,7 @@ namespace ayr
 
 			void unhandled_exception() { throw; }
 
-			void return_value(T value) noexcept { print("get_return"); value_ = std::move(value); }
+			void return_value(T value) noexcept { value_ = std::move(value); }
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 
