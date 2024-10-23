@@ -7,6 +7,11 @@ namespace ayr
 {
 	namespace coro
 	{
+#define std_resume __builtin_coro_resume;
+
+		// 恢复一个协程
+		def resume(Coroutine coroutine) { coroutine.resume(); }
+
 		class CoroLoop : Object<CoroLoop>
 		{
 			using self = CoroLoop;
@@ -25,6 +30,18 @@ namespace ayr
 			{
 				static self coro_loop;
 				return coro_loop;
+			}
+
+			template<typename P>
+			static P& async_run(std::coroutine_handle<P> coroutine)
+			{
+				while (!coroutine.done())
+					coroutine.resume();
+
+				if constexpr (std::is_void_v<P>)
+					return;
+				else
+					return coroutine.promise();
 			}
 		};
 	}

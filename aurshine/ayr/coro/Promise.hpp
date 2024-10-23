@@ -9,7 +9,7 @@ namespace ayr
 {
 	namespace coro
 	{
-		using coroutine = std::coroutine_handle<>;
+		using Coroutine = std::coroutine_handle<>;
 
 		template<typename T = void>
 		class Promise : public Object<Promise<T>>
@@ -22,7 +22,7 @@ namespace ayr
 
 			std::suspend_always final_suspend() const noexcept { return {}; }
 
-			std::suspend_always yield_value(T value) noexcept { value_ = value; return {}; }
+			std::suspend_always yield_value(T value) noexcept { value_ = std::move(value); return {}; }
 
 			void unhandled_exception() { throw; }
 
@@ -43,7 +43,7 @@ namespace ayr
 		{
 			using self = Promise<void>;
 		public:
-			using co_type = coroutine;
+			using co_type = std::coroutine_handle<self>;
 
 			std::suspend_always initial_suspend() const noexcept { return {}; }
 
@@ -55,7 +55,7 @@ namespace ayr
 
 			void return_void() noexcept {}
 
-			co_type get_return_object() noexcept { return {}; }
+			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 		};
 	}
 }
