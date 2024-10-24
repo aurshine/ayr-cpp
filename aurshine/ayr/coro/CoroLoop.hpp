@@ -23,43 +23,40 @@ namespace ayr
 		};
 
 
-		class CoroLoop : Object<CoroLoop>
+		class CoroLoop : public Object<CoroLoop>, public NoCopy
 		{
 			using self = CoroLoop;
 
 			CoroLoop() = default;
+
+			static self& get_loop() { static self coro_loop; return coro_loop; }
 		public:
-			CoroLoop(const self&) = delete;
+			static void add(Coroutine coro) { get_loop().ready_coroutines.push_back(coro); }
 
-			CoroLoop(self&&) = delete;
-
-			self& operator=(const self&) = delete;
-
-			self& operator=(self&&) = delete;
-
-			void add_coro(Coroutine coro) { ready_coros.push_back(coro); }
-
-			void add_coro(Coroutine coro, const std::chrono::steady_clock::time_point& abs_time)
+			static void add(Coroutine coro, const std::chrono::steady_clock::time_point& abs_time)
 			{
-				sleep_coros.push({ coro, abs_time });
+				get_loop().sleep_coroutines.push({ coro, abs_time });
 			}
 
-			template<typename TaskType>
-			void add_task(TaskType&& task) { add_coro(task.coro_); task.coro_ = nullptr; }
+			template<typename T>
+			static void add(Task<T>& task) { get_loop().add(task.coro_); task.coro_ = nullptr; }
 
-			void run()
+			template<typename T>
+			static void add(Task<T>&& task) { get_loop().add(task.coro_); task.coro_ = nullptr; }
+
+			static void run()
 			{
-				while (!ready_coros.empty() || !sleep_coros.empty())
+				while (!get_loop().ready_coroutines.empty() || !get_loop().sleep_coroutines.empty())
 				{
-					while (!ready_coros.empty())
+					while (!get_loop().ready_coroutines.empty())
 					{
-						ready_coros.front().resume();
-						ready_coros.pop_front();
+						get_loop().ready_coroutines.front().resume();
+						get_loop().ready_coroutines.pop_front();
 					}
 
-					if (!sleep_coros.empty())
+					if (!get_loop().sleep_coroutines.empty())
 					{
-						auto& first_timer = sleep_coros.top();
+						auto& first_timer = get_loop().sleep_coroutines.top();
 
 						if (first_timer.abs_time_ <= std::chrono::steady_clock::now())
 							first_timer.coro_.resume();
@@ -69,34 +66,16 @@ namespace ayr
 							first_timer.coro_.resume();
 						}
 
-						sleep_coros.pop();
+						get_loop().sleep_coroutines.pop();
 					}
 				}
 			}
-
-			static self& get_loop()
-			{
-				static self coro_loop;
-				return coro_loop;
-			}
-
-			template<typename T = void>
-			static T& async_run(std::coroutine_handle<Promise<T>> coroutine)
-			{
-				while (!coroutine.done())
-					coroutine.resume();
-
-				if constexpr (std::is_void_v<T>)
-					return;
-				else
-					return coroutine.promise().result();
-			}
-
 		private:
-			std::deque<Coroutine> ready_coros;
+			std::deque<Coroutine> ready_coroutines;
 
-			std::priority_queue<TimerEntry> sleep_coros;
+			std::priority_queue<TimerEntry> sleep_coroutines;
 		};
+
 
 		class Sleep : public std::suspend_always, public Object<Sleep>
 		{
@@ -109,7 +88,7 @@ namespace ayr
 
 			void await_suspend(Coroutine coroutine)
 			{
-				CoroLoop::get_loop().add_coro(coroutine, abs_time_);
+				CoroLoop::add(coroutine, abs_time_);
 			}
 
 		private:

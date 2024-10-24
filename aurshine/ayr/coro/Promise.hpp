@@ -4,6 +4,7 @@
 #include <coroutine>
 
 #include <ayr/detail/printer.hpp>
+#include <ayr/detail/NoCopy.hpp>
 
 namespace ayr
 {
@@ -11,7 +12,7 @@ namespace ayr
 	{
 		using Coroutine = std::coroutine_handle<>;
 
-		struct SuspendPrevious : public std::suspend_always
+		struct SuspendPrevious : public std::suspend_always, public Object<SuspendPrevious>
 		{
 			SuspendPrevious() noexcept = default;
 

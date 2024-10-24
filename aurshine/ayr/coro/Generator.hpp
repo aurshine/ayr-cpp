@@ -2,14 +2,14 @@
 #define AYR_CORO_GENERATOR_HPP
 
 #include <ayr/detail/printer.hpp>
-
+#include <ayr/detail/NoCopy.hpp>
 
 namespace ayr
 {
 	namespace coro
 	{
 		template<typename T>
-		class Generator : public Object<Generator<T>>
+		class Generator : public Object<Generator<T>>, public NoCopy
 		{
 			using self = Generator<T>;
 			static_assert(std::is_default_constructible_v<T>, "Generator requires default constructible result type");
@@ -47,10 +47,6 @@ namespace ayr
 
 			Generator(Generator&& other) : coro_(std::move(other)) { other.coro_ = nullptr; };
 
-			Generator(const Generator& other) = delete;
-
-			Generator& operator=(const Generator& other) = delete;
-
 			Generator& operator=(Generator&& other)
 			{
 				if (this != &other)
@@ -83,10 +79,6 @@ namespace ayr
 				using const_reference = const value_type&;
 
 				GeneratorIterator(co_type coroutine) : coro_(coroutine) {}
-
-				GeneratorIterator(const self& other) = delete;
-
-				GeneratorIterator& operator=(const self& other) = delete;
 
 				GeneratorIterator(self&& other) : coro_(other.coro_) { other.coro_ = nullptr; }
 

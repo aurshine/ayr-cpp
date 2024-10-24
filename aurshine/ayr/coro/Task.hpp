@@ -24,15 +24,6 @@ namespace ayr
 
 			Task(Task&& other) noexcept : super(std::move(other)) {}
 
-			~Task()
-			{
-				if (super::coro_)
-				{
-					super::coro_.destroy();
-					super::coro_ = nullptr;
-				}
-			};
-
 			Coroutine await_suspend(Coroutine awaiter) noexcept
 			{
 				super::coro_.promise().previous_coro_ = awaiter;

@@ -8,7 +8,7 @@ namespace ayr
 	namespace coro
 	{
 		template<typename T>
-		class Awaiter : public Object<Awaiter<T>>
+		class Awaiter : public Object<Awaiter<T>>, public NoCopy
 		{
 			using self = Awaiter<T>;
 		public:
@@ -18,11 +18,9 @@ namespace ayr
 
 			Awaiter(co_type coro) : coro_(coro) {}
 
-			Awaiter(const self&) = delete;
-
 			Awaiter(self&& other) : coro_(other.coro_) { other.coro_ = nullptr; }
 
-			Awaiter& operator=(const self&) = delete;
+			~Awaiter() { if (coro_) coro_.destroy(); }
 
 			Awaiter& operator=(self&& other) noexcept
 			{
@@ -44,7 +42,7 @@ namespace ayr
 		};
 
 		template<>
-		struct Awaiter<void> : public Object<Awaiter<void>>
+		struct Awaiter<void> : public Object<Awaiter<void>>, public NoCopy
 		{
 			using self = Awaiter<void>;
 		public:
@@ -52,17 +50,11 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<promise_type>;
 
-			Awaiter() = default;
-
 			Awaiter(co_type coro) : coro_(coro) {}
-
-			Awaiter(const self&) = delete;
 
 			Awaiter(self&& other) noexcept : coro_(other.coro_) { other.coro_ = nullptr; }
 
-			~Awaiter() { if (coro_) { coro_.destroy(); coro_ = nullptr; } }
-
-			Awaiter& operator=(const self&) = delete;
+			~Awaiter() { if (coro_) coro_.destroy(); }
 
 			Awaiter& operator=(self&& other) noexcept
 			{
