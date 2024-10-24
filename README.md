@@ -91,10 +91,7 @@ using namespace ayr;
 coro::Generator<int> dfs(int n)
 {
 	while (n > 0)
-	{
 		co_yield n--;
-	}
-	co_return 100;
 }
 
 
