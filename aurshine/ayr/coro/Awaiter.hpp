@@ -52,6 +52,8 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<promise_type>;
 
+			Awaiter() = default;
+
 			Awaiter(co_type coro) : coro_(coro) {}
 
 			Awaiter(const self&) = delete;

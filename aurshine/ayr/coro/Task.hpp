@@ -14,6 +14,8 @@ namespace ayr
 
 			using super = Awaiter<T>;
 		public:
+			friend class CoroLoop;
+
 			using promise_type = super::promise_type;
 
 			using co_type = super::co_type;
@@ -22,9 +24,22 @@ namespace ayr
 
 			Task(Task&& other) noexcept : super(std::move(other)) {}
 
-			~Task() { if (super::coro_) { super::coro_.destroy(); super::coro_ = nullptr; } };
+			~Task()
+			{
+				if (super::coro_)
+				{
+					super::coro_.destroy();
+					super::coro_ = nullptr;
+				}
+			};
 
-			operator co_type() const noexcept { return super::coro_; }
+			Coroutine await_suspend(Coroutine awaiter) noexcept
+			{
+				super::coro_.promise().previous_coro_ = awaiter;
+				return super::coro_;
+			}
+
+			operator Coroutine() const noexcept { return super::coro_; }
 		};
 	}
 }
