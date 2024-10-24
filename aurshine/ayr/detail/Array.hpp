@@ -34,7 +34,7 @@ namespace ayr
 
 		const T& at(c_size index) const override { return data()[index]; }
 
-		virtual CString __str__() const override
+		virtual CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "[";

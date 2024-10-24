@@ -197,7 +197,7 @@ namespace ayr
 
 		void clear() { bucket_.clear(); keys_.clear(); }
 
-		CString __str__() const override
+		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "{";
@@ -276,7 +276,7 @@ namespace ayr
 
 			difference_type operator-(const self& other) const { return index_ - other.index_; }
 
-			bool __equals__(const self& other) const override { return dict_ == other.dict_ && index_ == other.index_; }
+			bool __equals__(const self& other) const { return dict_ == other.dict_ && index_ == other.index_; }
 
 		private:
 			void update_kv(c_size add)

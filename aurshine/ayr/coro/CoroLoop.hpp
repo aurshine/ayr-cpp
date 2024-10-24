@@ -74,7 +74,7 @@ namespace ayr
 				}
 			}
 
-			static self& coroloop()
+			static self& get_loop()
 			{
 				static self coro_loop;
 				return coro_loop;
@@ -109,7 +109,7 @@ namespace ayr
 
 			void await_suspend(Coroutine coroutine)
 			{
-				CoroLoop::coroloop().add_coro(coroutine, abs_time_);
+				CoroLoop::get_loop().add_coro(coroutine, abs_time_);
 			}
 
 		private:

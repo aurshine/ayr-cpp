@@ -174,9 +174,9 @@ namespace ayr
 		// 返回字节码长度
 		c_size size() const noexcept { return code_size_; }
 
-		CString __str__() const override { return CString(reinterpret_cast<const char*>(bytes()), size()); }
+		CString __str__() const { return CString(reinterpret_cast<const char*>(bytes()), size()); }
 
-		hash_t __hash__() const override { return bytes_hash(reinterpret_cast<const char*>(bytes()), size()); }
+		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(bytes()), size()); }
 
 		cmp_t __cmp__(const self& other)
 		{

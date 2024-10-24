@@ -43,7 +43,7 @@ namespace ayr
 
 			self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
-			bool __equals__(const self& other) const override { return current_ == other.current_; }
+			bool __equals__(const self& other) const { return current_ == other.current_; }
 
 			c_size distance(const self& other) const { return (other.current_ - current_) / step_; }
 		private:

@@ -55,7 +55,7 @@ namespace ayr
 
 			const_pointer operator->() const { return &coro_.promise().result(); }
 
-			bool __equals__(const self& other) const override { return coro_.address() == other.coro_.address(); }
+			bool __equals__(const self& other) const { return coro_.address() == other.coro_.address(); }
 		private:
 			co_type coro_;
 		};
@@ -68,8 +68,6 @@ namespace ayr
 
 			using super = Awaiter<T>;
 		public:
-			using promise_type = super::promise_type;
-
 			using co_type = super::co_type;
 
 			Generator(co_type coro) : super(coro) {}

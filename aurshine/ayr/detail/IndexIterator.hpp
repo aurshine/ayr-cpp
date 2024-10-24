@@ -63,7 +63,7 @@ namespace ayr
 
 		difference_type operator-(const self& other) const { return index_ - other.index_; }
 
-		bool __equals__(const self& other) const override { return container_ == other.container_ && index_ == other.index_; }
+		bool __equals__(const self& other) const { return container_ == other.container_ && index_ == other.index_; }
 
 	private:
 		Container_t* container_;
