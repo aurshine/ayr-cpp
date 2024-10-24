@@ -58,9 +58,6 @@ namespace ayr
 
 	}&& isinstance<T, Object<typename T::AyrObjectDerived>>;
 
-	template<typename T>
-	constexpr bool is_ayr_obj = AyrObject<T>;
-
 	template<AyrObject T>
 	std::ostream& operator<<(std::ostream& os, const T& obj)
 	{
@@ -74,5 +71,23 @@ namespace ayr
 		os << "<" << dtype(T) << " 0x" << std::hex << &obj << ">";
 		return os;
 	}
+
+	template<AyrObject T>
+	bool operator==(const T& a, const T& b) { return a.__equals__(b); }
+
+	template<AyrObject T>
+	bool operator!=(const T& a, const T& b) { return !a.__equals__(b); }
+
+	template<AyrObject T>
+	bool operator>(const T& a, const T& b) { return a.__cmp__(b) > 0; }
+
+	template<AyrObject T>
+	bool operator<(const T& a, const T& b) { return a.__cmp__(b) < 0; }
+
+	template<AyrObject T>
+	bool operator>=(const T& a, const T& b) { return a.__cmp__(b) >= 0; }
+
+	template<AyrObject T>
+	bool operator<=(const T& a, const T& b) { return a.__cmp__(b) <= 0; }
 }
 #endif
