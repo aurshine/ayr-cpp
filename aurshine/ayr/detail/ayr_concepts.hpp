@@ -73,19 +73,5 @@ namespace ayr
 		{ obj.end() };
 		{ obj.size() };
 	};
-
-	template<typename A>
-	concept Awaiter = requires(A a, std::coroutine_handle<> handle)
-	{
-		{ a.await_ready() } -> std::convertible_to<bool>;
-		{ a.await_suspend(handle) };
-		{ a.await_resume() };
-	};
-
-	template<typename A>
-	concept Awaitable = Awaiter<A> || requires(A a)
-	{
-		{ a.operator co_await() } -> Awaiter;
-	};
 }
 #endif
