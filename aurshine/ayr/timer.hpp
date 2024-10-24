@@ -72,6 +72,8 @@ namespace ayr
 			return a.__cmp__(b);
 		}
 
+		bool __equals__(const Date& date) const { return __cmp__(date) == 0; }
+
 		// 计算星期
 		static int calc_week(int year, int month, int day)
 		{

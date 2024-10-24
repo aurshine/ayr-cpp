@@ -178,7 +178,7 @@ namespace ayr
 
 		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(bytes()), size()); }
 
-		cmp_t __cmp__(const self& other)
+		cmp_t __cmp__(const self& other)  const
 		{
 			c_size m_size = size(), o_size = other.size();
 			if (m_size != o_size)
@@ -186,6 +186,8 @@ namespace ayr
 
 			return std::memcmp(bytes(), other.bytes(), m_size);
 		}
+
+		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
 
 	private:
 		std::unique_ptr<Byte[]> byte_code_;
