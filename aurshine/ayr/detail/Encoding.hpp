@@ -7,9 +7,11 @@
 
 namespace ayr
 {
-	// 单字节
-	using Byte = char;
-
+	const CString ASCII = "ascii";
+	const CString UTF8 = "utf-8";
+	const CString UTF16 = "utf-16";
+	const CString UTF32 = "utf-32";
+	const CString GB2312 = "gb2312";
 
 	class Encoding : public Object<Encoding>
 	{
@@ -21,40 +23,54 @@ namespace ayr
 		virtual CString __str__() const { return "Encoding"; }
 
 		// 返回当前编码方式，开头字符的字节数
-		virtual int byte_count(const Byte* data) const = 0;
+		virtual int byte_size(const char* data) const = 0;
 
 		// 返回当前编码方式的克隆
 		virtual Encoding* clone() const = 0;
 
 		virtual ~Encoding() = default;
+
+		virtual c_size bytes_count(const char* data, c_size len)
+		{
+			c_size count = 0;
+			int i = 0;
+			while (i < len)
+			{
+				++count;
+				int byte_size_ = this->byte_size(data + i);
+				i += byte_size_;
+				if (i > len) EncodingError("Invalid encoding");
+			}
+			return count;
+		}
 	};
 
 
-	class ASCII : public Encoding
+	class ASCIIEncoding : public Encoding
 	{
-		using self = ASCII;
+		using self = ASCIIEncoding;
 
 		using super = Encoding;
 
 	public:
 		CString __str__() const override { return "ASCII"; }
 
-		int byte_count(const Byte* data) const override { return 1; }
+		int byte_size(const char* data) const override { return 1; }
 
-		ASCII* clone() const override { return new ASCII(); }
+		self* clone() const override { return new self(); }
 	};
 
 
-	class UTF8 : public Encoding
+	class UTF8Encoding : public Encoding
 	{
-		using self = UTF8;
+		using self = UTF8Encoding;
 
 		using super = Encoding;
 
 	public:
 		CString __str__() const override { return "UTF-8"; }
 
-		int byte_count(const Byte* data) const override
+		int byte_size(const char* data) const override
 		{
 			if ((data[0] & 0x80) == 0)         // 以0    开头 (0xxxxxxx),1字节编码
 				return 1;
@@ -69,20 +85,20 @@ namespace ayr
 			return 0;
 		}
 
-		UTF8* clone() const override { return new UTF8(); }
+		self* clone() const override { return new self(); }
 	};
 
 
-	class UTF16 : public Encoding
+	class UTF16Encoding : public Encoding
 	{
-		using self = UTF16;
+		using self = UTF16Encoding;
 
 		using super = Encoding;
 
 	public:
 		CString __str__() const  override { return "UTF-16"; }
 
-		int byte_count(const Byte* data) const override
+		int byte_size(const char* data) const override
 		{
 			if ((data[0] & 0xFC) == 0xD8) // 以110110开头 (110110xx 110111xx),4字节编码
 				return 4;
@@ -90,37 +106,37 @@ namespace ayr
 				return 2;
 		}
 
-		UTF16* clone() const override { return new UTF16(); }
+		self* clone() const override { return new self(); }
 	};
 
 
-	class UTF32 : public Encoding
+	class UTF32Encoding : public Encoding
 	{
-		using self = UTF32;
+		using self = UTF32Encoding;
 
 		using super = Encoding;
 
 	public:
 		CString __str__() const  override { return "UTF-32"; }
 
-		int byte_count(const Byte* data) const override { return 4; }
+		int byte_size(const char* data) const override { return 4; }
 
-		UTF32* clone() const override { return new UTF32(); }
+		self* clone() const override { return new self(); }
 	};
 
 
-	class GB2312 : public Encoding
+	class GB2312Encoding : public Encoding
 	{
-		using self = GB2312;
+		using self = GB2312Encoding;
 
 		using super = Encoding;
 
 	public:
 		CString __str__() const  override { return "GB2312"; }
 
-		int byte_count(const Byte* data) const override { return 0; }
+		int byte_size(const char* data) const override { return 0; }
 
-		GB2312* clone() const override { return new GB2312(); }
+		self* clone() const override { return new self(); }
 	};
 }
 #endif

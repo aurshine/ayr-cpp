@@ -190,4 +190,6 @@ namespace ayr
 #define FileNotFoundError(msg) Error("FileNotFoundError", msg)
 
 #define PermissionError(msg) Error("PermissionError", msg)
+
+#define EncodingError(msg) Error("EncodingError", msg)
 }

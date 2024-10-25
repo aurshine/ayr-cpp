@@ -21,7 +21,7 @@ namespace ayr
 		// 返回一个可以被实际解析为Json对象的字符串
 		def parse(JsonType::JsonStr& json_str) -> Json
 		{
-			json_str.strip_();
+			json_str.strip();
 
 			if (json_str[0] == '{')  // dict类型
 			{
@@ -115,7 +115,7 @@ namespace ayr
 
 		def parse_first_object(JsonType::JsonStr& json_str, char stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
-			json_str.strip_();
+			json_str.strip();
 			error_assert(json_str.size() != 0, "json_str is empty");
 
 			JsonType::JsonStr match;
@@ -140,14 +140,14 @@ namespace ayr
 					match = json_str.slice(0, stop_sign_idx);
 			}
 
-			JsonType::JsonStr ret_str = json_str.slice(match.size()).strip_();
+			JsonType::JsonStr ret_str = json_str.slice(match.size()).strip();
 
 			if (ret_str.size())
 			{
 				if (ret_str[0] != stop_sign)
 					RuntimeError(std::format("stop_sign '{}' not found", stop_sign));
 
-				ret_str.slice_(1).strip_();
+				ret_str.slice(1).strip();
 			}
 
 			return { parse(match), ret_str };
@@ -159,8 +159,8 @@ namespace ayr
 		{
 			JsonType::JsonArray arr;
 			// 去掉 []
-			json_str.slice_(1, -1);
-			json_str.strip_();
+			json_str.slice(1, -1);
+			json_str.strip();
 
 			while (json_str.size())
 			{
@@ -177,8 +177,8 @@ namespace ayr
 		def __parse_dict(JsonType::JsonStr& json_str) -> Json
 		{
 			JsonType::JsonDict dict;
-			json_str.slice_(1, -1);
-			json_str.strip_();
+			json_str.slice(1, -1);
+			json_str.strip();
 
 			while (json_str.size())
 			{

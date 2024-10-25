@@ -7,10 +7,11 @@
 #include <ayr/detail/bunit.hpp>
 #include <ayr/detail/HashBucket.hpp>
 #include <ayr/detail/RelationIterator.hpp>
-#include <ayr/Atring.hpp>
 
 namespace ayr
 {
+	class Atring;
+
 	// 键值对
 	template<Hashable K, typename V>
 	struct KeyValueView : public Object<KeyValueView<K, V>>

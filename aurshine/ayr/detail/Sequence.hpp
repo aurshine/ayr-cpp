@@ -48,7 +48,6 @@ namespace ayr
 				return 0;
 		}
 
-
 		virtual bool __equals__(const self& other) const
 		{
 			if (size() != other.size())
@@ -57,13 +56,13 @@ namespace ayr
 			return __cmp__(other) == 0;
 		}
 
-		virtual Iterator begin() { return Iterator(this, 0); }
+		Iterator begin() { return Iterator(this, 0); }
 
-		virtual Iterator end() { return Iterator(this, size()); }
+		Iterator end() { return Iterator(this, size()); }
 
-		virtual ConstIterator begin() const { return ConstIterator(this, 0); }
+		ConstIterator begin() const { return ConstIterator(this, 0); }
 
-		virtual ConstIterator end() const { return ConstIterator(this, size()); }
+		ConstIterator end() const { return ConstIterator(this, size()); }
 
 		Value_t& operator[] (c_size index) { return at(neg_index(index, size())); }
 
