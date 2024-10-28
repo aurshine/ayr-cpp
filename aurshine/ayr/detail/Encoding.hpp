@@ -1,17 +1,16 @@
 #ifndef AYR_DETAIL_ENCODING
 #define AYR_DETAIL_ENCODING
 
-#include <ayr/detail/object.hpp>
 #include <ayr/detail/printer.hpp>
-
 
 namespace ayr
 {
-	const CString ASCII = "ascii";
-	const CString UTF8 = "utf-8";
-	const CString UTF16 = "utf-16";
-	const CString UTF32 = "utf-32";
-	const CString GB2312 = "gb2312";
+	static const CString ASCII = "ascii";
+	static const CString UTF8 = "utf-8";
+	static const CString UTF16 = "utf-16";
+	static const CString UTF32 = "utf-32";
+	static const CString GB2312 = "gb2312";
+
 
 	class Encoding : public Object<Encoding>
 	{
@@ -29,20 +28,6 @@ namespace ayr
 		virtual Encoding* clone() const = 0;
 
 		virtual ~Encoding() = default;
-
-		virtual c_size bytes_count(const char* data, c_size len)
-		{
-			c_size count = 0;
-			int i = 0;
-			while (i < len)
-			{
-				++count;
-				int byte_size_ = this->byte_size(data + i);
-				i += byte_size_;
-				if (i > len) EncodingError("Invalid encoding");
-			}
-			return count;
-		}
 	};
 
 
@@ -53,7 +38,7 @@ namespace ayr
 		using super = Encoding;
 
 	public:
-		CString __str__() const override { return "ASCII"; }
+		CString __str__() const override { return ASCII; }
 
 		int byte_size(const char* data) const override { return 1; }
 
@@ -68,7 +53,7 @@ namespace ayr
 		using super = Encoding;
 
 	public:
-		CString __str__() const override { return "UTF-8"; }
+		CString __str__() const override { return UTF8; }
 
 		int byte_size(const char* data) const override
 		{
@@ -96,7 +81,7 @@ namespace ayr
 		using super = Encoding;
 
 	public:
-		CString __str__() const  override { return "UTF-16"; }
+		CString __str__() const  override { return UTF16; }
 
 		int byte_size(const char* data) const override
 		{
@@ -117,7 +102,7 @@ namespace ayr
 		using super = Encoding;
 
 	public:
-		CString __str__() const  override { return "UTF-32"; }
+		CString __str__() const  override { return UTF32; }
 
 		int byte_size(const char* data) const override { return 4; }
 
@@ -132,11 +117,24 @@ namespace ayr
 		using super = Encoding;
 
 	public:
-		CString __str__() const  override { return "GB2312"; }
+		CString __str__() const  override { return GB2312; }
 
 		int byte_size(const char* data) const override { return 0; }
 
 		self* clone() const override { return new self(); }
 	};
+
+	Encoding* encoding_map(const CString& encoding_name)
+	{
+		static Dict<CString, Encoding*> encodingMap_{
+			{ASCII, new ASCIIEncoding()},
+			{UTF8, new UTF8Encoding()},
+			{UTF16, new UTF16Encoding()},
+			{UTF32, new UTF32Encoding()},
+			{GB2312, new GB2312Encoding()}
+		};
+
+		return encodingMap_.get(encoding_name);
+	}
 }
 #endif

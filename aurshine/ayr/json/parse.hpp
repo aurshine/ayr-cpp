@@ -52,7 +52,7 @@ namespace ayr
 		{
 			bool float_flag = false;
 			for (auto c : json_str)
-				if (!isdigit(c))
+				if (!c.isdigit())
 					if (c == '.' && !float_flag)
 						float_flag = true;
 					else
@@ -99,7 +99,7 @@ namespace ayr
 
 		def __parse_simple(JsonType::JsonStr& json_str) -> Json
 		{
-			if (isdigit(json_str[0]))  // number类型
+			if (json_str[0].isdigit())  // number类型
 				return __parse_num(json_str);
 			else if (json_str[0] == 'n') // null类型
 				return __parse_null(json_str);
@@ -129,11 +129,11 @@ namespace ayr
 			}
 			else if (json_str[0] == '"')
 			{
-				match = json_str.slice(0, json_str.find('"', 1) + 1);
+				match = json_str.slice(0, json_str.slice(1).find(CodePoint('"')) + 1);
 			}
 			else
 			{
-				c_size stop_sign_idx = json_str.find(stop_sign, 0);
+				c_size stop_sign_idx = json_str.find(CodePoint(stop_sign));
 				if (stop_sign_idx == -1)
 					match = json_str;
 				else

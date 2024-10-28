@@ -1,8 +1,7 @@
 ﻿#ifndef AYR_STRING_HPP
 #define AYR_STRING_HPP
 
-#include <ayr/Dynarray.hpp>
-#include <ayr/Bytes.hpp>
+#include <ayr/detail/CodePoint.hpp>
 
 namespace ayr
 {
@@ -12,7 +11,7 @@ namespace ayr
 
 		using super = Sequence<CodePoint>;
 
-		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<CodePoint[]> shared_head, Encoding* encoding) :
+		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<CodePoint[]> shared_head, Encoding* encoding) noexcept :
 			codepoints_(codepoints), length_(length), shared_head_(shared_head), encoding_(encoding) {}
 
 		Atring(size_t n, Encoding* encoding) :
@@ -23,13 +22,17 @@ namespace ayr
 	public:
 		Atring(const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding)) {}
 
-		Atring(const CString& other, const CString& encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
-
-		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8)
+		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding))
 		{
 			len = ifelse(len > 0, len, std::strlen(str));
+			auto cps_info = get_cps(str, len, encoding_).move_array().separate();
 
+			codepoints_ = cps_info.first;
+			length_ = cps_info.second;
+			shared_head_.reset(codepoints_);
 		}
+
+		Atring(const CString& other, const CString& encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
 
 		Atring(const self& other) : Atring(other.size(), other.encoding_)
 		{
@@ -37,9 +40,9 @@ namespace ayr
 				at(i) = other.at(i);
 		}
 
-		Atring(self&& other) : codepoints_(other.codepoints_), length_(other.length_), shared_head_(other.shared_head_) {}
+		Atring(self&& other) noexcept : Atring(codepoints_, length_, shared_head_, encoding_) {}
 
-		~Atring() = default;
+		~Atring() {};
 
 		self& operator= (const self& other)
 		{
@@ -54,7 +57,7 @@ namespace ayr
 			return *this;
 		}
 
-		self& operator= (self&& other)
+		self& operator= (self&& other) noexcept
 		{
 			if (this == &other) return *this;
 
@@ -104,14 +107,15 @@ namespace ayr
 		c_size byte_size() const
 		{
 			c_size size_ = 0;
-			for (auto c : *this)
+			for (auto&& c : *this)
 				size_ += c.size();
 			return size_;
 		}
 
 		hash_t __hash__() const
 		{
-			// return bytes_hash(reinterpret_cast<const char*>(codepoints_), length_ * sizeof(char)); 
+			CString str = __str__();
+			return data_hash(str.data(), str.size());
 		}
 
 		CString __str__() const
@@ -119,13 +123,12 @@ namespace ayr
 			CString result(byte_size());
 
 			c_size pos = 0;
-			for (auto c : *this)
+			for (auto&& c : *this)
 			{
 				c_size c_size_ = c.size();
-				std::memcpy(result.data() + pos, c.bytes(), c_size_);
+				std::memcpy(result.data() + pos, c.data(), c_size_);
 				pos += c_size_;
 			}
-
 			return result;
 		}
 
@@ -305,7 +308,7 @@ namespace ayr
 
 		}
 
-		self match(CodePoint lmatch, CodePoint rmatch) const
+		/*self match(CodePoint lmatch, CodePoint rmatch) const
 		{
 			c_size l = find(lmatch);
 			if (l == -1)
@@ -324,7 +327,7 @@ namespace ayr
 			}
 
 			ValueError(std::format("Unmatched parentheses, too many left parentheses '{}'", lmatch));
-		}
+		}*/
 	private:
 		std::pair<c_size, c_size> _get_strip_index() const
 		{
