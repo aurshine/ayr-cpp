@@ -1,4 +1,5 @@
-﻿#pragma once
+﻿#ifndef AYR_DETAIL_PRINTER_HPP
+#define AYR_DETAIL_PRINTER_HPP
 
 #include <cstdio>
 #include <format>
@@ -131,15 +132,6 @@ namespace ayr
 
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 
-	template<AyrObject Ayr>
-	struct std::formatter<Ayr> : std::formatter<std::string>
-	{
-		auto format(const Ayr& value, std::format_context& ctx) const
-		{
-			return std::formatter<std::string>::format(value.__str__().data(), ctx);
-		}
-	};
-
 	template<Printable T>
 	inline void warn_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
@@ -199,3 +191,14 @@ namespace ayr
 
 #define EncodingError(msg) Error("EncodingError", msg)
 }
+
+template<ayr::AyrObject Ayr>
+struct std::formatter<Ayr> : std::formatter<const char*>
+{
+	auto format(const Ayr& value, std::format_context& ctx) const
+	{
+		return std::formatter<const char*>::format(value.__str__().data(), ctx);
+	}
+};
+
+#endif // AYR_DETAIL_PRINTER_HPP

@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <string>
+#include <format>
 
 #include <ayr/detail/hash.hpp>
 #include <ayr/detail/ayr_memory.hpp>
@@ -99,4 +100,14 @@ namespace ayr
 
 	inline const char* stdstr(const CString& value) { return value.data(); }
 }
+
+template<>
+struct std::formatter<ayr::CString> : std::formatter<const char*>
+{
+	auto format(const ayr::CString& value, auto& ctx) const
+	{
+		return std::formatter<const char*>::format(value.data(), ctx);
+	}
+};
+
 #endif // AYR_DETAIL_CSTRING_HPP
