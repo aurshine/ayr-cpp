@@ -131,6 +131,14 @@ namespace ayr
 
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 
+	template<AyrObject Ayr>
+	struct std::formatter<Ayr> : std::formatter<std::string>
+	{
+		auto format(const Ayr& value, std::format_context& ctx) const
+		{
+			return std::formatter<std::string>::format(value.__str__().data(), ctx);
+		}
+	};
 
 	template<Printable T>
 	inline void warn_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
@@ -138,8 +146,7 @@ namespace ayr
 		if (!condition)
 		{
 			ayr_warner(
-				std::format("file: {}  column: {} line: {} function_name: {} \n"\
-					"error: ",
+				std::format("file: {}\ncolumn: {}\nline: {}\nfunction_name: {}\nerror:",
 					loc.file_name(),
 					loc.column(),
 					loc.line(),
@@ -153,8 +160,7 @@ namespace ayr
 	inline void error_exec(const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		ayr_error(
-			std::format("file: {}  column: {} line: {} function_name: {} \n"\
-				"error: ",
+			std::format("file: {}\ncolumn: {}\nline: {}\nfunction_name: {}\nerror:",
 				loc.file_name(),
 				loc.column(),
 				loc.line(),
