@@ -80,7 +80,7 @@ namespace ayr
 			if (occupied_block_has_full())
 				wakeup();
 
-			return blocks_.at(occupies_size_ - 1).append(item);
+			return blocks_.at(occupies_size_ - 1).append(std::move(item));
 		}
 
 
@@ -102,22 +102,22 @@ namespace ayr
 		Array<T> to_array() const
 		{
 			c_size size_ = size();
-			Buffer<T> buffer(size_);
+			Array<T> arr(size_);
 			for (c_size i = 0; i < size_; ++i)
-				buffer.append(at(i));
+				arr.at(i) = at(i);
 
-			return buffer.move_array();
+			return arr;
 		}
 
 		// 移动数组
-		Array<T>& move_array()
+		Array<T> move_array()
 		{
 			c_size size_ = size();
-			Buffer<T> buffer(size_);
+			Array<T> arr(size_);
 			for (c_size i = 0; i < size_; ++i)
-				buffer.append(std::move(at(i)));
+				arr.at(i) = std::move(at(i));
 
-			return buffer.move_array();
+			return arr;
 		}
 
 		// 容器的字符串形式
