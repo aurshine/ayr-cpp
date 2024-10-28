@@ -57,17 +57,6 @@ namespace ayr
 		c_size _start, _end, _step;
 	};
 
-
-	template<typename T, typename F>
-	constexpr inline Array<T> make_array(c_size size, const F& func)
-	{
-		Array<T> arr(size);
-		for (c_size i = 0; i < size; ++i)
-			arr[i] = func(i);
-
-		return arr;
-	}
-
 	template<Iteratable T, typename Init>
 	def sum(T&& obj, Init init = Init()) -> Init
 	{
