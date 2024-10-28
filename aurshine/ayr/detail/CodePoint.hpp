@@ -1,7 +1,7 @@
 #ifndef AURSHINE_DETAIL_CODEPOINT_HPP
 #define AURSHINE_DETAIL_CODEPOINT_HPP
 
-#include <ayr/Dynarray.hpp>
+#include <ayr/DynArray.hpp>
 #include <ayr/detail/Encoding.hpp>
 
 namespace ayr
