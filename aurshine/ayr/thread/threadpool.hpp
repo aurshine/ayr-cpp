@@ -1,38 +1,51 @@
-﻿#pragma once
+﻿#ifndef AYR_THREAD_THREADPOOL_HPP
+#define AYR_THREAD_THREADPOOL_HPP
+
 #include <thread>
 #include <condition_variable>
 #include <queue>
 #include <functional>
 
+#include <ayr/detail/NoCopy.hpp>
 #include <ayr/Array.hpp>
 
 
 namespace ayr
 {
-	/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
-	class ThreadPool : public Object<ThreadPool>
+	struct StopFlag
 	{
+		// 不停止
+		static constexpr int8_t STOP_NONE = -1;
+
+		// 立即停止
+		static constexpr int8_t STOP_NOW = 0;
+
+		// 等待所有任务完成后停止
+		static constexpr int8_t STOP_FINISH = 1;
+	};
+
+
+	/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
+	class ThreadPool : public Object<ThreadPool>, public NoCopy
+	{
+		using self = ThreadPool;
+
 	public:
-		ThreadPool(const ThreadPool& pool) = delete;
+		using PoolTask = std::function<void()>;
 
-		ThreadPool& operator= (const ThreadPool& pool) = delete;
-
-		/*
-		* 线程池构造函数，传入线程池的线程数量
-		*/
-		ThreadPool(size_t num_pool)
-			:threads(num_pool), stop(false)
+		// 线程池构造函数，传入线程池的线程数量
+		ThreadPool(size_t num_pool) :threads(num_pool), stop_flag(StopFlag::STOP_NONE)
 		{
 			auto work = [this]() {
-				while (!this->stop)
+				while (true)
 				{
 					std::unique_lock<std::mutex> lock(this->mtx);
 					this->condition.wait(lock, [this]() {
-						return this->stop || this->tasks.size();
+						return this->check_stop_now() || this->check_stop_finish() || !this->tasks.empty();
 						});
 
-					if (this->stop)	return;
-					auto task = this->tasks.front();
+					if (this->check_stop_now() || this->check_stop_finish())	return;
+					PoolTask task = this->tasks.front();
 					this->tasks.pop();
 
 					lock.unlock();
@@ -43,37 +56,59 @@ namespace ayr
 				t = std::thread(work);
 		}
 
-		~ThreadPool()
-		{
-			std::unique_lock<std::mutex> lock(this->mtx);
-			this->stop = true;
-			lock.unlock();
-			this->condition.notify_all();
-			for (auto& t : this->threads)
-				if (t.joinable())
-					t.join();
-		}
+		~ThreadPool() { stop(); }
 
 		template<class Func, class ...Args>
 		void push(Func&& func, Args&& ...args)
 		{
 			std::unique_lock<std::mutex> lock(this->mtx);
 
-			this->tasks.push(std::bind(func, std::forward<Args>(args)...));
+			tasks.push(std::bind(func, std::forward<Args>(args)...));
 			lock.unlock();
 			condition.notify_one();
 		}
 
+		// 立即停止线程池
+		void stop() { set_stop_flag(StopFlag::STOP_NOW); join(); }
 
+		// 等待所有任务完成后停止线程池
+		void wait() { set_stop_flag(StopFlag::STOP_FINISH); join(); }
 	private:
+		void join()
+		{
+			for (auto& t : threads)
+				if (t.joinable())
+					t.join();
+		}
+
+		void set_stop_flag(int8_t flag)
+		{
+			std::unique_lock<std::mutex> lock(mtx);
+			stop_flag = flag;
+			lock.unlock();
+			condition.notify_all();
+		}
+
+		bool check_stop_now() const
+		{
+			return stop_flag == StopFlag::STOP_NOW;
+		}
+
+		bool check_stop_finish() const
+		{
+			return stop_flag == StopFlag::STOP_FINISH && tasks.empty();
+		}
+
 		Array<std::thread> threads;
 
-		std::queue<std::function<void()>> tasks;
+		std::queue<PoolTask> tasks;
 
 		std::mutex mtx;
 
 		std::condition_variable condition;
 
-		bool stop;
+		int8_t stop_flag;
 	};
 }
+
+#endif // AYR_THREAD_THREADPOOL_HPP

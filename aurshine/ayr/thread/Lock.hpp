@@ -37,8 +37,6 @@ namespace ayr
 			bool expected = false;
 			return hold.compare_exchange_strong(expected, true);
 		}
-
-
 	private:
 		// 锁是否被持有， true表示被持有，false表示未被持有
 		std::atomic<bool> hold;

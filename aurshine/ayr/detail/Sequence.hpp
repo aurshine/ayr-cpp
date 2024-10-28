@@ -27,7 +27,7 @@ namespace ayr
 
 		virtual c_size size() const = 0;
 
-		virtual cmp_t __cmp__(const self& other) const
+		/*virtual cmp_t __cmp__(const self& other) const
 		{
 			auto m_it = begin(), m_end = end(), o_it = other.begin(), o_end = other.end();
 			while (m_it != m_end && o_it != o_end)
@@ -54,7 +54,7 @@ namespace ayr
 				return false;
 
 			return __cmp__(other) == 0;
-		}
+		}*/
 
 		Iterator begin() { return Iterator(this, 0); }
 
