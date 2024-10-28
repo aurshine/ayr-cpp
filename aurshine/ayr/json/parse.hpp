@@ -56,11 +56,7 @@ namespace ayr
 					if (c == CodePoint('.') && !float_flag)
 						float_flag = true;
 					else
-					{
-						CString _cstr = cstr(json_str);
-						ValueError(stdstr(_cstr));
-					}
-
+						ValueError(std::format("invalid number parse: {}", json_str));
 
 			CString _cstr = cstr(json_str);
 			const char* _stdstr = stdstr(_cstr);
@@ -78,10 +74,7 @@ namespace ayr
 			else if (json_str == "false"as)
 				return Json(false);
 			else
-			{
-				CString _cstr = cstr(json_str);
-				ValueError(stdstr(_cstr));
-			}
+				ValueError(std::format("invalid bool parse: {}", json_str));
 		}
 
 
@@ -90,10 +83,7 @@ namespace ayr
 			if (json_str == JsonType::JsonStr("null", 4))
 				return Json(JsonType::JsonNull());
 			else
-			{
-				CString _cstr = cstr(json_str);
-				ValueError(stdstr(_cstr));
-			}
+				ValueError(std::format("invalid null parse: {}", json_str));
 		}
 
 
@@ -106,10 +96,7 @@ namespace ayr
 			else if (json_str[0] == CodePoint('t') || json_str[0] == CodePoint('f')) // bool类型
 				return __parse_bool(json_str);
 			else
-			{
-				CString _cstr = cstr(json_str);
-				ValueError(stdstr(_cstr));
-			}
+				ValueError(std::format("invalid simple parse: {}", json_str));
 		}
 
 
@@ -145,7 +132,7 @@ namespace ayr
 			if (ret_str.size())
 			{
 				if (ret_str[0] != stop_sign)
-					RuntimeError(std::format("stop_sign '{}' not found", (char)stop_sign));
+					ValueError(std::format("stop_sign '{}' not found", stop_sign));
 
 				ret_str = ret_str.slice(1).strip();
 			}

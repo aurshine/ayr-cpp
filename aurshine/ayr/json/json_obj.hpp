@@ -53,7 +53,7 @@ namespace ayr
 					this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
 					break;
 				default:
-					ValueError(std::format("json_type can not be {}", type()));
+					ValueError(std::format("json_type {} is not valid", json_type));
 				}
 			}
 
@@ -90,7 +90,7 @@ namespace ayr
 						this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
 						break;
 					default:
-						ValueError(std::format("json_type can not be {}", type()));
+						ValueError(std::format("json_type {} is not valid", json_type));
 					}
 				}
 
@@ -124,13 +124,38 @@ namespace ayr
 			bool is() const { return json_type == GetJsonTypeID<T>::ID; }
 
 			// 返回 Json 存储的对象类型ID
-			int type() const { return this->json_type; }
+			static CString type_name(int8_t id)
+			{
+				switch (id)
+				{
+				case GetJsonTypeID<JsonType::JsonInt>::ID:
+					return "JsonInt";
+				case GetJsonTypeID<JsonType::JsonFloat>::ID:
+					return "JsonFloat";
+				case GetJsonTypeID<JsonType::JsonBool>::ID:
+					return "JsonBool";
+				case GetJsonTypeID<JsonType::JsonStr>::ID:
+					return "JsonStr";
+				case GetJsonTypeID<JsonType::JsonArray>::ID:
+					return "JsonArray";
+				case GetJsonTypeID<JsonType::JsonDict>::ID:
+					return "JsonDict";
+				case GetJsonTypeID<JsonType::JsonNull>::ID:
+					return "JsonNull";
+				default:
+					ValueError(std::format("json_type {} is not valid", id));
+				}
+			}
 
 			// 转换为指定类型，返回转换后对象的指针
 			template<JsonTypeStrictConcept T>
 			T* transform_ptr()
 			{
-				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
+				error_assert(is<T>(),
+					std::format("Json type is not {} but {}\n",
+						type_name(GetJsonTypeID<T>::ID),
+						type_name(json_type)
+					));
 				return reinterpret_cast<T*>(this->json_item);
 			}
 
@@ -138,7 +163,11 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			const T* transform_ptr() const
 			{
-				error_assert(is<T>(), std::format("Json type is not {}\n", dtype(T)));
+				error_assert(is<T>(),
+					std::format("Json type is not {} but {}\n",
+						type_name(GetJsonTypeID<T>::ID),
+						type_name(json_type)
+					));
 				return reinterpret_cast<T*>(this->json_item);
 			}
 
@@ -175,7 +204,7 @@ namespace ayr
 				case GetJsonTypeID<JsonType::JsonNull>::ID:
 					return cstr("null");
 				default:
-					ValueError(std::format("json_type can not be {}", type()));
+					ValueError(std::format("json_type {} is not valid", json_type));
 				}
 			}
 
@@ -250,7 +279,7 @@ namespace ayr
 					delete transform_ptr<JsonType::JsonNull>();
 					break;
 				default:
-					ValueError(std::format("json_type can not be {}", type()));
+					ValueError(std::format("json_type {} is not valid", json_type));
 				}
 			}
 
