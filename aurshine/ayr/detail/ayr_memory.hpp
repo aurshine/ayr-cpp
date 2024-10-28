@@ -12,7 +12,7 @@ namespace ayr
 	def ayr_alloc(size_t size) -> T*
 	{
 		if (size == 0) return nullptr;
-		return reinterpret_cast<T*>(::operator new(sizeof(T) * size));
+		return reinterpret_cast<T*>(::operator new[](sizeof(T)* size));
 	}
 
 	// 在ptr上调用构造函数, 并返回ptr
@@ -34,7 +34,7 @@ namespace ayr
 	template<typename T>
 	def ayr_delloc(T* ptr)
 	{
-		::operator delete(ptr);
+		::operator delete[](ptr);
 	}
 }
 #endif 

@@ -68,7 +68,9 @@ namespace ayr
 
 		c_size capacity() const { return capacity_; }
 
-		T* data() const { return buffer_; }
+		T* data() { return buffer_; }
+
+		const T* data() const { return buffer_; }
 
 		// 在buffer末尾追加元素
 		template<typename... Args>

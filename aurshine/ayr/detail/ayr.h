@@ -18,6 +18,13 @@ namespace ayr
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 	// container size type 
 	using c_size = int64_t;
 	// compare type
