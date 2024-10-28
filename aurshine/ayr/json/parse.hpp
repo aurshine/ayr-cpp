@@ -21,19 +21,19 @@ namespace ayr
 		// 返回一个可以被实际解析为Json对象的字符串
 		def parse(JsonType::JsonStr& json_str) -> Json
 		{
-			json_str.strip();
+			json_str = json_str.strip();
 
-			if (json_str[0] == '{')  // dict类型
+			if (json_str[0] == CodePoint('{'))  // dict类型
 			{
 				JsonType::JsonStr match = json_str.match('{', '}');
 				return __parse_dict(match);
 			}
-			else if (json_str[0] == '[')  // array类型
+			else if (json_str[0] == CodePoint('['))  // array类型
 			{
 				JsonType::JsonStr match = json_str.match('[', ']');
 				return __parse_array(match);
 			}
-			else if (json_str[0] == '"')  // str类型
+			else if (json_str[0] == CodePoint('"'))  // str类型
 				return __parse_str(json_str);
 			else
 				return __parse_simple(json_str);
@@ -53,7 +53,7 @@ namespace ayr
 			bool float_flag = false;
 			for (auto c : json_str)
 				if (!c.isdigit())
-					if (c == '.' && !float_flag)
+					if (c == CodePoint('.') && !float_flag)
 						float_flag = true;
 					else
 					{
@@ -101,9 +101,9 @@ namespace ayr
 		{
 			if (json_str[0].isdigit())  // number类型
 				return __parse_num(json_str);
-			else if (json_str[0] == 'n') // null类型
+			else if (json_str[0] == CodePoint('n')) // null类型
 				return __parse_null(json_str);
-			else if (json_str[0] == 't' || json_str[0] == 'f') // bool类型
+			else if (json_str[0] == CodePoint('t') || json_str[0] == CodePoint('f')) // bool类型
 				return __parse_bool(json_str);
 			else
 			{
@@ -113,27 +113,27 @@ namespace ayr
 		}
 
 
-		def parse_first_object(JsonType::JsonStr& json_str, char stop_sign) -> std::pair<Json, JsonType::JsonStr>
+		def parse_first_object(JsonType::JsonStr& json_str, CodePoint stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
-			json_str.strip();
+			json_str = json_str.strip();
 			error_assert(json_str.size() != 0, "json_str is empty");
-
 			JsonType::JsonStr match;
-			if (json_str[0] == '[')
+
+			if (json_str[0] == CodePoint('['))
 			{
 				match = json_str.match('[', ']');
 			}
-			else if (json_str[0] == '{')
+			else if (json_str[0] == CodePoint('{'))
 			{
 				match = json_str.match('{', '}');
 			}
-			else if (json_str[0] == '"')
+			else if (json_str[0] == CodePoint('"'))
 			{
-				match = json_str.slice(0, json_str.slice(1).find(CodePoint('"')) + 1);
+				match = json_str.slice(0, json_str.slice(1).find('"') + 2);
 			}
 			else
 			{
-				c_size stop_sign_idx = json_str.find(CodePoint(stop_sign));
+				c_size stop_sign_idx = json_str.find(stop_sign);
 				if (stop_sign_idx == -1)
 					match = json_str;
 				else
@@ -145,9 +145,9 @@ namespace ayr
 			if (ret_str.size())
 			{
 				if (ret_str[0] != stop_sign)
-					RuntimeError(std::format("stop_sign '{}' not found", stop_sign));
+					RuntimeError(std::format("stop_sign '{}' not found", (char)stop_sign));
 
-				ret_str.slice(1).strip();
+				ret_str = ret_str.slice(1).strip();
 			}
 
 			return { parse(match), ret_str };
@@ -159,9 +159,7 @@ namespace ayr
 		{
 			JsonType::JsonArray arr;
 			// 去掉 []
-			json_str.slice(1, -1);
-			json_str.strip();
-
+			json_str = json_str.slice(1, -1).strip();
 			while (json_str.size())
 			{
 				auto [item, _json_str] = parse_first_object(json_str, ',');
@@ -177,8 +175,7 @@ namespace ayr
 		def __parse_dict(JsonType::JsonStr& json_str) -> Json
 		{
 			JsonType::JsonDict dict;
-			json_str.slice(1, -1);
-			json_str.strip();
+			json_str = json_str.slice(1, -1).strip();
 
 			while (json_str.size())
 			{

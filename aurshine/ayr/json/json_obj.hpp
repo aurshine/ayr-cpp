@@ -12,10 +12,7 @@ namespace ayr
 		{
 		public:
 			template<JsonTypeStrictConcept T>
-			Json(const T& item) : json_item(new T(item)), json_type(GetJsonTypeIDStrict<T>::ID) {}
-
-			template<JsonTypeStrictConcept T>
-			Json(T&& item) : json_item(new T(std::move(item))), json_type(GetJsonTypeIDStrict<T>::ID) {}
+			Json(T&& item) : json_item(new T(std::forward<T>(item))), json_type(GetJsonTypeIDStrict<T>::ID) {}
 
 			Json() : Json(Null()) {}
 

@@ -40,7 +40,7 @@ namespace ayr
 				at(i) = other.at(i);
 		}
 
-		Atring(self&& other) noexcept : Atring(codepoints_, length_, shared_head_, encoding_) {}
+		Atring(self&& other) noexcept : Atring(other.codepoints_, other.length_, other.shared_head_, other.encoding_) {}
 
 		~Atring() {};
 
@@ -104,18 +104,13 @@ namespace ayr
 
 		c_size size() const override { return length_; }
 
+		// 字符串的字节长度
 		c_size byte_size() const
 		{
 			c_size size_ = 0;
 			for (auto&& c : *this)
 				size_ += c.size();
 			return size_;
-		}
-
-		hash_t __hash__() const
-		{
-			CString str = __str__();
-			return data_hash(str.data(), str.size());
 		}
 
 		CString __str__() const
@@ -131,6 +126,8 @@ namespace ayr
 			}
 			return result;
 		}
+
+		hash_t __hash__() const { return __str__().__hash__(); }
 
 		c_size find(CodePoint c) const { return super::find(c); }
 
@@ -172,7 +169,16 @@ namespace ayr
 			return result;
 		}
 
-		const self slice(c_size start, c_size end) const { return slice(start, end); }
+		const self slice(c_size start, c_size end) const
+		{
+			start = neg_index(start, size());
+			end = neg_index(end, size());
+			self result;
+			result.codepoints_ = codepoints_ + start;
+			result.length_ = end - start;
+			result.shared_head_ = shared_head_;
+			return result;
+		}
 
 		self slice(c_size start) { return slice(start, size()); }
 
@@ -308,7 +314,7 @@ namespace ayr
 
 		}
 
-		/*self match(CodePoint lmatch, CodePoint rmatch) const
+		self match(CodePoint lmatch, CodePoint rmatch) const
 		{
 			c_size l = find(lmatch);
 			if (l == -1)
@@ -326,8 +332,8 @@ namespace ayr
 					return slice(l, i + 1);
 			}
 
-			ValueError(std::format("Unmatched parentheses, too many left parentheses '{}'", lmatch));
-		}*/
+			ValueError(std::format("Unmatched parentheses, too many left parentheses"));
+		}
 	private:
 		std::pair<c_size, c_size> _get_strip_index() const
 		{

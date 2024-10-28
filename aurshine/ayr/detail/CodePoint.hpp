@@ -80,7 +80,7 @@ namespace ayr
 
 		CString __str__() const { return CString(data(), size()); }
 
-		hash_t __hash__() const { return data_hash(data(), size()); }
+		hash_t __hash__() const { return bytes_hash(data(), size()); }
 
 		cmp_t __cmp__(const self& other)  const
 		{
@@ -92,6 +92,8 @@ namespace ayr
 		}
 
 		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
+
+		operator char() const { return byte_code_[0]; }
 
 		self upper() const {}
 
@@ -114,7 +116,7 @@ namespace ayr
 		int8_t code_size_;
 	};
 
-	const Array<CodePoint> CodePoint::SPACE = { '\0', '\t', '\n', '\r', '\v', '\f' };
+	const Array<CodePoint> CodePoint::SPACE = { '\0', '\t', '\n', '\r', '\v', '\f', ' ' };
 
 	const Array<CodePoint> CodePoint::DIGIT = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
