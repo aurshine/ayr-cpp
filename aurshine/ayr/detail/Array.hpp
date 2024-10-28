@@ -134,6 +134,15 @@ namespace ayr
 			ayr_destroy(this);
 			ayr_construct(this, new_size, args...);
 		}
+
+		// 分离数组，返回数组指针和大小，并将数组置空
+		std::pair<T* c_size> separate()
+		{
+			std::pair<T* c_size> result = { arr_, size_ };
+			arr_ = nullptr;
+			size_ = 0;
+			return result;
+		}
 	private:
 		T* arr_;
 
