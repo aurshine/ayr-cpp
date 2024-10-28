@@ -72,7 +72,7 @@ namespace ayr
 
 		c_size find(const Value_t& v) const
 		{
-			for (c_size i = 0, size = size(); i < size; ++i)
+			for (c_size i = 0, size_ = size(); i < size_; ++i)
 				if (at(i) == v)
 					return i;
 
