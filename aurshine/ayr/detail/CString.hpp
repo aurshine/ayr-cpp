@@ -68,6 +68,10 @@ namespace ayr
 			return std::strcmp(data(), other.data());
 		}
 
+		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
+
+		bool __equals__(const char* other) const { return std::strcmp(data(), other) == 0; }
+
 		bool operator> (const self& other) const { return __cmp__(other) > 0; }
 
 		bool operator< (const self& other) const { return __cmp__(other) < 0; }
@@ -80,6 +84,9 @@ namespace ayr
 
 		bool operator!= (const self& other) const { return __cmp__(other) != 0; }
 
+		bool operator== (const char* other) const { return __equals__(other); }
+
+		bool operator!= (const char* other) const { return __equals__(other); }
 	private:
 		std::unique_ptr<char[]> str;
 	};

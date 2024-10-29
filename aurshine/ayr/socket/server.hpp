@@ -1,11 +1,14 @@
-﻿#pragma once
+﻿#ifndef AYR_SOCKET_SERVER_HPP
+#define AYR_SOCKET_SERVER_HPP
+
 #include <WinSock2.h>
 #include <WS2tcpip.h>
-#include "../ayr/ayr.hpp"
+
+#include <ayr/detail/printer.hpp>
 
 namespace ayr
 {
-	class Server : public Object
+	class Server : public Object<Server>
 	{
 	public:
 		Server()
@@ -13,7 +16,9 @@ namespace ayr
 			WSAData wsa;
 			WSAStartup(MAKEWORD(2, 2), &wsa);
 
-			int server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			SOCKET server = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		}
 	};
 }
+
+#endif // AYR_SOCKET_SERVER_HPP

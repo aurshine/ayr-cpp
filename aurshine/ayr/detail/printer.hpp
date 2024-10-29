@@ -190,6 +190,8 @@ namespace ayr
 #define PermissionError(msg) Error("PermissionError", msg)
 
 #define EncodingError(msg) Error("EncodingError", msg)
+
+#define SystemError(msg) Error("SystemError", msg)
 }
 
 template<ayr::AyrObject Ayr>

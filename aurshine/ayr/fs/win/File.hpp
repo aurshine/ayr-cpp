@@ -6,6 +6,7 @@
 #include <memory>
 
 #include <ayr/DynArray.hpp>
+#include <ayr/detail/NoCopy.hpp>
 #include "Path.hpp"
 
 
@@ -13,80 +14,75 @@ namespace ayr
 {
 	namespace fs
 	{
-		struct BufferMode
+		class AyrFile : public Object<AyrFile>, public NoCopy
 		{
-			using BufferModeType = int;
-
-			constexpr static BufferModeType NoBuffer = _IONBF;
-
-			constexpr static BufferModeType LineBuffer = _IOLBF;
-
-			constexpr static BufferModeType FullBuffer = _IOFBF;
-		};
-
-		class AyrFile : public Object<AyrFile>
-		{
+			using self = AyrFile;
 		public:
-#pragma warning(push)
-#pragma warning(disable: 4996)
-			template<ConveribleToCstr S1, ConveribleToCstr S2>
-			AyrFile(const S1& filename, const S2& mode, c_size buffer_size = DefaultBufferSize, BufferMode::BufferModeType buffer_mode = BufferMode::LineBuffer)
-				: file_(std::fopen(filename, mode)), buffer_size_(buffer_size), buffer_(std::make_unique<char[]>(buffer_size))
+			AyrFile(const char* filename, CString mode)
 			{
-				std::setvbuf(file_, buffer_.get(), buffer_mode, buffer_size);
-				const char* c_filename = static_cast<const char*>(filename);
-				if (file_ == nullptr)
+				int dwDesiredAccess = 0, dwCreationDisposition = 0;
+				if (mode == cstr("w"))
 				{
-					if (!fs::isfile(c_filename))
-						FileNotFoundError(std::format("file not found in {}", c_filename));
-					else
-						RuntimeError(std::format("failed to open file {}", c_filename));
+					dwDesiredAccess = GENERIC_WRITE;
+					dwCreationDisposition = CREATE_ALWAYS;
 				}
+				else if (mode == cstr("r"))
+				{
+					dwDesiredAccess = GENERIC_READ;
+					dwCreationDisposition = OPEN_EXISTING;
+				}
+				else if (mode == cstr("a"))
+				{
+					dwDesiredAccess = FILE_APPEND_DATA;
+					dwCreationDisposition = OPEN_ALWAYS;
+					SetFilePointer(fh, 0, nullptr, FILE_END);
+				}
+				else
+					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
+
+				fh = CreateFileA(
+					filename,
+					dwDesiredAccess,
+					FILE_SHARE_READ,
+					nullptr,
+					dwCreationDisposition,
+					FILE_ATTRIBUTE_NORMAL,
+					nullptr
+				);
+
+				if (fh == INVALID_HANDLE_VALUE)
+					SystemError("Invalid HANDLE value, Failed to create or open file");
 			}
-#pragma warning(pop)
 
-			~AyrFile() { std::fclose(file_); }
+			AyrFile(self&& file) noexcept : fh(file.fh) { file.fh = nullptr; }
 
-			template<Printable T>
-			void write(const T& data) const { write(cstr(data)); }
+			~AyrFile() { close(); }
 
-			void write(const CString& data) const
+			void close() { CloseHandle(fh); fh = nullptr; }
+
+			void write(const char* c) const
 			{
-				std::fwrite(stdstr(data), 1, data.size(), file_);
-			}
-
-			void write(const char* data) const
-			{
-				std::fwrite(data, 1, std::strlen(data), file_);
-			}
-
-			void flush() const { fflush(file_); }
-
-			CString readline() const
-			{
-				if (fgets(buffer_.get(), buffer_size_, file_))
-					RuntimeError("buffer_size is small, failed to readline");
-
-				return CString(buffer_.get());
-			}
-
-			Array<CString> readlines() const
-			{
-
+				DWORD written_bytes = 0;
+				if (!WriteFile(fh, c, strlen(c), &written_bytes, nullptr))
+					SystemError("Failed to write from file");
 			}
 
 			CString read() const
 			{
+				DWORD read_bytes = 0;
+				c_size buffer_size = file_size() + 1;
+				CString buffer{ buffer_size };
 
+				if (!ReadFile(fh, buffer.data(), buffer_size, &read_bytes, nullptr))
+					SystemError("Failed to read from file");
+
+				return buffer;
 			}
 
-			FILE* file_;
+			c_size file_size() const { return GetFileSize(fh, nullptr); }
 
-			c_size buffer_size_;
-
-			std::unique_ptr<char[]> buffer_;
-
-			static constexpr c_size DefaultBufferSize = 1024;
+		private:
+			HANDLE fh;
 		};
 	}
 }
