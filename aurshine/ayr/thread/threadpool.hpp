@@ -2,9 +2,11 @@
 #define AYR_THREAD_THREADPOOL_HPP
 
 #include <thread>
-#include <condition_variable>
 #include <queue>
+#include <future>
 #include <functional>
+#include <condition_variable>
+
 
 #include <ayr/detail/NoCopy.hpp>
 #include <ayr/Array.hpp>
@@ -45,7 +47,7 @@ namespace ayr
 						});
 
 					if (this->check_stop_now() || this->check_stop_finish())	return;
-					PoolTask task = this->tasks.front();
+					PoolTask task = std::move(this->tasks.front());
 					this->tasks.pop();
 
 					lock.unlock();
@@ -58,14 +60,23 @@ namespace ayr
 
 		~ThreadPool() { stop(); }
 
-		template<class Func, class ...Args>
-		void push(Func&& func, Args&& ...args)
-		{
-			std::unique_lock<std::mutex> lock(this->mtx);
+		template<class F, class ...Args>
+		auto push(F&& task, Args&& ...args) -> std::future<std::invoke_result_t<F, Args...>> {
+			using ResultType = std::invoke_result_t<F, Args...>;
 
-			tasks.push(std::bind(func, std::forward<Args>(args)...));
-			lock.unlock();
+			auto pkg_task = std::make_shared<std::packaged_task<ResultType()>>(
+				std::bind(std::forward<F>(task), std::forward<Args>(args)...)
+			);
+
+			std::future<ResultType> future = pkg_task->get_future();
+
+			{
+				std::unique_lock<std::mutex> lock(this->mtx);
+				tasks.push([pkg_task]() { (*pkg_task)(); });
+			}
+
 			condition.notify_one();
+			return future;
 		}
 
 		// 立即停止线程池
