@@ -11,10 +11,6 @@
 
 namespace ayr
 {
-	// 判断T是否为char类型
-	template<typename T>
-	concept Char = issame<T, char, wchar_t, char8_t, char16_t, char32_t>;
-
 	// 可以隐式转换为const char*类型约束概念
 	template<typename S>
 	concept ConveribleToCstr = std::convertible_to<S, const char*>;
@@ -22,9 +18,11 @@ namespace ayr
 
 	// 可输出的类型约束概念
 	template<typename T>
-	concept StdPrintable = issame<T,
+	concept StdPrintable = std::is_pointer_v<T> || issame<std::decay_t<T>, char*> || issame<T,
 		bool,
 		char,
+		short,
+		unsigned short,
 		int,
 		unsigned int,
 		long,
@@ -35,7 +33,7 @@ namespace ayr
 		double,
 		long double,
 		nullptr_t,
-		std::string> || std::is_pointer_v<T> || ischararray<T>;
+		std::string>;
 
 	template<typename T>
 	concept AyrPrintable = requires(T t)
