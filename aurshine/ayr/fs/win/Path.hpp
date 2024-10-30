@@ -1,11 +1,9 @@
 ﻿#ifndef AYR_FS_WIN_PATH_HPP
 #define AYR_FS_WIN_PATH_HPP
 
-#include <cstdio>
-#include <Windows.h>
-#include <fileapi.h>
-
 #include <ayr/detail/Printer.hpp>
+
+#include "winlib.hpp"
 
 namespace ayr
 {
