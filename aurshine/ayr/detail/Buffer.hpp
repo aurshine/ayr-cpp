@@ -24,7 +24,7 @@ namespace ayr
 
 		Buffer() : size_(0), capacity_(0), buffer_(nullptr) {}
 
-		Buffer(size_t size) : size_(0), capacity_(size), buffer_(ayr_alloc<T>(capacity_)) {}
+		Buffer(c_size size) : size_(0), capacity_(size), buffer_(ayr_alloc<T>(capacity_)) {}
 
 		Buffer(const Buffer& other) : size_(other.size_), capacity_(other.capacity_), buffer_(ayr_alloc<T>(capacity_))
 		{
@@ -78,6 +78,12 @@ namespace ayr
 		{
 			ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
 			return buffer_[size_++];
+		}
+
+		void append_bytes(const void* ptr, c_size size)
+		{
+			std::memcpy(buffer_ + size_, ptr, size);
+			size_ += size;
 		}
 
 		void pop_back()
