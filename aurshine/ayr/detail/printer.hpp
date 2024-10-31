@@ -138,10 +138,10 @@ namespace ayr
 		if (!condition)
 		{
 			ayr_warner(
-				std::format("file: {}\ncolumn: {}\nline: {}\nfunction_name: {}\nerror:",
+				std::format("file: {}\nline, column: {}, {}\nfunction_name: {}\nerror:",
 					loc.file_name(),
-					loc.column(),
 					loc.line(),
+					loc.column(),
 					loc.function_name()),
 				msg
 			);
@@ -152,10 +152,10 @@ namespace ayr
 	inline void error_exec(const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		ayr_error(
-			std::format("file: {}\ncolumn: {}\nline: {}\nfunction_name: {}\nerror:",
+			std::format("file: {}\nline, column: {}, {}\nfunction_name: {}\nerror:",
 				loc.file_name(),
-				loc.column(),
 				loc.line(),
+				loc.column(),
 				loc.function_name()),
 			msg
 		);
