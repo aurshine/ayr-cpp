@@ -33,6 +33,7 @@ namespace ayr
 	template<typename T, typename... Args>
 	constexpr bool isinstance = IsInstance<T, Args...>::value;
 
+	// 逻辑运算符
 	template<bool ...B>
 	constexpr bool And = (B && ...);
 
@@ -41,6 +42,22 @@ namespace ayr
 
 	template<bool B>
 	constexpr bool Not = !B;
+
+	// 用于判断是否为void，如果是void则返回void，否则返回T&
+	template<typename T>
+	struct void_or_ref
+	{
+		using type = T&;
+	};
+
+	template<>
+	struct void_or_ref<void>
+	{
+		using type = void;
+	};
+
+	template<typename T>
+	using void_or_ref_t = typename void_or_ref<T>::type;
 }
 
 #endif

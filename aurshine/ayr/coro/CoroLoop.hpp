@@ -5,6 +5,7 @@
 #include <chrono>
 
 #include "Task.hpp"
+#include <ayr/detail/ayr_traits.hpp>
 
 namespace ayr
 {
@@ -28,21 +29,43 @@ namespace ayr
 			using self = CoroLoop;
 
 			CoroLoop() = default;
-
-			static self& get_loop() { static self coro_loop; return coro_loop; }
 		public:
-			static void add(Coroutine coro) { get_loop().ready_coroutines.push_back(coro); }
+			static self& get_loop() { static self coro_loop; return coro_loop; }
 
-			static void add(Coroutine coro, const std::chrono::steady_clock::time_point& abs_time)
+			template<typename P>
+			static void_or_ref_t<P> add(std::coroutine_handle<P> coro)
+			{
+				get_loop().ready_coroutines.push_back(coro);
+				if constexpr (std::is_void_v<P>)
+					return;
+				else
+					return coro.promise();
+			}
+
+			template<typename P>
+			static void_or_ref_t<P> add(std::coroutine_handle<P> coro, const std::chrono::steady_clock::time_point& abs_time)
 			{
 				get_loop().sleep_coroutines.push({ coro, abs_time });
+				if constexpr (std::is_void_v<P>)
+					return;
+				else
+					return coro.promise();
 			}
 
 			template<typename T>
-			static void add(Task<T>& task) { get_loop().add(task.coro_); task.coro_ = nullptr; }
+			static decltype(auto) add(Task<T>& task)
+			{
+				typename Task<T>::co_type coro = task.coro_;
+				task.coro_ = nullptr;
+
+				return add(coro);
+			}
 
 			template<typename T>
-			static void add(Task<T>&& task) { get_loop().add(task.coro_); task.coro_ = nullptr; }
+			static decltype(auto) add(Task<T>&& task)
+			{
+				return add(task);
+			}
 
 			static void run()
 			{
@@ -86,9 +109,9 @@ namespace ayr
 			Sleep(const std::chrono::steady_clock::duration& rel_time)
 				: abs_time_(std::chrono::steady_clock::now() + rel_time) {}
 
-			void await_suspend(Coroutine coroutine)
+			void await_suspend(std::coroutine_handle<void> coroutine)
 			{
-				CoroLoop::add(coroutine, abs_time_);
+				CoroLoop::add<void>(coroutine, abs_time_);
 			}
 
 		private:
