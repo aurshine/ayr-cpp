@@ -7,14 +7,14 @@ namespace ayr
 {
 	namespace coro
 	{
-		template<typename T>
-		class Awaiter : public Object<Awaiter<T>>, public NoCopy
+		template<typename T, typename P>
+		class Awaiter : public Object<Awaiter<T, P>>, public NoCopy
 		{
-			using self = Awaiter<T>;
+			using self = Awaiter<T, P>;
 		public:
-			using promise_type = Promise<T>;
+			using promise_type = P;
 
-			using co_type = std::coroutine_handle<promise_type>;
+			using co_type = promise_type::co_type;
 
 			Awaiter(co_type coro) : coro_(coro) {}
 
@@ -41,14 +41,14 @@ namespace ayr
 			co_type coro_;
 		};
 
-		template<>
-		struct Awaiter<void> : public Object<Awaiter<void>>, public NoCopy
+		template<typename P>
+		struct Awaiter<void, P> : public Object<Awaiter<void, P>>, public NoCopy
 		{
-			using self = Awaiter<void>;
+			using self = Awaiter<void, P>;
 		public:
-			using promise_type = Promise<void>;
+			using promise_type = P;
 
-			using co_type = std::coroutine_handle<promise_type>;
+			using co_type = promise_type::co_type;
 
 			Awaiter(co_type coro) : coro_(coro) {}
 
@@ -80,6 +80,16 @@ namespace ayr
 			{ a.await_ready() } -> std::convertible_to<bool>;
 			{ a.await_suspend(handle) };
 			{ a.await_resume() };
+		};
+
+		template<Awaitable A>
+		struct AwaitableTraits
+		{
+			using promise_type = A::promise_type;
+
+			using co_type = A::co_type;
+
+			using result_type = std::decay_t<decltype(std::declval<A>().await_resume())>;
 		};
 	}
 }

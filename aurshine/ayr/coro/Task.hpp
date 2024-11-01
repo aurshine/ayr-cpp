@@ -7,12 +7,12 @@ namespace ayr
 {
 	namespace coro
 	{
-		template<typename T>
-		class Task : public Awaiter<T>
+		template<typename T, typename P = Promise<T>>
+		class Task : public Awaiter<T, P>
 		{
-			using self = Task<T>;
+			using self = Task<T, P>;
 
-			using super = Awaiter<T>;
+			using super = Awaiter<T, P>;
 		public:
 			friend class CoroLoop;
 
