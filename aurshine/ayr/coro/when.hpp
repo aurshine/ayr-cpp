@@ -3,7 +3,6 @@
 
 #include <tuple>
 #include <utility>
-#include <memory>
 
 #include "CoroLoop.hpp"
 
