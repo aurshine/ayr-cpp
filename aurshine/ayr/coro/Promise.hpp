@@ -5,30 +5,13 @@
 
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/NoCopy.hpp>
+#include "co_utils.hpp"
+
 
 namespace ayr
 {
 	namespace coro
 	{
-		using Coroutine = std::coroutine_handle<>;
-
-		struct SuspendPrevious : public std::suspend_always, public Object<SuspendPrevious>
-		{
-			SuspendPrevious() noexcept = default;
-
-			SuspendPrevious(Coroutine previous_coro) noexcept : previous_coro_(previous_coro) {}
-
-			Coroutine await_suspend(Coroutine coro) const noexcept
-			{
-				if (previous_coro_)
-					return previous_coro_;
-				else
-					return std::noop_coroutine();
-			}
-
-			Coroutine previous_coro_ = nullptr;
-		};
-
 		template<typename T>
 		struct PromiseImpl : public Object<PromiseImpl<T>>
 		{
@@ -84,7 +67,7 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<self>;
 
-			SuspendPrevious final_suspend() const noexcept { return SuspendPrevious(previous_coro_); }
+			CoroAwaiter final_suspend() const noexcept { return CoroAwaiter(previous_coro_); }
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 

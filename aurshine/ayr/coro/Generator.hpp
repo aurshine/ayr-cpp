@@ -14,34 +14,22 @@ namespace ayr
 			using self = Generator<T>;
 			static_assert(std::is_default_constructible_v<T>, "Generator requires default constructible result type");
 		public:
-			struct promise_type
+			struct promise_type : public PromiseImpl<T>
 			{
+				using super = PromiseImpl<T>;
+
 				using co_type = std::coroutine_handle<promise_type>;
-
-				std::suspend_never initial_suspend() const noexcept { return {}; }
-
-				std::suspend_always final_suspend() const noexcept { return {}; }
 
 				std::suspend_always yield_value(T value) noexcept
 				{
-					result_ = std::move(value);
+					super::value_ = std::move(value);
 					return {};
 				}
 
-				void return_void() const noexcept {}
-
-				void unhandled_exception() const { throw; }
-
 				self get_return_object() { return self(co_type::from_promise(*this)); }
-
-				T& result() { return result_; }
-
-				const T& result() const { return result_; }
-			private:
-				T result_;
 			};
 
-			using co_type = std::coroutine_handle<promise_type>;
+			using co_type = promise_type::co_type;
 
 			Generator(co_type coro) : coro_(coro) {}
 

@@ -11,20 +11,6 @@ namespace ayr
 {
 	namespace coro
 	{
-		struct CurrentCoro : std::suspend_always
-		{
-			Coroutine await_suspend(Coroutine coroutine) noexcept
-			{
-				previous_coro = coroutine;
-				return coroutine;
-			}
-
-			Coroutine await_resume() const noexcept { return previous_coro; }
-
-		private:
-			Coroutine previous_coro = nullptr;
-		};
-
 		struct PreviousPromise : public PromiseImpl<Coroutine>
 		{
 			using self = PreviousPromise;
@@ -33,7 +19,7 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<self>;
 
-			SuspendPrevious final_suspend() const noexcept { return { super::value_ }; }
+			CoroAwaiter final_suspend() const noexcept { return { super::value_ }; }
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 		};
