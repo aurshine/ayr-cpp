@@ -25,34 +25,18 @@ namespace ayr
 			Coroutine previous_coro = nullptr;
 		};
 
-		struct PreviousPromise
+		struct PreviousPromise : public PromiseImpl<Coroutine>
 		{
 			using self = PreviousPromise;
 
+			using super = PromiseImpl<Coroutine>;
+
 			using co_type = std::coroutine_handle<self>;
 
-			std::suspend_always initial_suspend() const noexcept { return {}; }
-
-			SuspendPrevious final_suspend() const noexcept { return { previous_coro }; }
-
-			void return_value(Coroutine coroutine) noexcept { previous_coro = coroutine; }
-
-			void unhandled_exception() const noexcept {}
+			SuspendPrevious final_suspend() const noexcept { return { super::value_ }; }
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
-		private:
-			Coroutine previous_coro = nullptr;
 		};
-
-
-		template<Awaitable A>
-		Task<Coroutine, PreviousPromise> when_all_helper(A&& awaiter, size_t& count, Coroutine previous_coro)
-		{
-			co_await awaiter;
-			if (--count == 0)
-				co_return previous_coro;
-			co_return std::noop_coroutine();
-		}
 
 		template<size_t N>
 		struct WhenAllAwaitable : std::suspend_always
@@ -70,6 +54,15 @@ namespace ayr
 
 			Task_t* tasks_;
 		};
+
+		template<Awaitable A>
+		Task<Coroutine, PreviousPromise> when_all_helper(A&& awaiter, size_t& count, Coroutine previous_coro)
+		{
+			co_await awaiter;
+			if (--count == 0)
+				co_return previous_coro;
+			co_return std::noop_coroutine();
+		}
 
 		template<size_t... Is, Awaitable... As>
 		def when_all_impl(std::index_sequence<Is...>, As&&... as) -> Task<void>
