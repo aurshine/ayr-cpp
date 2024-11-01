@@ -2,6 +2,8 @@
 #define AYR_CORO_WHEN_HPP
 
 #include <tuple>
+#include <utility>
+#include <memory>
 
 #include "CoroLoop.hpp"
 
@@ -9,30 +11,79 @@ namespace ayr
 {
 	namespace coro
 	{
-		template<typename T>
-		struct WhenOne : public std::suspend_always
+		struct CurrentCoro : std::suspend_always
 		{
-			Coroutine await_suspend(Coroutine coroutine) const noexcept
+			Coroutine await_suspend(Coroutine coroutine) noexcept
 			{
-				CoroLoop::add(coro_);
-				--count;
-				if (count == 0) CoroLoop::add(coroutine);
-				return std::noop_coroutine();
+				previous_coro = coroutine;
+				return coroutine;
 			}
 
-			T await_resume() const noexcept { return coro_.promise().result(); }
+			Coroutine await_resume() const noexcept { return previous_coro; }
 
-			size_t& count;
+		private:
+			Coroutine previous_coro = nullptr;
+		};
 
-			std::coroutine_handle<Promise<T>> coro_;
+		struct PreviousPromise
+		{
+			using self = PreviousPromise;
+
+			using co_type = std::coroutine_handle<self>;
+
+			std::suspend_always initial_suspend() const noexcept { return {}; }
+
+			SuspendPrevious final_suspend() const noexcept { return { previous_coro }; }
+
+			void return_value(Coroutine coroutine) noexcept { previous_coro = coroutine; }
+
+			void unhandled_exception() const noexcept {}
+
+			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
+		private:
+			Coroutine previous_coro = nullptr;
 		};
 
 
-		template<typename... Ts>
-		std::tuple<Ts...> when_all(Ts&&... coroutines)
+		template<Awaitable A>
+		Task<Coroutine, PreviousPromise> when_all_helper(A&& awaiter, size_t& count, Coroutine previous_coro)
 		{
-			static_assert(sizeof...(Ts) > 0, "No coroutines provided to when");
+			co_await awaiter;
+			if (--count == 0)
+				co_return previous_coro;
+			co_return std::noop_coroutine();
+		}
 
+		template<size_t N>
+		struct WhenAllAwaitable : std::suspend_always
+		{
+			using Task_t = Task<Coroutine, PreviousPromise>;
+
+			WhenAllAwaitable(Task_t* tasks) : tasks_(tasks) {}
+
+			Coroutine await_suspend(Coroutine coroutine) noexcept
+			{
+				for (c_size i = 0; i < N; ++i)
+					CoroLoop::resume(tasks_[i]);
+				return std::noop_coroutine();
+			}
+
+			Task_t* tasks_;
+		};
+
+		template<size_t... Is, Awaitable... As>
+		def when_all_impl(std::index_sequence<Is...>, As&&... as) -> Task<void>
+		{
+			size_t count = sizeof...(As);
+			Coroutine cur_coro = co_await CurrentCoro();
+			Task<Coroutine, PreviousPromise> tasks[] = { when_all_helper(std::forward<As>(as), count, cur_coro)... };
+			co_await WhenAllAwaitable<sizeof...(As)>(tasks);
+		}
+
+		template<Awaitable... As>
+		def when_all(As&& ... as) -> Task<void>
+		{
+			co_await when_all_impl(std::make_index_sequence<sizeof...(As)>(), std::forward<As>(as)...);
 		}
 	}
 }

@@ -34,7 +34,11 @@ namespace ayr
 				arr_[i] = fill_val;
 		}
 
-		constexpr SArray(std::initializer_list<T>&& init_list) : arr_(init_list) {}
+		constexpr SArray(std::initializer_list<T>&& init_list)
+		{
+			for (c_size i = 0; i < N; ++i)
+				arr_[i] = std::move(*(init_list.begin() + i));
+		}
 
 		constexpr T* data() { return arr_; }
 

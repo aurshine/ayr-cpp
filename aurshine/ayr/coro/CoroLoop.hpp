@@ -32,6 +32,12 @@ namespace ayr
 		public:
 			static self& get_loop() { static self coro_loop; return coro_loop; }
 
+			static void resume(Coroutine coro)
+			{
+				coro.resume();
+			}
+
+
 			template<typename P>
 			static void_or_ref_t<P> add(std::coroutine_handle<P> coro)
 			{
@@ -69,11 +75,16 @@ namespace ayr
 
 			static void run()
 			{
+				bool& is_running = get_loop().is_running_;
+				if (is_running)
+					RuntimeError("CoroLoop is already running");
+
+				is_running = true;
 				while (!get_loop().ready_coroutines.empty() || !get_loop().sleep_coroutines.empty())
 				{
 					while (!get_loop().ready_coroutines.empty())
 					{
-						get_loop().ready_coroutines.front().resume();
+						resume(get_loop().ready_coroutines.front());
 						get_loop().ready_coroutines.pop_front();
 					}
 
@@ -82,18 +93,22 @@ namespace ayr
 						auto& first_timer = get_loop().sleep_coroutines.top();
 
 						if (first_timer.abs_time_ <= std::chrono::steady_clock::now())
-							first_timer.coro_.resume();
+							resume(first_timer.coro_);
 						else
 						{
 							std::this_thread::sleep_until(first_timer.abs_time_);
-							first_timer.coro_.resume();
+							resume(first_timer.coro_);
 						}
 
 						get_loop().sleep_coroutines.pop();
 					}
 				}
+
+				is_running = false;
 			}
 		private:
+			bool is_running_ = false;
+
 			std::deque<Coroutine> ready_coroutines;
 
 			std::priority_queue<TimerEntry> sleep_coroutines;
