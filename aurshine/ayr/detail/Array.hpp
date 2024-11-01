@@ -10,69 +10,6 @@
 
 namespace ayr
 {
-	/*
-	* 栈上分配内存
-	*
-	* 元素类型T, 大小N
-	*
-	* 所有操作均可编译期完成
-	*/
-	template<typename T, size_t N>
-	class SArray : public Sequence<T>
-	{
-		using self = SArray<T, N>;
-
-		using super = Sequence<T>;
-
-		T arr_[N];
-	public:
-		constexpr SArray() {};
-
-		constexpr SArray(const T& fill_val)
-		{
-			for (c_size i = 0; i < N; ++i)
-				arr_[i] = fill_val;
-		}
-
-		constexpr SArray(std::initializer_list<T>&& init_list)
-		{
-			for (c_size i = 0; i < N; ++i)
-				arr_[i] = std::move(*(init_list.begin() + i));
-		}
-
-		constexpr T* data() { return arr_; }
-
-		constexpr const T* data() const { return arr_; }
-
-		constexpr c_size size() const override { return N; }
-
-		T& at(c_size index) override { return data()[index]; }
-
-		const T& at(c_size index) const override { return data()[index]; }
-
-		CString __str__() const
-		{
-			std::stringstream stream;
-			stream << "[";
-			for (c_size i = 0; i < size(); ++i)
-			{
-				if (i != 0) stream << ", ";
-				stream << at(i);
-			}
-			stream << "]";
-			return stream.str();
-		}
-	};
-
-	/*
-	* 堆上分配内存
-	*
-	* 元素类型T, 大小N
-	*
-	* 当只传入数组长度时，只分配内存，不调用构造函数
-	*
-	* release()只能有效调用一次，用于调用一个区间的析构函数，并释放内存
-	*/
 	template<typename T>
 	class Array : public Sequence<T>
 	{
