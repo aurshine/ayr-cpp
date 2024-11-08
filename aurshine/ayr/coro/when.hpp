@@ -24,11 +24,11 @@ namespace ayr
 		};
 
 		template<size_t N>
-		struct WhenAllAwaitable : std::suspend_always
+		struct _WhenAllAwaitable : std::suspend_always
 		{
 			using Task_t = Task<Coroutine, PreviousPromise>;
 
-			WhenAllAwaitable(Task_t* tasks) : tasks_(tasks) {}
+			_WhenAllAwaitable(Task_t* tasks) : tasks_(tasks) {}
 
 			Coroutine await_suspend(Coroutine coroutine) noexcept
 			{
@@ -55,7 +55,7 @@ namespace ayr
 			size_t count = sizeof...(As);
 			Coroutine cur_coro = co_await CurrentCoro();
 			Task<Coroutine, PreviousPromise> tasks[] = { when_all_helper(std::forward<As>(as), count, cur_coro)... };
-			co_await WhenAllAwaitable<sizeof...(As)>(tasks);
+			co_await _WhenAllAwaitable<sizeof...(As)>(tasks);
 		}
 
 		template<Awaitable... As>
