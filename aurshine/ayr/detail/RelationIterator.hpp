@@ -119,7 +119,7 @@ namespace ayr
 			return self(temp);
 		}
 
-		bool __equals__(const self& other) const override
+		bool __equals__(const self& other) const
 		{
 			return iter_ == other.iter_;
 		}

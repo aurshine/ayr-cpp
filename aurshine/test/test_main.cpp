@@ -18,6 +18,11 @@ using namespace std::chrono_literals;
 
 int main()
 {
-	printf("Hello, world!\n");
+
+	A* a = (A*)operator new(sizeof(A) * 10);
+	for (int i = 0; i < 10; i++)
+		::new(a + i) A();
+
+	delete[] a;
 	return 0;
 }
