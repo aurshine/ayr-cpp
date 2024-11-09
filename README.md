@@ -124,34 +124,78 @@ int main()
 
 
 using namespace ayr;
+using namespace std::chrono_literals;
 
 coro::Task<int> hello()
 {
 	print("hello");
+	co_await coro::Sleep(2s);
+	print("hello * 2");
 	co_return 114;
 }
 
 coro::Task<int> world()
 {
-	int h = co_await hello();
-	print("hello = ", h);
 	print("world");
+	co_await coro::Sleep(1s);
+	print("world * 2");
 	co_return 514;
 }
 
 
 int main()
 {
-	print("world = ", coro::CoroLoop::async_run<coro::Promise<int>>(world()).result());
+	auto& hello_promise = coro::CoroLoop::add(hello());
+	print("add coroutine hello");
+	auto& world_promise = coro::CoroLoop::add(world());
+	print("add coroutine world");
+	coro::CoroLoop::run();
 
+	print("hello result:", hello_promise.result(), "world result:", world_promise.result());
+}
+/*
+输出:
+add coroutine hello
+add coroutine world
+hello
+world
+world * 2
+hello * 2
+hello result: 114 world result: 514
+*/
+```
+
+## 协程睡眠排序
+```
+#include <ayr/coro/coro.hpp>
+
+using namespace ayr;
+using namespace std::chrono_literals;
+
+coro::Task<void> async_num(int num)
+{
+	co_await coro::Sleep(num * 1s);
+	print(num);
+	co_return;
+}
+
+int main()
+{
+	coro::CoroLoop::add(async_num(3));
+	coro::CoroLoop::add(async_num(2));
+	coro::CoroLoop::add(async_num(1));
+	coro::CoroLoop::add(async_num(5));
+	coro::CoroLoop::add(async_num(4));
+	coro::CoroLoop::run();
 	return 0;
 }
 
 /*
 输出:
-hello
-hello =  114
-world
-world =  514
+1
+2
+3
+4
+5
 */
 ```
