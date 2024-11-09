@@ -1,42 +1,52 @@
 #ifndef AYR_SOCKET_IMPL_HPP
 #define AYR_SOCKET_IMPL_HPP
 
+#include <cerrno>
+#include <stdlib.h>
+
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/Buffer.hpp>
 
+
 namespace ayr
 {
-#ifdef _WIN32 || _WIN64
-#include <ayr/fs/win/winlib.hpp>
+#if defined(_WIN32) || defined(_WIN64)
+#include <ayr/fs/win/winlib.hpp>                                         \
 
-#define wsa_init()                                   \
-	do {                                              \
-		WSADATA wsaData;                               \
-		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)  \
-		{                                                \
-			RuntimeError("WSAStartup failed");            \
-		}                                                  \
-	}while(0)                                               \
+	def win_startup()
+	{
+		static bool inited = false;
+		if (inited) return;
+		inited = true;
 
-#define win_sock_cleanup() WSACleanup();
+		WSADATA wsaData;
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+			RuntimeError("WSAStartup failed");
 
-#else if defined(__linux__) || defined(__unix__)
+		atexit([]() { WSACleanup(); });
+	}
+
+#define socket_startup() win_startup()
+#elif defined(__linux__) || defined(__unix__)
 #include <ayr/fs/linux/linuxlib.hpp>
 
-#define wsa_init()
-#define win_sock_cleanup()
+#define socket_startup()
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR 0
 
 	def closesocket(int socket) { ::close(socket); }
 #endif
 
-	CString wsa_error_msg()
+	CString error_msg()
 	{
+		CString error_msg{ 64 };
+#ifdef _WIN32 || _WIN64
 		int errorno = WSAGetLastError();
-		CString error_msg{ 128 };
 		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorno,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), error_msg.data(), 128, nullptr);
+#else
+		strerror_s(error_msg.data(), 64, errno);
+#endif
 		return error_msg;
 	}
 
@@ -47,10 +57,14 @@ namespace ayr
 
 		SockAddrIn(const char* ip, int port, int family = AF_INET)
 		{
+			memset(&addr_, 0, sizeof(sockaddr_in));
 			addr_.sin_family = family;
 			addr_.sin_port = htons(port);
-			if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
-				RuntimeError(wsa_error_msg());
+
+			if (ip == nullptr)
+				addr_.sin_addr.s_addr = INADDR_ANY;
+			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
+				RuntimeError(error_msg());
 		}
 
 		sockaddr& get_sockaddr() { return *reinterpret_cast<sockaddr*>(&addr_); }
@@ -61,7 +75,7 @@ namespace ayr
 		{
 			CString ip{ 16 };
 			if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 			return ip;
 		}
 
@@ -76,7 +90,7 @@ namespace ayr
 	public:
 		Socket(int family, int type)
 		{
-			wsa_init();
+			socket_startup();
 
 			int protocol = 0;
 			switch (type)
@@ -88,34 +102,28 @@ namespace ayr
 				protocol = IPPROTO_UDP;
 				break;
 			default:
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 			};
 
 			socket_ = socket(family, type, protocol);
 			if (socket_ == INVALID_SOCKET)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 		}
 
 		Socket(int socket) : socket_(socket) {}
 
-		~Socket()
-		{
-			close();
-			win_sock_cleanup();
-		}
+		~Socket() { close(); }
 
-		// 监听ip:port
-		void listen(const char* ip, int port, int backlog = SOMAXCONN)
+		// 绑定监听ip:port
+		void bind(const char* ip, int port, int backlog = 8)
 		{
 			SockAddrIn addr(ip, port);
 
 			if (::bind(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 
 			if (::listen(socket_, backlog) != 0)
-				RuntimeError(wsa_error_msg());
-
-			print("listen on", ip, ":", port);
+				RuntimeError(error_msg());
 		}
 
 		// 接受一个连接
@@ -131,7 +139,7 @@ namespace ayr
 			SockAddrIn addr(ip, port);
 
 			if (::connect(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 		}
 
 		// 发送size个字节的数据
@@ -151,7 +159,7 @@ namespace ayr
 			int head_size = 0;
 			int recvd = ::recv(socket_, (char*)&head_size, 4, flags);
 			if (recvd == SOCKET_ERROR)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 			else if (recvd == 0)
 				return "";
 
@@ -172,7 +180,7 @@ namespace ayr
 			{
 				int len = ::send(socket_, ptr, count, flags);
 				if (len == SOCKET_ERROR)
-					RuntimeError(wsa_error_msg());
+					RuntimeError(error_msg());
 				else if (len == 0)
 					continue;
 				ptr += len;
@@ -185,7 +193,7 @@ namespace ayr
 			CString data{ size };
 			int recvd = ::recv(socket_, data, size, flags);
 			if (recvd == SOCKET_ERROR)
-				RuntimeError(wsa_error_msg());
+				RuntimeError(error_msg());
 			return data;
 		}
 	private:
