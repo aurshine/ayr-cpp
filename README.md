@@ -199,3 +199,53 @@ int main()
 5
 */
 ```
+
+## socket回声服务器
+```
+void client()
+{
+	constexpr int BUFFER_SIZE = 1024;
+	char input_data[BUFFER_SIZE];
+
+	Socket client(AF_INET, SOCK_STREAM);
+	client.connect(nullptr, 14514);
+	while (true)
+	{
+		print.setend(" ");
+		print("client input message:");
+		print.setend("\n");
+		std::cin >> input_data;
+		if (input_data[0] == 'q' || input_data[0] == 'Q')
+			break;
+		client.send(input_data, strlen(input_data));
+		print("server recv message:", client.recv());
+		print();
+	}
+}
+
+void server()
+{
+	Socket server(AF_INET, SOCK_STREAM);
+
+	server.bind(nullptr, 14514);
+
+	Socket client = server.accept();
+	while (true)
+	{
+		CString msg = client.recv();
+		if (!msg) break;
+		client.send(msg.data(), msg.size());
+	}
+}
+
+/*
+输出:
+client input message: hello
+server recv message: hello
+
+client input message: hi
+server recv message: hi
+
+client input message: Q
+*/
+```
