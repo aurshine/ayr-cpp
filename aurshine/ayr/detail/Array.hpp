@@ -11,12 +11,14 @@
 namespace ayr
 {
 	template<typename T>
-	class Array : public Sequence<T>
+	class Array : public Sequence<Array<T>, T>
 	{
 		using self = Array<T>;
 
-		using super = Sequence<T>;
+		using super = Sequence<self, T>;
 	public:
+		using Value_t = T;
+
 		template<typename ...Args>
 		Array(c_size size, const Args&... args) : size_(size), arr_(std::make_unique<T[]>(size))
 		{
@@ -45,11 +47,11 @@ namespace ayr
 
 		const T* data() const { return arr_.get(); }
 
-		T& at(c_size index) override { return data()[index]; }
+		T& at(c_size index) { return data()[index]; }
 
-		const T& at(c_size index) const override { return data()[index]; }
+		const T& at(c_size index) const { return data()[index]; }
 
-		c_size size() const override { return size_; }
+		c_size size() const { return size_; }
 
 		CString __str__() const
 		{

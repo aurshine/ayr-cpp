@@ -11,11 +11,11 @@ namespace ayr
 {
 	// 动态数组
 	template<typename T>
-	class DynArray : public Sequence<T>
+	class DynArray : public Sequence<DynArray<T>, T>
 	{
 		using self = DynArray<T>;
 
-		using super = Sequence<T>;
+		using super = Sequence<self, T>;
 
 		// 动态数组块的数量
 		constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;

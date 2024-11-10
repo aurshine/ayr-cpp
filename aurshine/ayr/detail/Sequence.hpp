@@ -7,13 +7,14 @@
 
 namespace ayr
 {
-	template<typename T>
-	class Sequence : public Object<Sequence<T>>
+	// 需要子类实现 size() 和 at()
+	template<typename Derived, typename T>
+	class Sequence : public Object<Sequence<Derived, T>>
 	{
 	public:
-		using self = Sequence<T>;
+		using self = Sequence<Derived, T>;
 
-		using super = Object<Sequence<T>>;
+		using super = Object<Sequence<Derived, T>>;
 	public:
 		using Value_t = T;
 
@@ -21,11 +22,11 @@ namespace ayr
 
 		using ConstIterator = IndexIterator<true, self, Value_t>;
 
-		virtual Value_t& at(c_size) = 0;
+		Value_t& at(c_size index) { return static_cast<Derived*>(this)->at(index); }
 
-		virtual const Value_t& at(c_size) const = 0;
+		const Value_t& at(c_size index) const { return static_cast<const Derived*>(this)->at(index); }
 
-		virtual c_size size() const = 0;
+		virtual c_size size() const { return static_cast<const Derived*>(this)->size(); }
 
 		/*virtual cmp_t __cmp__(const self& other) const
 		{

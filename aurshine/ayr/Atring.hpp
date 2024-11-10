@@ -5,11 +5,11 @@
 
 namespace ayr
 {
-	class Atring : public Sequence<CodePoint>
+	class Atring : public Sequence<Atring, CodePoint>
 	{
 		using self = Atring;
 
-		using super = Sequence<CodePoint>;
+		using super = Sequence<self, CodePoint>;
 
 		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<CodePoint[]> shared_head, Encoding* encoding) noexcept :
 			codepoints_(codepoints), length_(length), shared_head_(shared_head), encoding_(encoding) {}
@@ -20,6 +20,8 @@ namespace ayr
 			codepoints_ = shared_head_.get();
 		}
 	public:
+		using Value_t = CodePoint;
+
 		Atring(const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding)) {}
 
 		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding))
@@ -102,7 +104,7 @@ namespace ayr
 
 		const CodePoint& at(c_size index) const { return codepoints_[index]; }
 
-		c_size size() const override { return length_; }
+		c_size size() const { return length_; }
 
 		// 字符串的字节长度
 		c_size byte_size() const
