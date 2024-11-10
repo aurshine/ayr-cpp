@@ -1,9 +1,7 @@
 ﻿#ifndef AYR_DETIAL_OBJECT_HPP
 #define AYR_DETIAL_OBJECT_HPP
 
-#include <format>
 #include <sstream>
-#include <typeinfo>
 
 #include <ayr/detail/CString.hpp>
 #include <ayr/detail/ayr_concepts.hpp>
@@ -21,12 +19,15 @@ namespace ayr
 		// 转换为 字符串 类型
 		CString __str__() const
 		{
-			std::stringstream addr;
-			addr << std::hex << this;
-
-			auto&& str = std::format(R"(<{} 0x{}>)", dtype(self), addr.str());
-
-			return CString(str);
+			std::string type_name = dtype(self);
+			int s_len = type_name.size() + 22;
+			CString s(s_len);
+#ifdef _MSC_VER
+			sprintf_s(s.data(), s_len, "<%s 0x%p>", type_name.c_str(), this);
+#else
+			std::sprintf(s.data(), "<%s %p>", type_name.c_str(), this);
+#endif
+			return s;
 		}
 
 		// hash 编码
@@ -37,18 +38,6 @@ namespace ayr
 
 		// 返回true或false表示是否相等
 		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
-
-		bool operator> (const self& other) const { return __cmp__(other) > 0; }
-
-		bool operator< (const self& other) const { return __cmp__(other) < 0; }
-
-		bool operator>= (const self& other) const { return __cmp__(other) >= 0; }
-
-		bool operator<= (const self& other) const { return __cmp__(other) <= 0; }
-
-		bool operator== (const self& other) const { return __equals__(other); }
-
-		bool operator!= (const self& other) const { return !__equals__(other); }
 	};
 
 	template<typename T>

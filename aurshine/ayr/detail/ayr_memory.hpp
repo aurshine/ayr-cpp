@@ -12,7 +12,7 @@ namespace ayr
 	def ayr_alloc(size_t size) -> T*
 	{
 		if (size == 0) return nullptr;
-		return reinterpret_cast<T*>(::operator new[](sizeof(T)* size));
+		return static_cast<T*>(::operator new[](sizeof(T)* size));
 	}
 
 	// 在ptr上调用构造函数, 并返回ptr
@@ -36,5 +36,16 @@ namespace ayr
 	{
 		::operator delete[](ptr);
 	}
+
+	template<typename T>
+	struct AyrDeleter
+	{
+	public:
+		void operator()(T* ptr) const
+		{
+			ayr_destroy(ptr);
+			ayr_delloc(ptr);
+		}
+	};
 }
 #endif 

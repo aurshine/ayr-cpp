@@ -1,6 +1,8 @@
 ﻿#ifndef AYR_DETIAL_BUNIT_HPP
 #define AYR_DETIAL_BUNIT_HPP
 
+#include <ayr/detail/ayr.h>
+
 namespace ayr
 {
 	constexpr def exp2(int i) { return 1ull << i; }
