@@ -30,13 +30,13 @@ namespace ayr
 		}
 
 		// hash 编码
-		hash_t __hash__() const { assert(false, "not implemented __hash__()"); return None<hash_t>; }
+		hash_t __hash__() const { assert(false, "NotImplementedError: not implemented __hash__()"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		cmp_t __cmp__(const Derived& other) const { return static_cast<cmp_t>(this) - static_cast<cmp_t>(&other); }
 
 		// 返回true或false表示是否相等
-		bool __equals__(const Derived& other) const { return static_cast<Derived*>(this)->__cmp__(other) == 0; }
+		bool __equals__(const Derived& other) const { return static_cast<const Derived*>(this)->__cmp__(other) == 0; }
 	};
 
 	template<typename T>
