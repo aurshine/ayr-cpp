@@ -20,20 +20,32 @@ namespace ayr
 			using self = RangeIterator;
 
 			using super = Object<self>;
-
-			using Value_t = c_size;
 		public:
+			using iterator_category = std::bidirectional_iterator_tag;
+
+			using value_type = c_size;
+
+			using difference_type = std::ptrdiff_t;
+
+			using pointer = value_type*;
+
+			using const_pointer = const value_type*;
+
+			using reference = value_type&;
+
+			using const_reference = const value_type&;
+
 			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
 
 			RangeIterator(const self& other) : current_(other.current_), step_(other.step_) {}
 
-			Value_t& operator*() { return current_; }
+			reference operator*() { return current_; }
 
-			Value_t* operator->() { return &current_; }
+			pointer operator->() { return &current_; }
 
-			const Value_t& operator*() const { return current_; }
+			const_reference operator*() const { return current_; }
 
-			const Value_t* operator->() const { return &current_; }
+			const_pointer operator->() const { return &current_; }
 
 			self& operator++() { current_ += step_; return *this; }
 
@@ -44,8 +56,6 @@ namespace ayr
 			self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
 			bool __equals__(const self& other) const { return current_ == other.current_; }
-
-			c_size distance(const self& other) const { return (other.current_ - current_) / step_; }
 		private:
 			c_size current_, step_;
 		};
