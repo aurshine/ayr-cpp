@@ -91,6 +91,14 @@ namespace ayr
 			--size_;
 		}
 
+		template<typename U>
+		void insert(c_size index, U&& item)
+		{
+			append(std::forward<U>(item));
+			for (c_size i = size() - 1; i > index; --i)
+				std::swap(at(i), at(i - 1));
+		}
+
 		// 转换为Array
 		Array<T> to_array() const
 		{
@@ -131,15 +139,17 @@ namespace ayr
 		// 对index范围不做检查
 		T& at(c_size index)
 		{
-			auto [block_index, index_in_block] = _get_ith_indices(index + 1);
-			return blocks_.at(block_index).at(index_in_block);
+			int block_index = _get_block_index(index + 1);
+			int inblock_index = _get_inblock_index(index + 1, block_index);
+			return blocks_.at(block_index).at(inblock_index);
 		}
 
 		// 对index范围不做检查
 		const T& at(c_size index) const
 		{
-			auto [block_index, index_in_block] = _get_ith_indices(index + 1);
-			return blocks_.at(block_index).at(index_in_block);
+			int block_index = _get_block_index(index + 1);
+			int inblock_index = _get_inblock_index(index + 1, block_index);
+			return blocks_.at(block_index).at(inblock_index);
 		}
 
 		void clear()
@@ -149,24 +159,29 @@ namespace ayr
 			size_ = 0;
 		}
 	private:
-		// 得到第ith个元素的块索引和块内索引
-		// 满足ith < 2^i * BASE_SIZE 找到的最小的i
-		std::pair<int, int> _get_ith_indices(c_size ith) const
+		// 得到第ith个元素的块索引
+		int _get_block_index(c_size ith) const
 		{
 			int i = 0, j = DYNARRAY_BLOCK_SIZE - 1, mid;
 			while (i < j)
 			{
 				mid = i + j >> 1;
-				if (ith < exp2(mid) * BASE_SIZE)
+				if (ith <= exp2(mid) * BASE_SIZE)
 					j = mid;
 				else
 					i = mid + 1;
 			}
-			return { i, BASE_SIZE * (exp2(i) - 1) - ith + 1 };
+			return i;
+		}
+
+		// 得到第ith个元素的块内索引
+		int _get_inblock_index(c_size ith, int block_index) const
+		{
+			return ith - BASE_SIZE * (exp2(block_index) - 1) - 1;
 		}
 
 		// 最后一个块的索引
-		int _back_block_index() const { return _get_ith_indices(size()).first; }
+		int _back_block_index() const { return _get_block_index(size()); }
 
 		// 最后一个块
 		Buffer<T>& _back_block() { return blocks_.at(_back_block_index()); }
