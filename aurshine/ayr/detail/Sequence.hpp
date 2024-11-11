@@ -28,33 +28,28 @@ namespace ayr
 
 		c_size size() const { return static_cast<const Derived*>(this)->size(); }
 
-		cmp_t __cmp__(const self& other) const
+		cmp_t __cmp__(const Derived& other) const
 		{
-			auto m_it = begin(), m_end = end(), o_it = other.begin(), o_end = other.end();
+			auto m_it = begin(), m_end = end();
+			auto o_it = other.begin(), o_end = other.end();
 			while (m_it != m_end && o_it != o_end)
 			{
-				if (*m_it < *o_it)
-					return -1;
-				else if (*m_it > *o_it)
-					return 1;
-
+				if (*m_it < *o_it) return -1;
+				if (*m_it > *o_it) return 1;
 				++m_it, ++o_it;
 			}
 
-			if (m_it != m_end)
-				return 1;
-			else if (o_it != o_end)
-				return -1;
-			else
-				return 0;
+			if (m_it != m_end) return 1;
+			if (o_it != o_end) return -1;
+			return 0;
 		}
 
-		bool __equals__(const self& other) const
+		bool __equals__(const Derived& other) const
 		{
 			if (size() != other.size())
 				return false;
 
-			return __cmp__(other) == 0;
+			return static_cast<const Derived*>(this)->__cmp__(other) == 0;
 		}
 
 		Iterator begin() { return Iterator(this, 0); }

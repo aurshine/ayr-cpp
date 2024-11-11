@@ -12,14 +12,13 @@ namespace ayr
 	template<typename Derived>
 	class Object
 	{
-		using self = Derived;
 	public:
 		using AyrObjectDerived = Derived;
 
 		// 转换为 字符串 类型
 		CString __str__() const
 		{
-			std::string type_name = dtype(self);
+			std::string type_name = dtype(Derived);
 			int s_len = type_name.size() + 22;
 			CString s(s_len);
 #ifdef _MSC_VER
@@ -34,10 +33,10 @@ namespace ayr
 		hash_t __hash__() const { assert(false, "not implemented __hash__()"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
-		cmp_t __cmp__(const self& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
+		cmp_t __cmp__(const Derived& other) const { return static_cast<cmp_t>(this) - static_cast<cmp_t>(&other); }
 
 		// 返回true或false表示是否相等
-		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
+		bool __equals__(const Derived& other) const { return static_cast<Derived*>(this)->__cmp__(other) == 0; }
 	};
 
 	template<typename T>
