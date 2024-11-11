@@ -19,18 +19,24 @@ namespace ayr
 
 		// 动态数组块的数量
 		constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
+
+		// 最小块大小
+		constexpr static int BASE_SIZE = 8;
 	public:
 		using Value_t = T;
 
-		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), occupies_size_(0) {}
+		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0) {}
 
 		DynArray(const self& other) : DynArray()
 		{
-			for (auto& item : other)
+			for (const Value_t& item : other)
 				append(item);
 		}
 
-		DynArray(self&& other) : blocks_(std::move(other.blocks_)), occupies_size_(other.occupies_size_) {}
+		DynArray(self&& other) :blocks_(std::move(other.blocks_)), size_(other.size_)
+		{
+			other.size_ = 0;
+		}
 
 		~DynArray() {};
 
@@ -40,7 +46,7 @@ namespace ayr
 				return *this;
 
 			blocks_ = other.blocks_;
-			occupies_size_ = other.occupies_size_;
+			size_ = other.size_;
 			return *this;
 		}
 
@@ -50,60 +56,47 @@ namespace ayr
 				return *this;
 
 			blocks_ = std::move(other.blocks_);
-			occupies_size_ = other.occupies_size_;
+			size_ = other.size_;
+			other.size_ = 0;
 			return *this;
 		}
 
 		// 容器存储的数据长度
-		c_size size() const
-		{
-			c_size size = 0;
-			for (c_size i = 0; i < occupies_size_; ++i)
-				size += blocks_.at(i).size();
-			return size;
-		}
-
-		// 容器已经占用的块
-		c_size occupy_size() const { return occupies_size_; }
+		c_size size() const { return size_; }
 
 		// 追加元素
-		T& append(const T& item)
+		template<typename U>
+		T& append(U&& item)
 		{
-			if (occupied_block_has_full())
-				wakeup();
+			++size_;
+			try_wakeup();
 
-			return blocks_.at(occupies_size_ - 1).append(item);
+			return _back_block().append(std::forward<U>(item));
 		}
-
-		T& append(T&& item)
-		{
-			if (occupied_block_has_full())
-				wakeup();
-
-			return blocks_.at(occupies_size_ - 1).append(std::move(item));
-		}
-
 
 		// 移除指定位置的元素
 		void pop(c_size index = -1)
 		{
-			c_size size_ = size();
-			index = neg_index(index, size_);
+			c_size m_size = size();
+			index = neg_index(index, m_size);
 
-			for (c_size i = index + 1; i < size_; ++i)
+			for (c_size i = index + 1; i < m_size; ++i)
 				at(i - 1) = std::move(at(i));
 
-			blocks_.at(occupies_size_ - 1).pop_back();
-			if (occupied_block_has_full())
-				pop_back_block();
+			Buffer<T>& back_block = _back_block();
+			if (back_block.size() == 1)
+				_pop_back_block();
+			else
+				back_block.pop_back();
+			--size_;
 		}
 
 		// 转换为Array
 		Array<T> to_array() const
 		{
-			c_size size_ = size();
-			Array<T> arr(size_);
-			for (c_size i = 0; i < size_; ++i)
+			c_size m_size = size();
+			Array<T> arr(m_size);
+			for (c_size i = 0; i < m_size; ++i)
 				arr.at(i) = at(i);
 
 			return arr;
@@ -112,9 +105,9 @@ namespace ayr
 		// 移动数组
 		Array<T> move_array()
 		{
-			c_size size_ = size();
-			Array<T> arr(size_);
-			for (c_size i = 0; i < size_; ++i)
+			c_size m_size = size();
+			Array<T> arr(m_size);
+			for (c_size i = 0; i < m_size; ++i)
 				arr.at(i) = std::move(at(i));
 
 			return arr;
@@ -125,7 +118,7 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "[";
-			for (c_size i = 0, size_ = size(); i < size_; ++i)
+			for (c_size i = 0, m_size = size(); i < m_size; ++i)
 			{
 				if (i) stream << ", ";
 				stream << at(i);
@@ -138,58 +131,68 @@ namespace ayr
 		// 对index范围不做检查
 		T& at(c_size index)
 		{
-			c_size block_index = _get_block_index(index);
-			++index;
-			return blocks_.at(block_index).at(index ^ exp2(block_index));
+			auto [block_index, index_in_block] = _get_ith_indices(index + 1);
+			return blocks_.at(block_index).at(index_in_block);
 		}
 
 		// 对index范围不做检查
 		const T& at(c_size index) const
 		{
-			c_size block_index = _get_block_index(index);
-			++index;
-			return blocks_.at(block_index).at(index ^ exp2(block_index));
+			auto [block_index, index_in_block] = _get_ith_indices(index + 1);
+			return blocks_.at(block_index).at(index_in_block);
 		}
 
 		void clear()
 		{
 			for (auto&& block : blocks_)
 				block.resize(0);
-			occupies_size_ = 0;
+			size_ = 0;
 		}
 	private:
+		// 得到第ith个元素的块索引和块内索引
+		// 满足ith < 2^i * BASE_SIZE 找到的最小的i
+		std::pair<int, int> _get_ith_indices(c_size ith) const
+		{
+			int i = 0, j = DYNARRAY_BLOCK_SIZE - 1, mid;
+			while (i < j)
+			{
+				mid = i + j >> 1;
+				if (ith < exp2(mid) * BASE_SIZE)
+					j = mid;
+				else
+					i = mid + 1;
+			}
+			return { i, BASE_SIZE * (exp2(i) - 1) - ith + 1 };
+		}
+
+		// 最后一个块的索引
+		int _back_block_index() const { return _get_ith_indices(size()).first; }
+
+		// 最后一个块
+		Buffer<T>& _back_block() { return blocks_.at(_back_block_index()); }
+
 		// 移除最后一个块
-		void pop_back_block()
-		{
-			blocks_.at(occupies_size_ - 1).resize(0);
-			--occupies_size_;
-		}
-
-
-		// 存在的块是否都已经满了
-		bool occupied_block_has_full() const
-		{
-			c_size size_ = size();
-			return all_one(size_) || size_ == 0;
-		}
-
+		void _pop_back_block() { _back_block().resize(0); }
 
 		// 唤醒一个新的块
-		void wakeup()
+		// 此时的size一定要大于0
+		void try_wakeup()
 		{
-			occupies_size_++;
+			int back_block_index = _back_block_index();
+			Buffer<T>& back_block = blocks_.at(back_block_index);
+			if (back_block.size() == 0)
+			{
+				c_size new_size = BASE_SIZE;
+				if (back_block_index != 0)
+					new_size = blocks_.at(back_block_index - 1).size() * 2;
 
-			Buffer<T>& block = blocks_.at(occupies_size_ - 1);
-
-			block.resize(exp2(occupies_size_ - 1));
+				back_block.resize(new_size);
+			}
 		}
-
-		// 得到index表示的块的索引
-		static c_size _get_block_index(c_size index) { return highbit_index(index + 1); }
 	private:
 		Array<Buffer<T>> blocks_;
 
-		c_size occupies_size_;
+		c_size size_;
 	};
 }
 
