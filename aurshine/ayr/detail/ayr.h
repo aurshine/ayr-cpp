@@ -5,9 +5,16 @@
 #include <cassert>
 #include <typeinfo>
 
-
 namespace ayr
 {
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 #define def inline auto
 
 #define der(R) inline R
@@ -18,13 +25,10 @@ namespace ayr
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))
 
-#ifdef max
-#undef max
-#endif
+#define hasattr(T, attr) requires(T t) { &T::attr;}
 
-#ifdef min
-#undef min
-#endif
+#define hasmethod(T, method, ...) requires(T t) { t.method( ##__VA_ARGS__);}
+
 	// container size type 
 	using c_size = int64_t;
 	// compare type
