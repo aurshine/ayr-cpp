@@ -1,8 +1,8 @@
 #ifndef AYR_SOCKET_IMPL_HPP
 #define AYR_SOCKET_IMPL_HPP
 
-#include <cerrno>
 #include <stdlib.h>
+#include <mutex>
 
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/Buffer.hpp>
@@ -10,207 +10,240 @@
 
 namespace ayr
 {
-	namespace socket
-	{
-
-
 #if defined(_WIN32) || defined(_WIN64)
+
 #include <ayr/fs/win/winlib.hpp>                                         \
 
-		def win_startup()
-		{
-			static bool inited = false;
-			if (inited) return;
-			inited = true;
+	def win_startup()
+	{
+		static bool inited = false;
+		static std::mutex init_mutex;
 
-			WSADATA wsaData;
-			if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-				RuntimeError("WSAStartup failed");
+		std::lock_guard<std::mutex> lock(init_mutex);
+		if (inited) return;
+		inited = true;
 
-			atexit([]() { WSACleanup(); });
-		}
+		WSADATA wsaData;
+		if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+			RuntimeError("WSAStartup failed");
+
+		atexit([]() { WSACleanup(); });
+	}
 
 #define socket_startup() win_startup()
 #elif defined(__linux__) || defined(__unix__)
+#include <cerrno>
 #include <ayr/fs/linux/linuxlib.hpp>
 
 #define socket_startup()
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR 0
 
-		def closesocket(int socket) { ::close(socket); }
+	def closesocket(int socket) { ::close(socket); }
 #endif
 
-		CString error_msg()
-		{
-			CString error_msg{ 64 };
+	CString error_msg()
+	{
+		CString error_msg{ 64 };
 #ifdef _WIN32 || _WIN64
-			int errorno = WSAGetLastError();
-			FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorno,
-				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), error_msg.data(), 128, nullptr);
+		int errorno = WSAGetLastError();
+		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorno,
+			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), error_msg.data(), 128, nullptr);
 #else
-			strerror_s(error_msg.data(), 64, errno);
+		strerror(error_msg.data(), errno);
 #endif
-			return error_msg;
+		return error_msg;
+	}
+
+
+	struct SockAddrIn : public Object<SockAddrIn>
+	{
+		SockAddrIn() { memset(&addr_, 0, sizeof(sockaddr_in)); };
+
+		SockAddrIn(const char* ip, int port, int family = AF_INET) : SockAddrIn()
+		{
+			addr_.sin_family = family;
+			addr_.sin_port = htons(port);
+
+			if (ip == nullptr)
+				addr_.sin_addr.s_addr = INADDR_ANY;
+			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
+				RuntimeError(error_msg());
 		}
 
+		sockaddr& get_sockaddr() { return *reinterpret_cast<sockaddr*>(&addr_); }
 
-		struct SockAddrIn : public Object<SockAddrIn>
+		const sockaddr& get_sockaddr() const { return *reinterpret_cast<const sockaddr*>(&addr_); }
+
+		int get_socklen() const { return sizeof(sockaddr_in); }
+
+		CString get_ip(int family = AF_INET) const
 		{
-			SockAddrIn() = default;
+			CString ip{ 16 };
+			if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
+				RuntimeError(error_msg());
+			return ip;
+		}
 
-			SockAddrIn(const char* ip, int port, int family = AF_INET)
-			{
-				memset(&addr_, 0, sizeof(sockaddr_in));
-				addr_.sin_family = family;
-				addr_.sin_port = htons(port);
+		int get_port() const { return ntohs(addr_.sin_port); }
 
-				if (ip == nullptr)
-					addr_.sin_addr.s_addr = INADDR_ANY;
-				else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
-					RuntimeError(error_msg());
-			}
-
-			sockaddr& get_sockaddr() { return *reinterpret_cast<sockaddr*>(&addr_); }
-
-			int get_socklen() { return sizeof(sockaddr_in); }
-
-			CString get_ip(int family = AF_INET)
-			{
-				CString ip{ 16 };
-				if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
-					RuntimeError(error_msg());
-				return ip;
-			}
-
-			int get_port() { return ntohs(addr_.sin_port); }
-		private:
-			sockaddr_in addr_;
-		};
-
-
-		class Socket : public Object<Socket>
+		CString __str__() const
 		{
-		public:
-			Socket(int family, int type)
-			{
-				socket_startup();
+			std::stringstream ss;
+			ss << get_ip() << ":" << get_port();
+			return ss.str();
+		}
+	private:
+		sockaddr_in addr_;
+	};
 
-				int protocol = 0;
-				switch (type)
-				{
-				case SOCK_STREAM:
-					protocol = IPPROTO_TCP;
-					break;
-				case SOCK_DGRAM:
-					protocol = IPPROTO_UDP;
-					break;
-				default:
+
+	class Socket : public Object<Socket>
+	{
+	public:
+		Socket(int family, int type)
+		{
+			socket_startup();
+
+			int protocol = 0;
+			switch (type)
+			{
+			case SOCK_STREAM:
+				protocol = IPPROTO_TCP;
+				break;
+			case SOCK_DGRAM:
+				protocol = IPPROTO_UDP;
+				break;
+			default:
+				RuntimeError("Invalid socket type");
+			};
+
+			socket_ = socket(family, type, protocol);
+			if (socket_ == INVALID_SOCKET)
+				RuntimeError(error_msg());
+		}
+
+		Socket(int socket) : socket_(socket) {}
+
+		~Socket() { close(); }
+
+		// 绑定ip:port
+		void bind(const char* ip, int port) const
+		{
+			SockAddrIn addr(ip, port);
+
+			if (::bind(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
+				RuntimeError(error_msg());
+		}
+
+		// 监听端口
+		void listen(int backlog = 8) const
+		{
+			if (::listen(socket_, backlog) != 0)
+				RuntimeError(error_msg());
+		}
+
+		// 接受一个连接
+		Socket accept() const
+		{
+			SockAddrIn addr{};
+			return ::accept(socket_, &addr.get_sockaddr(), nullptr);
+		}
+
+		// 连接到ip:port
+		void connect(const char* ip, int port) const
+		{
+			SockAddrIn addr(ip, port);
+
+			if (::connect(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
+				RuntimeError(error_msg());
+		}
+
+		// 发送size个字节的数据, 数据头部包含了数据大小，需要用recv接收
+		void send(const char* data, int size, int flags = 0) const
+		{
+			Buffer<char> head_data{ 4 + size };
+			int head_size = htonl(size);
+			head_data.append_bytes(&head_size, 4);
+			head_data.append_bytes(data, size);
+
+			send_impl(head_data.data(), size + 4, flags);
+		}
+
+		// 接收send发送的数据，如果断开连接，返回空字符串
+		CString recv(int flags = 0) const
+		{
+			int head_size = 0;
+			int recvd = ::recv(socket_, (char*)&head_size, 4, flags);
+			if (recvd == SOCKET_ERROR)
+				RuntimeError(error_msg());
+			else if (recvd == 0)
+				return "";
+
+			return recv_impl(ntohl(head_size), flags);
+		}
+
+		// 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
+		void sendto(const char* data, size_t size, const SockAddrIn& to, int flags = 0) const
+		{
+			int num_send = ::sendto(socket_, data, size, flags, &to.get_sockaddr(), to.get_socklen());
+			if (num_send == SOCKET_ERROR)
+				RuntimeError(error_msg());
+			else if (num_send != size)
+				RuntimeError(std::format("Failed to send all data.{}/{}", num_send, size));
+		}
+
+		// 接收sendto发送的数据，如果断开连接，返回空字符串
+		// 返回值：数据，来源地址
+		std::pair<CString, SockAddrIn> recvfrom(int flags = 0) const
+		{
+			SockAddrIn from{};
+			CString data{ 1024 };
+			int addrlen = from.get_socklen();
+			::recvfrom(socket_, data.data(), 1024, flags, &from.get_sockaddr(), &addrlen);
+			return { data, from };
+		}
+
+		void close()
+		{
+			closesocket(socket_);
+			socket_ = INVALID_SOCKET;
+		}
+	private:
+		// 发送size个字节的数据
+		void send_impl(const char* data, int size, int flags) const
+		{
+			const char* ptr = data;
+			while (size > 0)
+			{
+				int num_send = ::send(socket_, ptr, size, flags);
+				if (num_send == SOCKET_ERROR)
 					RuntimeError(error_msg());
-				};
-
-				socket_ = ::socket(family, type, protocol);
-				if (socket_ == INVALID_SOCKET)
-					RuntimeError(error_msg());
+				else if (num_send == 0)
+					continue;
+				ptr += num_send;
+				size -= num_send;
 			}
+		}
 
-			Socket(int socket) : socket_(socket) {}
-
-			~Socket() { close(); }
-
-			// 绑定监听ip:port
-			void bind(const char* ip, int port, int backlog = 8)
+		// 接收size个字节的数据
+		CString recv_impl(int size, int flags) const
+		{
+			CString data{ size };
+			char* ptr = data.data();
+			while (size > 0)
 			{
-				SockAddrIn addr(ip, port);
-
-				if (::bind(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
-					RuntimeError(error_msg());
-
-				if (::listen(socket_, backlog) != 0)
-					RuntimeError(error_msg());
-			}
-
-			// 接受一个连接
-			Socket accept()
-			{
-				SockAddrIn addr{};
-				return ::accept(socket_, &addr.get_sockaddr(), nullptr);
-			}
-
-			// 连接到ip:port
-			void connect(const char* ip, int port)
-			{
-				SockAddrIn addr(ip, port);
-
-				if (::connect(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
-					RuntimeError(error_msg());
-			}
-
-			// 发送size个字节的数据, 数据头部包含了数据大小，需要用recv接收
-			void send(const char* data, int size, int flags = 0)
-			{
-				Buffer<char> head_data{ 4 + size };
-				int head_size = htonl(size);
-				head_data.append_bytes(&head_size, 4);
-				head_data.append_bytes(data, size);
-
-				send_impl(head_data.data(), size + 4, flags);
-			}
-
-			// 接收send发送的数据，如果断开连接，返回空字符串
-			CString recv(int flags = 0)
-			{
-				int head_size = 0;
-				int recvd = ::recv(socket_, (char*)&head_size, 4, flags);
+				int recvd = ::recv(socket_, ptr, size, flags);
 				if (recvd == SOCKET_ERROR)
 					RuntimeError(error_msg());
-				else if (recvd == 0)
-					return "";
-
-				return recv_impl(ntohl(head_size), flags);
+				ptr += recvd;
+				size -= recvd;
 			}
 
-			void close()
-			{
-				closesocket(socket_);
-				socket_ = INVALID_SOCKET;
-			}
-		private:
-			// 发送size个字节的数据
-			void send_impl(const char* data, int size, int flags)
-			{
-				const char* ptr = data;
-				while (size > 0)
-				{
-					int len = ::send(socket_, ptr, size, flags);
-					if (len == SOCKET_ERROR)
-						RuntimeError(error_msg());
-					else if (len == 0)
-						continue;
-					ptr += len;
-					size -= len;
-				}
-			}
-
-			// 接收size个字节的数据
-			CString recv_impl(int size, int flags)
-			{
-				CString data{ size };
-				char* ptr = data.data();
-				while (size > 0)
-				{
-					int recvd = ::recv(socket_, ptr, size, flags);
-					if (recvd == SOCKET_ERROR)
-						RuntimeError(error_msg());
-					ptr += recvd;
-					size -= recvd;
-				}
-
-				return data;
-			}
-		private:
-			int socket_;
-		};
-	}
+			return data;
+		}
+	private:
+		int socket_;
+	};
 }
 #endif
