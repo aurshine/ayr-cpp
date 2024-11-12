@@ -6,7 +6,7 @@
 
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/Buffer.hpp>
-
+#include <ayr/detail/NoCopy.hpp>
 
 namespace ayr
 {
@@ -98,7 +98,7 @@ namespace ayr
 	};
 
 
-	class Socket : public Object<Socket>
+	class Socket : public Object<Socket>, public NoCopy
 	{
 	public:
 		Socket(int family, int type)
@@ -123,9 +123,18 @@ namespace ayr
 				RuntimeError(error_msg());
 		}
 
+		Socket(Socket&& other) : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
+
 		Socket(int socket) : socket_(socket) {}
 
 		~Socket() { close(); }
+
+		Socket& operator=(Socket&& other)
+		{
+			socket_ = other.socket_;
+			other.socket_ = INVALID_SOCKET;
+			return *this;
+		}
 
 		// 绑定ip:port
 		void bind(const char* ip, int port) const
@@ -208,6 +217,11 @@ namespace ayr
 		{
 			closesocket(socket_);
 			socket_ = INVALID_SOCKET;
+		}
+
+		CString __str__() const
+		{
+			return std::format("Socket({})", socket_);
 		}
 	private:
 		// 发送size个字节的数据

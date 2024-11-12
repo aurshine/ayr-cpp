@@ -17,7 +17,7 @@ namespace ayr
 
 		void send(const char* data, int size, const SockAddrIn& to, int flags = 0) const { socket_.sendto(data, size, to, flags); }
 
-		std::pair<CString, SockAddrIn> recv(int flags) const { return socket_.recvfrom(flags); }
+		std::pair<CString, SockAddrIn> recv(int flags = 0) const { return socket_.recvfrom(flags); }
 	private:
 		Socket socket_;
 	};
@@ -32,7 +32,7 @@ namespace ayr
 
 		void send(const char* data, int size, int flags = 0) const { socket_.sendto(data, size, server_addr_, flags); }
 
-		std::pair<CString, SockAddrIn> recv(int flags) const { return socket_.recvfrom(flags); }
+		std::pair<CString, SockAddrIn> recv(int flags = 0) const { return socket_.recvfrom(flags); }
 	private:
 		Socket socket_;
 

@@ -7,5 +7,6 @@ using namespace ayr;
 
 int main()
 {
+	tcp_echo_test();
 	return 0;
 }
