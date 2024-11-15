@@ -12,7 +12,7 @@ constexpr int PORT = 14514;
 
 void tcp_echo_server_test()
 {
-	ayr::TcpServer server(nullptr, PORT);
+	ayr::TcpServer server("127.0.0.1", PORT);
 	Socket& client = server.accept();
 	while (true)
 	{
@@ -55,11 +55,11 @@ void tcp_echo_test()
 
 void udp_echo_server_test()
 {
-	ayr::UdpServer server(nullptr, PORT);
+	ayr::UdpServer server("127.0.0.1", PORT);
 	while (true)
 	{
 		auto [data, client_addr] = server.recv();
-		print(data, client_addr);
+
 		if (!data) break;
 		server.send(data, data.size(), client_addr);
 	}

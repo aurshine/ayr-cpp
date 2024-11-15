@@ -29,6 +29,7 @@ namespace ayr
 	}
 
 #define socket_startup() win_startup()
+
 #elif defined(AYR_LINUX)
 #include <cerrno>
 
@@ -202,6 +203,16 @@ namespace ayr
 			int addrlen = from.get_socklen();
 			::recvfrom(socket_, data.data(), 1024, flags, from.get_sockaddr(), &addrlen);
 			return { data, from };
+		}
+
+		void setbuffer(int size, CString mode) const
+		{
+			if (mode == "r")
+				::setsockopt(socket_, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size));
+			if (mode == "w")
+				::setsockopt(socket_, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size));
+			else
+				ValueError(std::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
 		}
 
 		void close()
