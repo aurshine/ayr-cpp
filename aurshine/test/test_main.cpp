@@ -7,6 +7,6 @@ using namespace ayr;
 
 int main()
 {
-	udp_echo_test();
+	iterate_test();
 	return 0;
 }

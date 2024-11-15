@@ -35,6 +35,25 @@ void runspeed_test()
 	tm(test_vs);
 }
 
+void iterate_test()
+{
+	DynArray<int> da;
+	for (int i = 0; i < 1e6; ++i)
+		da.append(i);
+
+	Timer tm("ms");
+	tm.start();
+	for (auto& i : da)
+		i;
+	tm.stop();
+
+	tm.start();
+	for (int i = 0, size = da.size(); i < size; ++i)
+		da.at(i);
+
+	tm.stop();
+}
+
 void dynarray_test()
 {
 	runspeed_test();

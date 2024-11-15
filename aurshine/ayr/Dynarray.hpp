@@ -33,7 +33,7 @@ namespace ayr
 				append(item);
 		}
 
-		DynArray(self&& other) :blocks_(std::move(other.blocks_)), size_(other.size_)
+		DynArray(self&& other) noexcept :blocks_(std::move(other.blocks_)), size_(other.size_)
 		{
 			other.size_ = 0;
 		}
@@ -50,7 +50,7 @@ namespace ayr
 			return *this;
 		}
 
-		self& operator=(self&& other)
+		self& operator=(self&& other) noexcept
 		{
 			if (this == &other)
 				return *this;
@@ -158,6 +158,165 @@ namespace ayr
 				block.resize(0);
 			size_ = 0;
 		}
+
+		template<bool IsConst>
+		struct _Iterator : public Object<_Iterator<IsConst>>
+		{
+			using self = _Iterator<IsConst>;
+
+			using Container_t = std::conditional_t<IsConst, const DynArray<T>, DynArray<T>>;
+
+			using iterator_category = std::random_access_iterator_tag;
+
+			using value_type = std::conditional_t<IsConst, const Value_t, Value_t>;
+
+			using difference_type = std::ptrdiff_t;
+
+			using pointer = value_type*;
+
+			using const_pointer = const value_type*;
+
+			using reference = value_type&;
+
+			using const_reference = const value_type&;
+
+			_Iterator(Container_t* dynarray) : _Iterator(dynarray, 0, 0) {}
+
+			_Iterator(Container_t* dynarray, c_size block_index, c_size inblock_index)
+				: block_index_(block_index), inblock_index_(inblock_index), dynarray_(dynarray) {}
+
+			_Iterator(const self& other) : _Iterator(other.dynarray_, other.block_index_, other.inblock_index_) {}
+
+			self& operator=(const self& other)
+			{
+				block_index_ = other.block_index_;
+				inblock_index_ = other.inblock_index_;
+				dynarray_ = other.dynarray_;
+				return *this;
+			}
+
+			reference operator*() { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+
+			const_reference operator*() const { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+
+			pointer operator->() { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+
+			const_pointer operator->() const { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+
+			self& operator++()
+			{
+				if (dynarray_->blocks_.at(block_index_).size() == inblock_index_ + 1)
+				{
+					++block_index_;
+					inblock_index_ = 0;
+				}
+				else
+					++inblock_index_;
+				return *this;
+			}
+
+			self operator++(int) { self tmp(*this); ++tmp; return tmp; }
+
+			self& operator--()
+			{
+				if (dynarray_->blocks_.at(block_index_).size() == 0)
+				{
+					--block_index_;
+					inblock_index_ = blocks_.at(block_index_).size() - 1;
+				}
+				else
+					--inblock_index_;
+				return *this;
+			}
+
+			self operator--(int) { self tmp(*this); --tmp; return tmp; }
+
+			self operator+(difference_type n) const { self tmp(*this); tmp += n; return tmp; }
+
+			self operator-(difference_type n) const { self tmp(*this); tmp -= n; return tmp; }
+
+			self& operator+=(difference_type n)
+			{
+				while (n)
+				{
+					c_size cur_size = dynarray_->blocks_.at(block_index_).size();
+					if (cur_size > inblock_index_ + n)
+					{
+						inblock_index_ += n;
+						n = 0;
+					}
+					else
+					{
+						inblock_index_ = 0;
+						n -= cur_size - inblock_index_;
+						block_index_ += 1;
+					}
+				}
+				return *this;
+			}
+
+			self& operator-=(difference_type n)
+			{
+				while (n)
+				{
+					if (inblock_index_ >= n)
+						inblock_index_ -= n;
+					else
+					{
+						n -= inblock_index_;
+						block_index_ -= 1;
+						inblock_index_ = blocks_.at(block_index_).size() - 1;
+					}
+				}
+				return *this;
+			}
+
+			difference_type operator-(const self& other) const
+			{
+				if (*this < other) return -(other - *this);
+				if (dynarray_ != other.dynarray_)
+					RuntimeError("Iterator not belong to the same container");
+
+				if (block_index_ == other.block_index_)
+					return inblock_index_ - other.inblock_index_;
+
+				difference_type res = dynarray_->blocks_.at(other.block_index_).size() - other.inblock_index_;
+
+				for (c_size i = other.block_index_ + 1; i < block_index_; ++i)
+					res += dynarray_->blocks_.at(i).size();
+
+				return res + inblock_index_;
+			}
+
+			bool __equals__(const self& other) const
+			{
+				return block_index_ == other.block_index_ && inblock_index_ == other.inblock_index_ && dynarray_ == other.dynarray_;
+			}
+
+			cmp_t __cmp__(const self& other) const
+			{
+				if (block_index_ != other.block_index_)
+					return block_index_ - other.block_index_;
+				else
+					return inblock_index_ - other.inblock_index_;
+			}
+		private:
+			c_size block_index_, inblock_index_;
+
+			Container_t* dynarray_;
+		};
+
+		using Iterator = _Iterator<false>;
+
+		using ConstIterator = _Iterator<true>;
+
+		Iterator begin() { return Iterator(this); }
+
+		ConstIterator begin() const { return ConstIterator(this); }
+
+		Iterator end() { return Iterator(this, _back_block_index() + 1, 0); }
+
+		ConstIterator end() const { return ConstIterator(this, _back_block_index() + 1, 0); }
 	private:
 		// 得到第ith个元素的块索引
 		int _get_block_index(c_size ith) const
@@ -175,13 +334,13 @@ namespace ayr
 		}
 
 		// 得到第ith个元素的块内索引
-		int _get_inblock_index(c_size ith, int block_index) const
+		c_size _get_inblock_index(c_size ith, int block_index) const
 		{
 			return ith - BASE_SIZE * (exp2(block_index) - 1) - 1;
 		}
 
 		// 最后一个块的索引
-		int _back_block_index() const { return _get_block_index(size()); }
+		c_size _back_block_index() const { return _get_block_index(size()); }
 
 		// 最后一个块
 		Buffer<T>& _back_block() { return blocks_.at(_back_block_index()); }
@@ -193,7 +352,7 @@ namespace ayr
 		// 此时的size一定要大于0
 		void try_wakeup()
 		{
-			int back_block_index = _back_block_index();
+			c_size back_block_index = _back_block_index();
 			Buffer<T>& back_block = blocks_.at(back_block_index);
 			if (back_block.size() == 0)
 			{
