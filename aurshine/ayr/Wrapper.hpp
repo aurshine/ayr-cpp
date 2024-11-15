@@ -2,7 +2,7 @@
 #define AYR_WRAPPER_HPP
 
 #include <type_traits>
-#include <ayr/detail/object.hpp>
+#include <ayr/detail/Object.hpp>
 
 
 namespace ayr
