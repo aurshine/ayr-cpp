@@ -7,10 +7,10 @@
 
 namespace ayr
 {
-	class UdpClient : public Object<UdpClient>
+	class UdpServer : public Object<UdpServer>
 	{
 	public:
-		UdpClient(const char* ip, int port, int famliy = AF_INET) : socket_(famliy, SOCK_DGRAM)
+		UdpServer(const char* ip, int port, int famliy = AF_INET) : socket_(famliy, SOCK_DGRAM)
 		{
 			socket_.bind(ip, port);
 		}
@@ -22,17 +22,19 @@ namespace ayr
 		Socket socket_;
 	};
 
-	class UdpServer : public Object<UdpServer>
+	class UdpClient : public Object<UdpClient>
 	{
 	public:
-		UdpServer(int famliy = AF_INET) : socket_(famliy, SOCK_DGRAM) {}
+		UdpClient(int famliy = AF_INET) : socket_(famliy, SOCK_DGRAM) {}
 
-		UdpServer(const char* serever_ip, int server_port, int famliy = AF_INET) :
+		UdpClient(const char* serever_ip, int server_port, int famliy = AF_INET) :
 			socket_(famliy, SOCK_DGRAM), server_addr_(serever_ip, server_port) {}
 
 		void send(const char* data, int size, int flags = 0) const { socket_.sendto(data, size, server_addr_, flags); }
 
 		std::pair<CString, SockAddrIn> recv(int flags = 0) const { return socket_.recvfrom(flags); }
+
+		~UdpClient() { send("", 0); }
 	private:
 		Socket socket_;
 
