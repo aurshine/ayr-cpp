@@ -7,13 +7,11 @@
 #include <ayr/detail/printer.hpp>
 #include <ayr/detail/Buffer.hpp>
 #include <ayr/detail/NoCopy.hpp>
+#include <ayr/fs/filesystem.hpp>
 
 namespace ayr
 {
-#if defined(_WIN32) || defined(_WIN64)
-
-#include <ayr/fs/win/winlib.hpp>                                         \
-
+#if defined(AYR_WIN)
 	def win_startup()
 	{
 		static bool inited = false;
@@ -31,9 +29,8 @@ namespace ayr
 	}
 
 #define socket_startup() win_startup()
-#elif defined(__linux__) || defined(__unix__)
+#elif defined(AYR_LINUX)
 #include <cerrno>
-#include <ayr/fs/linux/linuxlib.hpp>
 
 #define socket_startup()
 #define INVALID_SOCKET -1
@@ -44,7 +41,7 @@ namespace ayr
 
 	CString error_msg()
 	{
-		CString error_msg{ 64 };
+		CString error_msg{ 128 };
 #ifdef _WIN32 || _WIN64
 		int errorno = WSAGetLastError();
 		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorno,
@@ -71,9 +68,9 @@ namespace ayr
 				RuntimeError(error_msg());
 		}
 
-		sockaddr& get_sockaddr() { return *reinterpret_cast<sockaddr*>(&addr_); }
+		sockaddr* get_sockaddr() { return reinterpret_cast<sockaddr*>(&addr_); }
 
-		const sockaddr& get_sockaddr() const { return *reinterpret_cast<const sockaddr*>(&addr_); }
+		const sockaddr* get_sockaddr() const { return reinterpret_cast<const sockaddr*>(&addr_); }
 
 		int get_socklen() const { return sizeof(sockaddr_in); }
 
@@ -87,12 +84,7 @@ namespace ayr
 
 		int get_port() const { return ntohs(addr_.sin_port); }
 
-		CString __str__() const
-		{
-			std::stringstream ss;
-			ss << get_ip() << ":" << get_port();
-			return ss.str();
-		}
+		CString __str__() const { return std::format("{}:{}", get_ip(), get_port()); }
 	private:
 		sockaddr_in addr_;
 	};
@@ -123,13 +115,13 @@ namespace ayr
 				RuntimeError(error_msg());
 		}
 
-		Socket(Socket&& other) : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
+		Socket(Socket&& other) noexcept : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
 
 		Socket(int socket) : socket_(socket) {}
 
 		~Socket() { close(); }
 
-		Socket& operator=(Socket&& other)
+		Socket& operator=(Socket&& other) noexcept
 		{
 			socket_ = other.socket_;
 			other.socket_ = INVALID_SOCKET;
@@ -141,7 +133,7 @@ namespace ayr
 		{
 			SockAddrIn addr(ip, port);
 
-			if (::bind(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
+			if (::bind(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
 				RuntimeError(error_msg());
 		}
 
@@ -155,8 +147,7 @@ namespace ayr
 		// 接受一个连接
 		Socket accept() const
 		{
-			SockAddrIn addr{};
-			return ::accept(socket_, &addr.get_sockaddr(), nullptr);
+			return ::accept(socket_, nullptr, nullptr);
 		}
 
 		// 连接到ip:port
@@ -164,7 +155,7 @@ namespace ayr
 		{
 			SockAddrIn addr(ip, port);
 
-			if (::connect(socket_, &addr.get_sockaddr(), addr.get_socklen()) != 0)
+			if (::connect(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
 				RuntimeError(error_msg());
 		}
 
@@ -195,7 +186,7 @@ namespace ayr
 		// 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
 		void sendto(const char* data, size_t size, const SockAddrIn& to, int flags = 0) const
 		{
-			int num_send = ::sendto(socket_, data, size, flags, &to.get_sockaddr(), to.get_socklen());
+			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
 			if (num_send == SOCKET_ERROR)
 				RuntimeError(error_msg());
 			else if (num_send != size)
@@ -209,7 +200,7 @@ namespace ayr
 			SockAddrIn from{};
 			CString data{ 1024 };
 			int addrlen = from.get_socklen();
-			::recvfrom(socket_, data.data(), 1024, flags, &from.get_sockaddr(), &addrlen);
+			::recvfrom(socket_, data.data(), 1024, flags, from.get_sockaddr(), &addrlen);
 			return { data, from };
 		}
 
@@ -219,10 +210,7 @@ namespace ayr
 			socket_ = INVALID_SOCKET;
 		}
 
-		CString __str__() const
-		{
-			return std::format("Socket({})", socket_);
-		}
+		CString __str__() const { return std::format("Socket({})", socket_); }
 	private:
 		// 发送size个字节的数据
 		void send_impl(const char* data, int size, int flags) const
