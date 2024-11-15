@@ -27,8 +27,8 @@ namespace ayr
 	public:
 		UdpClient(int famliy = AF_INET) : socket_(famliy, SOCK_DGRAM) {}
 
-		UdpClient(const char* serever_ip, int server_port, int famliy = AF_INET) :
-			socket_(famliy, SOCK_DGRAM), server_addr_(serever_ip, server_port) {}
+		UdpClient(const char* server_ip, int server_port, int famliy = AF_INET) :
+			socket_(famliy, SOCK_DGRAM), server_addr_(server_ip, server_port) {}
 
 		void send(const char* data, int size, int flags = 0) const { socket_.sendto(data, size, server_addr_, flags); }
 
