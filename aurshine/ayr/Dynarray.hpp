@@ -18,10 +18,10 @@ namespace ayr
 		using super = Sequence<self, T>;
 
 		// 动态数组块的数量
-		constexpr static size_t DYNARRAY_BLOCK_SIZE = 63;
+		constexpr static int DYNARRAY_BLOCK_SIZE = 63;
 
 		// 最小块大小
-		constexpr static int BASE_SIZE = 8;
+		constexpr static c_size BASE_SIZE = 8;
 	public:
 		using Value_t = T;
 

@@ -10,6 +10,8 @@ using namespace ayr;
 
 ayr::DynArray<std::string> das;
 std::vector<std::string> vs;
+ayr::DynArray<int> dai;
+std::vector<int> vi;
 
 constexpr int N = 1e6;
 
@@ -31,12 +33,32 @@ void test_vs()
 	}
 }
 
+void test_dai()
+{
+	print("test_dai");
+	for (int i = 0; i < N; ++i)
+	{
+		dai.append(i);
+	}
+}
+
+void test_vi()
+{
+	print("test_vi");
+	for (int i = 0; i < N; ++i)
+	{
+		vi.push_back(i);
+	}
+}
+
 void runspeed_test()
 {
 	auto tm = Timer("ms");
 
 	tm(test_das);
 	tm(test_vs);
+	tm(test_dai);
+	tm(test_vi);
 }
 
 void iterate_test()
