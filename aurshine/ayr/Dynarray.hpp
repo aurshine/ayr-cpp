@@ -18,7 +18,7 @@ namespace ayr
 		using super = Sequence<self, T>;
 
 		// 动态数组块的数量
-		constexpr static size_t DYNARRAY_BLOCK_SIZE = 64;
+		constexpr static size_t DYNARRAY_BLOCK_SIZE = 63;
 
 		// 最小块大小
 		constexpr static int BASE_SIZE = 8;
@@ -140,7 +140,7 @@ namespace ayr
 		T& at(c_size index)
 		{
 			int block_index = _get_block_index(index + 1);
-			int inblock_index = _get_inblock_index(index + 1, block_index);
+			c_size inblock_index = _get_inblock_index(index + 1, block_index);
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
@@ -148,7 +148,7 @@ namespace ayr
 		const T& at(c_size index) const
 		{
 			int block_index = _get_block_index(index + 1);
-			int inblock_index = _get_inblock_index(index + 1, block_index);
+			c_size inblock_index = _get_inblock_index(index + 1, block_index);
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
@@ -325,7 +325,7 @@ namespace ayr
 			while (i < j)
 			{
 				mid = i + j >> 1;
-				if (ith <= exp2(mid) * BASE_SIZE)
+				if (ith <= exp2[mid] * BASE_SIZE)
 					j = mid;
 				else
 					i = mid + 1;
@@ -336,7 +336,7 @@ namespace ayr
 		// 得到第ith个元素的块内索引
 		c_size _get_inblock_index(c_size ith, int block_index) const
 		{
-			return ith - BASE_SIZE * (exp2(block_index) - 1) - 1;
+			return ith - BASE_SIZE * (exp2[block_index] - 1) - 1;
 		}
 
 		// 最后一个块的索引

@@ -8,8 +8,8 @@
 
 using namespace ayr;
 
-ayr::DynArray<int> das;
-std::vector<int> vs;
+ayr::DynArray<std::string> das;
+std::vector<std::string> vs;
 
 constexpr int N = 1e6;
 
@@ -17,14 +17,18 @@ void test_das()
 {
 	print("test_das");
 	for (int i = 0; i < N; ++i)
-		das.append(1);
+	{
+		das.append("hello");
+	}
 }
 
 void test_vs()
 {
 	print("test_vs");
 	for (int i = 0; i < N; ++i)
-		vs.push_back(1);
+	{
+		vs.push_back("hello");
+	}
 }
 
 void runspeed_test()
