@@ -136,7 +136,7 @@ namespace ayr
 			const Value_t* value = bucket_.try_get(ayrhash(key));
 
 			if (value != nullptr) return *value;
-			KeyError("Key not found in dict");
+			KeyError(std::format("Key '{}' not found in dict", key));
 			return None<V>;
 		}
 
