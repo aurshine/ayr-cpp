@@ -160,16 +160,13 @@ namespace ayr
 			msg
 		);
 
-		std::terminate();
+		throw std::runtime_error();
 	}
 
 	template<Printable T>
 	inline void error_assert(bool condition, const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
-		if (!condition)
-		{
-			error_exec(msg, loc);
-		}
+		if (!condition) error_exec(msg, loc);
 	}
 
 

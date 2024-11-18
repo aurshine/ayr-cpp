@@ -213,7 +213,9 @@ namespace ayr
 				store_manager.add_move_dist();
 			}
 
-			error_assert(ret != nullptr, "RobinHashBucket: set_store failed, no empty slot found.");
+			if (ret == nullptr)
+				RuntimeError("RobinHashBucket set_store failed, bucekt is full");
+
 			return ret;
 		}
 

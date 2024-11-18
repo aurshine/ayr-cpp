@@ -103,9 +103,10 @@ namespace ayr
 		def parse_first_object(JsonType::JsonStr& json_str, CodePoint stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
 			json_str = json_str.strip();
-			error_assert(json_str.size() != 0, "json_str is empty");
-			JsonType::JsonStr match;
+			if (json_str.size() == 0)
+				ValueError("json_str is empty");
 
+			JsonType::JsonStr match;
 			if (json_str[0] == CodePoint('['))
 			{
 				match = json_str.match('[', ']');

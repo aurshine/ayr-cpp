@@ -151,11 +151,12 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			T* transform_ptr()
 			{
-				error_assert(is<T>(),
-					std::format("Json type is not {} but {}\n",
+				if (!is<T>())
+					ValueError(std::format("Json type is not {} but {}",
 						type_name(GetJsonTypeID<T>::ID),
-						type_name(json_type)
-					));
+						type_name(json_type))
+					);
+
 				return reinterpret_cast<T*>(this->json_item);
 			}
 
@@ -163,11 +164,11 @@ namespace ayr
 			template<JsonTypeStrictConcept T>
 			const T* transform_ptr() const
 			{
-				error_assert(is<T>(),
-					std::format("Json type is not {} but {}\n",
+				if (!is<T>())
+					ValueError(std::format("Json type is not {} but {}",
 						type_name(GetJsonTypeID<T>::ID),
-						type_name(json_type)
-					));
+						type_name(json_type))
+					);
 				return reinterpret_cast<T*>(this->json_item);
 			}
 
