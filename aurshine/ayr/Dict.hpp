@@ -42,9 +42,19 @@ namespace ayr
 			return *this;
 		}
 
-		const Key_t& key() const { error_assert(key_ != nullptr, "key is null"); return *key_; }
+		const Key_t& key() const
+		{
+			if (key_ == nullptr)
+				KeyError("key is null");
+			return *key_;
+		}
 
-		const Value_t& value() const { error_assert(value_ != nullptr, "value is null"); return *value_; }
+		const Value_t& value() const
+		{
+			if (value_ == nullptr)
+				ValueError("value is null");
+			return *value_;
+		}
 	private:
 		const Key_t* key_;
 
