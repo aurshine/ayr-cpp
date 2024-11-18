@@ -21,6 +21,7 @@ namespace ayr
 
 #define dtype(T) typeid(T).name()
 
+	// 取模运算, 运算结果为 [0, size]
 #define neg_index(index, size) (((index) == (size)) ? (index): (((index) + (size)) % (size)))
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))

@@ -152,7 +152,7 @@ namespace ayr
 	inline void error_exec(const T& msg, const ::std::source_location& loc = ::std::source_location::current())
 	{
 		ayr_error(
-			std::format("file: {}\nline, column: {}, {}\nfunction_name: {}\nerror:",
+			std::format("file: {}\nline, column: {}, {}\nfunction_name: {}\n",
 				loc.file_name(),
 				loc.line(),
 				loc.column(),

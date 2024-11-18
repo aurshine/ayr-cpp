@@ -26,11 +26,12 @@ namespace ayr
 
 		CodePoint(char c) : byte_code_(ayr_alloc<char>(1)), code_size_(1) { byte_code_[0] = c; }
 
-		CodePoint(const char* data, Encoding* encoding)
+		CodePoint(const char* data_, Encoding* encoding)
 		{
-			code_size_ = encoding->byte_size(data);
+			code_size_ = encoding->byte_size(data_);
 			byte_code_ = ayr_alloc<char>(code_size_);
-			std::memcpy(self::data(), data, code_size_);
+
+			std::memcpy(data(), data_, code_size_);
 		}
 
 		CodePoint(const self& other)
@@ -130,6 +131,7 @@ namespace ayr
 	{
 		DynArray<CodePoint> cps;
 		int i = 0;
+
 		while (i < len)
 		{
 			cps.append(CodePoint(data + i, encoding));
