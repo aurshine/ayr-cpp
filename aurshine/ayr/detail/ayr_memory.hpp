@@ -12,7 +12,7 @@ namespace ayr
 	def ayr_alloc(size_t size) -> T*
 	{
 		if (size == 0) return nullptr;
-		return static_cast<T*>(::operator new[](sizeof(T)* size));
+		return static_cast<T*>(::operator new(sizeof(T) * size));
 	}
 
 	// 在ptr上调用构造函数, 并返回ptr
@@ -25,16 +25,19 @@ namespace ayr
 
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
-	def ayr_destroy(T* ptr)
+	def ayr_destroy(T* ptr, size_t size = 1)
 	{
-		ptr->~T();
+		if (ptr == nullptr) return;
+		for (size_t i = 0; i < size; ++i, ++ptr)
+			ptr->~T();
 	}
 
 	// 释放ptr指向的内存
 	template<typename T>
-	def ayr_delloc(T* ptr)
+	def ayr_delloc(T*& ptr)
 	{
-		::operator delete[](ptr);
+		::operator delete(ptr);
+		ptr = nullptr;
 	}
 
 	template<typename T>

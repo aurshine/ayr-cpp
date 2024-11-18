@@ -12,7 +12,7 @@ namespace ayr
 {
 	class Atring;
 
-	// 键值对
+	// 键值对视图
 	template<Hashable K, typename V>
 	struct KeyValueView : public Object<KeyValueView<K, V>>
 	{

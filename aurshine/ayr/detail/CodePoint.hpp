@@ -24,56 +24,57 @@ namespace ayr
 
 		CodePoint() : byte_code_(nullptr), code_size_(0) {}
 
-		CodePoint(char c) : byte_code_(std::make_unique<char[]>(1)), code_size_(1) { byte_code_[0] = c; }
+		CodePoint(char c) : byte_code_(ayr_alloc<char>(1)), code_size_(1) { byte_code_[0] = c; }
 
 		CodePoint(const char* data, Encoding* encoding)
 		{
 			code_size_ = encoding->byte_size(data);
-			byte_code_ = std::make_unique<char[]>(code_size_);
-			std::memcpy(byte_code_.get(), data, code_size_);
+			byte_code_ = ayr_alloc<char>(code_size_);
+			std::memcpy(self::data(), data, code_size_);
 		}
 
 		CodePoint(const self& other)
 		{
 			code_size_ = other.size();
-			byte_code_ = std::make_unique<char[]>(code_size_);
-			std::memcpy(byte_code_.get(), other.data(), code_size_);
+			byte_code_ = ayr_alloc<char>(code_size_);
+			std::memcpy(data(), other.data(), code_size_);
 		}
 
-		CodePoint(self&& other) noexcept : byte_code_(std::move(other.byte_code_)), code_size_(other.code_size_) { other.code_size_ = 0; }
+		CodePoint(self&& other) noexcept : byte_code_(other.byte_code_), code_size_(other.code_size_) { other.code_size_ = 0; other.byte_code_ = nullptr; }
 
-		~CodePoint() {};
+		~CodePoint() { ayr_delloc(byte_code_); code_size_ = 0; };
 
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			code_size_ = other.code_size_;
-			byte_code_ = std::make_unique<char[]>(code_size_);
-			std::memcpy(byte_code_.get(), other.data(), code_size_);
+			ayr_destroy(byte_code_);
 
-			return *this;
+			return *ayr_construct(this, other);
 		}
 
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			code_size_ = other.code_size_;
-			byte_code_ = std::move(other.byte_code_);
-			other.code_size_ = 0;
-			return *this;
+			ayr_destroy(byte_code_);
+
+			return *ayr_construct(this, std::move(other));
 		}
 
 		self& operator=(char c)
 		{
+			ayr_destroy(byte_code_);
+
 			code_size_ = 1;
-			byte_code_ = std::make_unique<char[]>(1);
+			byte_code_ = ayr_alloc<char>(1);
 			byte_code_[0] = c;
 
 			return *this;
 		}
 
+		char* data() noexcept { return byte_code_; }
+
 		// 返回字节码
-		const char* data() const noexcept { return byte_code_.get(); }
+		const char* data() const noexcept { return byte_code_; }
 
 		// 返回字节码长度
 		c_size size() const noexcept { return code_size_; }
@@ -111,7 +112,7 @@ namespace ayr
 
 		bool isasciii() const { return (unsigned)byte_code_[0] < 0x80; }
 	private:
-		std::unique_ptr<char[]> byte_code_;
+		char* byte_code_;
 
 		int8_t code_size_;
 	};

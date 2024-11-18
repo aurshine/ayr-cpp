@@ -61,9 +61,9 @@ namespace ayr
 
 		~Buffer()
 		{
-			for (c_size i = 0; i < size(); ++i)
-				ayr_destroy(buffer_ + i);
+			ayr_destroy(buffer_, size());
 			ayr_delloc(buffer_);
+			size_ = capacity_ = 0;
 		}
 
 		c_size size() const { return size_; }

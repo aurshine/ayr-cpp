@@ -15,9 +15,9 @@ namespace ayr
 	{
 		using self = CString;
 	public:
-		CString() : str(std::make_unique<char[]>(1)) {}
+		CString() : str(ayr_alloc<char>(1)) {}
 
-		CString(c_size len) : str(std::make_unique<char[]>(len + 1)) {}
+		CString(c_size len) : str(ayr_alloc<char>(len + 1)) {}
 
 		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
 
@@ -27,20 +27,20 @@ namespace ayr
 
 		CString(const CString& other) : CString(other.data(), other.size()) {}
 
-		CString(CString&& other) noexcept : str(std::move(other.str)) {}
+		CString(CString&& other) noexcept : str(other.str) { other.str = nullptr; }
 
 		CString& operator=(const CString& other)
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
+			ayr_delloc(str);
 
 			return *ayr_construct(this, other);
 		}
 
 		CString& operator=(CString&& other) noexcept
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
+			ayr_delloc(str);
 
 			return *ayr_construct(this, std::move(other));
 		}
@@ -57,18 +57,15 @@ namespace ayr
 
 		size_t size() const { return std::strlen(data()); }
 
-		char* data() { return str.get(); }
+		char* data() { return str; }
 
-		const char* data() const { return str.get(); }
+		const char* data() const { return str; }
 
 		CString __str__() const { return *this; }
 
 		size_t __hash__() const { return bytes_hash(data(), size()); }
 
-		cmp_t __cmp__(const self& other) const
-		{
-			return std::strcmp(data(), other.data());
-		}
+		cmp_t __cmp__(const self& other) const { return std::strcmp(data(), other.data()); }
 
 		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
 
@@ -90,7 +87,7 @@ namespace ayr
 
 		bool operator!= (const char* other) const { return __equals__(other); }
 	private:
-		std::unique_ptr<char[]> str;
+		char* str;
 	};
 
 	template<AyrPrintable T>

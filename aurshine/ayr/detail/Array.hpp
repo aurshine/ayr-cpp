@@ -20,36 +20,41 @@ namespace ayr
 		using Value_t = T;
 
 		template<typename ...Args>
-		Array(c_size size, const Args&... args) : size_(size), arr_(std::make_unique<T[]>(size))
+		Array(c_size size, const Args&... args) : size_(size), arr_(ayr_alloc<T>(size))
 		{
 			for (c_size i = 0; i < size; ++i)
 				ayr_construct(data() + i, args...);
 		}
 
-		Array(std::initializer_list<T>&& init_list) : size_(init_list.size()), arr_(std::make_unique<T[]>(init_list.size()))
+		Array(std::initializer_list<T>&& init_list) : size_(init_list.size()), arr_(ayr_alloc<T>(init_list.size()))
 		{
 			c_size i = 0;
-			for (auto&& item : init_list)
+			for (T& item : init_list)
 				ayr_construct(data() + i++, std::move(item));
 		}
 
-		Array(const self& other) : size_(other.size_), arr_(std::make_unique<T[]>(other.size_))
+		Array(const self& other) : size_(other.size_), arr_(ayr_alloc<T>(other.size_))
 		{
 			for (c_size i = 0; i < size_; ++i)
 				ayr_construct(data() + i, other.data()[i]);
 		}
 
-		Array(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.size_ = 0; }
+		Array(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.size_ = 0; other.arr_ = 0; }
 
-		~Array() { size_ = 0; };
+		~Array()
+		{
+			ayr_destroy(arr_, size_);
+			ayr_delloc(arr_);
+			size_ = 0;
+		};
 
-		T* data() { return arr_.get(); }
+		T* data() { return arr_; }
 
-		const T* data() const { return arr_.get(); }
+		const T* data() const { return arr_; }
 
-		T& at(c_size index) { return data()[index]; }
+		T& at(c_size index) { return arr_[index]; }
 
-		const T& at(c_size index) const { return data()[index]; }
+		const T& at(c_size index) const { return arr_[index]; }
 
 		c_size size() const { return size_; }
 
@@ -66,7 +71,7 @@ namespace ayr
 			return stream.str();
 		}
 
-
+		// 重新分配内存，不保留原有数据
 		template<typename ...Args>
 		void resize(c_size new_size, const Args&... args)
 		{
@@ -79,14 +84,14 @@ namespace ayr
 		{
 			std::pair<T*, c_size> result = { data(), size_ };
 
-			arr_.release();
+			arr_ = nullptr;
 			size_ = 0;
 			return result;
 		}
 	private:
-		std::unique_ptr<T[]> arr_;
+		T* arr_;
 
-		c_size size_ = 0;
+		c_size size_;
 	};
 }
 #endif
