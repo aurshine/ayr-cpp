@@ -126,7 +126,7 @@ namespace ayr
 			Value_t* value = bucket_.try_get(hashv);
 
 			if (value != nullptr) return *value;
-			KeyError("Key not found in dict");
+			KeyError(std::format("Key '{}' not found in dict", key));
 			return None<V>;
 		}
 
@@ -313,7 +313,7 @@ namespace ayr
 	private:
 		bool contains_hashv(hash_t hashv) const { return bucket_.contains(hashv); }
 
-		void expand() { bucket_.expand(std::max(capacity() * 2, MIN_BUCKET_SIZE)); }
+		void expand() { bucket_.expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
 
 		// 插入一个key-value对, 不对key是否存在做检查
 		void insert_impl(const K& key, const V& value, hash_t hashv)
