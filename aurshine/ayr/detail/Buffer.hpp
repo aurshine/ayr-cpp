@@ -70,6 +70,8 @@ namespace ayr
 
 		c_size capacity() const { return capacity_; }
 
+		bool full() const { return size_ == capacity_; }
+
 		Value_t* data() { return buffer_; }
 
 		const Value_t* data() const { return buffer_; }

@@ -25,7 +25,7 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0) {}
+		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0), back_block_index_(-1) {}
 
 		DynArray(const self& other) : DynArray()
 		{
@@ -33,32 +33,29 @@ namespace ayr
 				append(item);
 		}
 
-		DynArray(self&& other) noexcept :blocks_(std::move(other.blocks_)), size_(other.size_)
+		DynArray(self&& other) noexcept :
+			blocks_(std::move(other.blocks_)), size_(other.size_), back_block_index_(other.back_block_index_)
 		{
 			other.size_ = 0;
+			other.back_block_index_ = -1;
 		}
 
 		~DynArray() {};
 
 		self& operator=(const self& other)
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
+			ayr_destroy(blocks_);
 
-			blocks_ = other.blocks_;
-			size_ = other.size_;
-			return *this;
+			return *ayr_construct(this, other);
 		}
 
 		self& operator=(self&& other) noexcept
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
+			ayr_destroy(blocks_);
 
-			blocks_ = std::move(other.blocks_);
-			size_ = other.size_;
-			other.size_ = 0;
-			return *this;
+			return *ayr_construct(this, std::move(other));
 		}
 
 		// 容器存储的数据长度
@@ -68,10 +65,11 @@ namespace ayr
 		template<typename U>
 		T& append(U&& item)
 		{
-			++size_;
 			try_wakeup();
 
-			return _back_block().append(std::forward<U>(item));
+			T& res = _back_block().append(std::forward<U>(item));
+			++size_;
+			return res;
 		}
 
 		// 移除指定位置的元素
@@ -152,11 +150,13 @@ namespace ayr
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
+
 		void clear()
 		{
 			for (auto&& block : blocks_)
 				block.resize(0);
 			size_ = 0;
+			back_block_index_ = -1;
 		}
 
 		template<bool IsConst>
@@ -340,33 +340,33 @@ namespace ayr
 		}
 
 		// 最后一个块的索引
-		c_size _back_block_index() const { return _get_block_index(size()); }
+		int _back_block_index() const { return back_block_index_; }
 
 		// 最后一个块
 		Buffer<T>& _back_block() { return blocks_.at(_back_block_index()); }
 
 		// 移除最后一个块
-		void _pop_back_block() { _back_block().resize(0); }
+		void _pop_back_block() { _back_block().resize(0); --back_block_index_; }
 
 		// 唤醒一个新的块
 		// 此时的size一定要大于0
 		void try_wakeup()
 		{
-			c_size back_block_index = _back_block_index();
-			Buffer<T>& back_block = blocks_.at(back_block_index);
-			if (back_block.size() == 0)
+			c_size bbi = _back_block_index();
+			if (bbi == -1 || blocks_.at(bbi).full())
 			{
-				c_size new_size = BASE_SIZE;
-				if (back_block_index != 0)
-					new_size = blocks_.at(back_block_index - 1).size() * 2;
+				c_size new_size = ifelse(bbi == -1, BASE_SIZE, blocks_.at(bbi).size() * 2);
 
-				back_block.resize(new_size);
+				++back_block_index_;
+				_back_block().resize(new_size);
 			}
 		}
 	private:
 		Array<Buffer<T>> blocks_;
 
 		c_size size_;
+
+		int back_block_index_;
 	};
 }
 
