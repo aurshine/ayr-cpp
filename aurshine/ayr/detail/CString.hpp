@@ -15,9 +15,9 @@ namespace ayr
 	{
 		using self = CString;
 	public:
-		CString() : str(ayr_alloc<char>(1)) {}
+		CString() : str(ayr_alloc<char>(1)) { std::memset(str, 0, 1); }
 
-		CString(c_size len) : str(ayr_alloc<char>(len + 1)) {}
+		CString(c_size len) : str(ayr_alloc<char>(len + 1)) { std::memset(str, 0, len + 1); }
 
 		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
 
