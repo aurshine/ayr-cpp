@@ -2,76 +2,106 @@
 #define AYR_STRING_HPP
 
 #include <ayr/detail/CodePoint.hpp>
+#include <ayr/detail/NoCopy.hpp>
 
 namespace ayr
 {
+	class AtringManager : public Object<AtringManager>, public NoCopy
+	{
+		using self = AtringManager;
+
+		CodePoint* shared_head_;
+
+		c_size length_;
+
+		Encoding* encoding_;
+	public:
+		AtringManager(CodePoint* shared_head, c_size length, Encoding* encoding) :
+			shared_head_(shared_head), length_(length), encoding_(encoding) {}
+
+		~AtringManager()
+		{
+			ayr_destroy(shared_head_, length_);
+			ayr_delloc(shared_head_);
+			shared_head_ = nullptr;
+			length_ = 0;
+		}
+
+		Encoding* const encoding() const { return encoding_; }
+
+		CodePoint* const shared_head() const { return shared_head_; }
+
+		void reset(CodePoint* shared_head, c_size length)
+		{
+			ayr_destroy(shared_head_, length_);
+			ayr_delloc(shared_head_);
+			shared_head_ = shared_head;
+			length_ = length;
+		}
+	};
+
 	class Atring : public Sequence<Atring, CodePoint>
 	{
 		using self = Atring;
 
 		using super = Sequence<self, CodePoint>;
 
-		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<CodePoint[]> shared_head, Encoding* encoding) noexcept :
-			codepoints_(codepoints), length_(length), shared_head_(shared_head), encoding_(encoding) {}
+		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<AtringManager> manager) :
+			codepoints_(codepoints), length_(length), manager_(manager) {}
 
 		Atring(size_t n, Encoding* encoding) :
-			Atring(nullptr, n, std::make_shared<CodePoint[]>(n), encoding)
+			Atring(nullptr, n, std::make_shared<AtringManager>(ayr_alloc<CodePoint>(n), n, encoding))
 		{
-			codepoints_ = shared_head_.get();
+			for (int i = 0; i < n; ++i)
+				ayr_construct(manager_->shared_head() + i);
+			codepoints_ = manager_->shared_head();
 		}
 	public:
 		using Value_t = CodePoint;
 
-		Atring(const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding)) {}
+		Atring(const CString& encoding = UTF8) : Atring(0, encoding_map(encoding)) {}
 
-		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(nullptr, 0, nullptr, encoding_map(encoding))
+		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(0, encoding_map(encoding))
 		{
 			len = ifelse(len > 0, len, std::strlen(str));
-			auto cps_info = get_cps(str, len, encoding_).move_array().separate();
+			auto cps_info = get_cps(str, len, manager_->encoding()).move_array().separate();
 
 			codepoints_ = cps_info.first;
 			length_ = cps_info.second;
-			shared_head_.reset(codepoints_);
+			manager_->reset(codepoints_, length_);
 		}
 
 		Atring(const CString& other, const CString& encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
 
-		Atring(const self& other) : Atring(other.size(), other.encoding_)
+		Atring(const self& other) : Atring(other.size(), other.encoding())
 		{
 			for (int i = 0, size_ = size(); i < size_; ++i)
 				at(i) = other.at(i);
 		}
 
-		Atring(self&& other) noexcept : Atring(other.codepoints_, other.length_, other.shared_head_, other.encoding_) {}
+		Atring(self&& other) noexcept : Atring(other.codepoints_, other.length_, other.manager_) {}
 
 		~Atring() {};
 
 		self& operator= (const self& other)
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
+			ayr_destroy(&manager_);
 
-			length_ = other.length_;
-			shared_head_ = std::make_shared<CodePoint[]>(length_);
-			codepoints_ = shared_head_.get();
-			for (int i = 0; i < length_; ++i)
-				at(i) = other.at(i);
-			return *this;
+			return *ayr_construct(this, other);
 		}
 
 		self& operator= (self&& other) noexcept
 		{
 			if (this == &other) return *this;
+			ayr_destroy(&manager_);
 
-			codepoints_ = other.codepoints_;
-			length_ = other.length_;
-			shared_head_ = other.shared_head_;
-			return *this;
+			return *ayr_construct(this, std::move(other));
 		}
 
 		self operator+ (const self& other) const
 		{
-			self result(size() + other.size(), encoding_);
+			self result(size() + other.size(), encoding());
 			size_t m_size = size(), o_size = other.size();
 			for (size_t i = 0; i < m_size; ++i)
 				result.at(i) = at(i);
@@ -90,7 +120,7 @@ namespace ayr
 
 		self operator* (size_t n)
 		{
-			self result(size() * n, encoding_);
+			self result(size() * n, encoding());
 
 			size_t pos = 0, m_size = size();
 			while (n--)
@@ -105,6 +135,8 @@ namespace ayr
 		const CodePoint& at(c_size index) const { return codepoints_[index]; }
 
 		c_size size() const { return length_; }
+
+		Encoding* const encoding() const { return manager_->encoding(); }
 
 		// 字符串的字节长度
 		c_size byte_size() const
@@ -164,10 +196,7 @@ namespace ayr
 		{
 			start = neg_index(start, size());
 			end = neg_index(end, size());
-			self result;
-			result.codepoints_ = codepoints_ + start;
-			result.length_ = end - start;
-			result.shared_head_ = shared_head_;
+			self result(codepoints_ + start, end - start, manager_);
 			return result;
 		}
 
@@ -175,10 +204,7 @@ namespace ayr
 		{
 			start = neg_index(start, size());
 			end = neg_index(end, size());
-			self result;
-			result.codepoints_ = codepoints_ + start;
-			result.length_ = end - start;
-			result.shared_head_ = shared_head_;
+			self result(codepoints_ + start, end - start, manager_);
 			return result;
 		}
 
@@ -264,7 +290,7 @@ namespace ayr
 			c_size new_length = 0, pos = 0, m_size = size();
 			for (auto&& elem : iter)
 				new_length += elem.size() + m_size;
-			new_length = std::max(0ll, new_length - m_size);
+			new_length = std::max<c_size>(0ll, new_length - m_size);
 
 			self result(new_length);
 			for (auto&& elem : iter)
@@ -289,7 +315,7 @@ namespace ayr
 				pos += old_.size();
 			}
 
-			self result(size() + indices.size() * (new_.size() - old_.size()), encoding_);
+			self result(size() + indices.size() * (new_.size() - old_.size()), encoding());
 			for (c_size i = 0, j = 0, k = 0; i < size(); ++i)
 			{
 				if (j < indices.size() && i == indices[j])
@@ -385,9 +411,7 @@ namespace ayr
 
 		c_size length_;
 
-		std::shared_ptr<CodePoint[]> shared_head_;
-
-		Encoding* encoding_;
+		std::shared_ptr<AtringManager> manager_;
 	};
 
 
