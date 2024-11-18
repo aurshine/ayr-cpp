@@ -5,8 +5,9 @@
 #include <chrono>
 
 #include <ayr/detail/Printer.hpp>
+#include <ayr/detail/Wrapper.hpp>
 #include <ayr/Array.hpp>
-#include <ayr/Wrapper.hpp>
+
 
 namespace ayr
 {
