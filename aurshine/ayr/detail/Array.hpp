@@ -29,8 +29,8 @@ namespace ayr
 		Array(std::initializer_list<T>&& init_list) : size_(init_list.size()), arr_(ayr_alloc<T>(init_list.size()))
 		{
 			c_size i = 0;
-			for (T& item : init_list)
-				ayr_construct(data() + i++, std::move(item));
+			for (const T& item : init_list)
+				ayr_construct(data() + i++, item);
 		}
 
 		Array(const self& other) : size_(other.size_), arr_(ayr_alloc<T>(other.size_))
