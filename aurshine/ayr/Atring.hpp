@@ -57,8 +57,6 @@ namespace ayr
 			codepoints_ = manager_->shared_head();
 		}
 	public:
-		using Value_t = CodePoint;
-
 		Atring(const CString& encoding = UTF8) : Atring(0, encoding_map(encoding)) {}
 
 		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(0, encoding_map(encoding))
@@ -194,18 +192,18 @@ namespace ayr
 
 		self slice(c_size start, c_size end)
 		{
-			start = neg_index(start, size());
-			end = neg_index(end, size());
-			self result(codepoints_ + start, end - start, manager_);
-			return result;
+			c_size size_ = size();
+			start = neg_index(start, size_);
+			end = neg_index(end, size_);
+			return self(codepoints_ + start, end - start, manager_);
 		}
 
 		const self slice(c_size start, c_size end) const
 		{
-			start = neg_index(start, size());
-			end = neg_index(end, size());
-			self result(codepoints_ + start, end - start, manager_);
-			return result;
+			c_size size_ = size();
+			start = neg_index(start, size_);
+			end = neg_index(end, size_);
+			return self(codepoints_ + start, end - start, manager_);
 		}
 
 		self slice(c_size start) { return slice(start, size()); }
@@ -348,19 +346,19 @@ namespace ayr
 			if (l == -1)
 				return "";
 
-			c_size match_cnt = 0;
-			for (c_size i = l; i < size(); ++i)
+			c_size match_cnt = 1;
+			for (c_size r = l + 1, size_ = size(); r < size_; ++r)
 			{
-				if (at(i) == lmatch)
-					++match_cnt;
-				else if (at(i) == rmatch)
+				if (at(r) == rmatch)
 					--match_cnt;
+				else if (at(r) == lmatch)
+					++match_cnt;
 
 				if (match_cnt == 0)
-					return slice(l, i + 1);
+					return slice(l, r + 1);
 			}
 
-			ValueError(std::format("Unmatched parentheses, too many left parentheses"));
+			ValueError("Unmatched parentheses, too many left parentheses");
 		}
 	private:
 		std::pair<c_size, c_size> _get_strip_index() const

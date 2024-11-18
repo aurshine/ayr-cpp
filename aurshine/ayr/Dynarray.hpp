@@ -321,11 +321,11 @@ namespace ayr
 		// 得到第ith个元素的块索引
 		int _get_block_index(c_size ith) const
 		{
-			int i = 0, j = DYNARRAY_BLOCK_SIZE - 1, mid;
+			int i = 0, j = DYNARRAY_BLOCK_SIZE, mid;
 			while (i < j)
 			{
 				mid = i + j >> 1;
-				if (ith <= exp2[mid] * BASE_SIZE)
+				if (ith <= (exp2[mid + 1] - 1) * BASE_SIZE)
 					j = mid;
 				else
 					i = mid + 1;

@@ -126,4 +126,9 @@ void dynarray_test()
 	print("inserted 6 at 10:", da);
 	da.insert(10, 7);
 	print("inserted 7 at 10:", da);
+
+	da.clear();
+	for (int i = 0; i < 64; ++i)
+		da.append(i);
+	print("appended 64:", da);
 }
