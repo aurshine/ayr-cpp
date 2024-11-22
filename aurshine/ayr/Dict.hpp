@@ -108,11 +108,7 @@ namespace ayr
 
 		double load_factor() const { return 1.0 * size() / capacity(); }
 
-		auto keys() { return std::ranges::subrange(keys_.begin(), keys_.end()); }
-
 		auto keys() const { return std::ranges::subrange(keys_.begin(), keys_.end()); }
-
-		auto values() { return std::ranges::subrange(bucket_.begin(), bucket_.end()); }
 
 		auto values() const { return std::ranges::subrange(bucket_.begin(), bucket_.end()); }
 
@@ -204,6 +200,13 @@ namespace ayr
 				*m_value = std::move(value);
 			else
 				insert_impl(std::move(key), std::move(value), hashv);
+		}
+
+		void pop(const K& key)
+		{
+			hash_t hashv = ayrhash(key);
+			bucket_.pop(hashv);
+			keys_.pop(keys_.find(key));
 		}
 
 		void clear() { bucket_.clear(); keys_.clear(); }
@@ -331,7 +334,7 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_store(value, hashv);
+			bucket_.set_value(value, hashv);
 			keys_.append(key);
 		}
 
@@ -340,7 +343,7 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_store(std::move(value), hashv);
+			bucket_.set_value(std::move(value), hashv);
 			keys_.append(std::move(key));
 		}
 	private:

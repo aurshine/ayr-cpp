@@ -160,7 +160,7 @@ namespace ayr
 			msg
 		);
 
-		throw std::runtime_error();
+		throw std::runtime_error("");
 	}
 
 

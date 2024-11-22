@@ -34,8 +34,8 @@ namespace ayr
 
 		virtual const Value_t* try_get(hash_t hashv) const = 0;
 
-		// 放置元素，不检查元素是否存在，不考虑是否超过容量, 返回指针
-		virtual Value_t* set_store(const Value_t& store, hash_t hashv) = 0;
+		// 根据hash值删除元素
+		virtual void pop(hash_t hashv) = 0;
 
 		virtual void expand(c_size new_capacity) noexcept = 0;
 
@@ -46,16 +46,6 @@ namespace ayr
 
 		// 是否包含元素
 		virtual bool contains(hash_t hashv) const { return try_get(hashv) != nullptr; }
-
-		// 放入元素，返回被放入的元素指针
-		virtual Value_t* try_set(const Value_t& store, hash_t hashv)
-		{
-			Value_t* ret = try_get(hashv);
-			if (ret == nullptr)
-				ret = set_store(store, hashv);
-
-			return ret;
-		}
 	};
 
 
@@ -83,7 +73,7 @@ namespace ayr
 			_hashv(other._hashv),
 			_value(std::move(other._value))
 		{
-			other._move_dist = MOVED_NOTHING;
+			other.unmanage();
 		}
 
 		self& operator=(const self& other)
@@ -103,7 +93,7 @@ namespace ayr
 			_move_dist = other._move_dist;
 			_hashv = other._hashv;
 			_value = std::move(other._value);
-			other._move_dist = MOVED_NOTHING;
+			other.unmanage();
 			return *this;
 		}
 
@@ -113,13 +103,20 @@ namespace ayr
 
 		hash_t hashv() const { return _hashv; }
 
+		// 是否被管理
 		bool is_managed() const { return _move_dist != MOVED_NOTHING; }
+
+		// 取消管理
+		void unmanage() { _move_dist = MOVED_NOTHING; }
 
 		bool hash_equal(hash_t hashv) const { return _hashv == hashv; }
 
+		// 移动距离是否大于other
 		bool move_more_than(const self& other) const { return _move_dist > other._move_dist; }
 
-		void add_move_dist() { ++_move_dist; }
+		bool move_more_than(int move_dist) const { return _move_dist > move_dist; }
+
+		void add_move_dist(int d = 1) { _move_dist += d; }
 
 		void swap(self& other)
 		{
@@ -127,15 +124,14 @@ namespace ayr
 			std::swap(_hashv, other._hashv);
 			std::swap(_value, other._value);
 		}
-
 	private:
-		uint32_t _move_dist;
+		int _move_dist;
 
 		hash_t _hashv;
 
 		Value_t _value;
 
-		constexpr static uint32_t MOVED_NOTHING = 0xFFFFFFFF;
+		constexpr static int MOVED_NOTHING = INT_MAX;
 	};
 
 
@@ -153,79 +149,121 @@ namespace ayr
 
 		RobinHashBucket() : RobinHashBucket(0) {}
 
-		RobinHashBucket(c_size size) : robin_managers_(size, Manager_t{}) { }
+		RobinHashBucket(c_size size) : robin_managers_(size) {}
 
 		RobinHashBucket(const RobinHashBucket& other) : robin_managers_(other.robin_managers_) {}
 
 		RobinHashBucket(RobinHashBucket&& other) noexcept : robin_managers_(std::move(other.robin_managers_)) {}
 
-		~RobinHashBucket() {}
-
 		c_size capacity() const override { return robin_managers_.size(); }
 
 		self* clone() const override { return new self(*this); }
 
+		// 获取合适的管理器地址
+		// 1. 找到相同的hash值, 返回该管理器地址
+		// 2. 找到距离最近的空闲管理器, 返回该管理器地址
+		// 3. 没有空闲且相同hash值的管理器，返回nullptr
+		Manager_t* try_get_manager(hash_t hashv)
+		{
+			c_size capacity_ = capacity();
+			for (c_size index = super::hash2index(hashv), i = 0; i < capacity_; ++i)
+			{
+				Manager_t& manager = robin_managers_.at((index + i) % capacity_);
+				if (!manager.is_managed() || manager.hash_equal(hashv))
+					return &manager;
+			}
+			return nullptr;
+		}
+
+		const Manager_t* try_get_manager(hash_t hashv) const
+		{
+			c_size capacity_ = capacity();
+			for (c_size index = super::hash2index(hashv), i = 0; i < capacity_; ++i)
+			{
+				const Manager_t& manager = robin_managers_.at((index + i) % capacity_);
+				if (!manager.is_managed() || manager.hash_equal(hashv))
+					return &manager;
+			}
+			return nullptr;
+		}
+
 		Value_t* try_get(hash_t hashv) override
 		{
-			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
-			{
-				Manager_t& manager = robin_managers_.at(index);
-				if (!manager.is_managed())
-					break;
-				if (manager.hash_equal(hashv))
-					return &manager.value();
-			}
-
-			return nullptr;
+			Manager_t* manager = try_get_manager(hashv);
+			if (manager == nullptr || !manager->is_managed())
+				return nullptr;
+			return &manager->value();
 		}
 
 		const Value_t* try_get(hash_t hashv) const override
 		{
-			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
-			{
-				const Manager_t& manager = robin_managers_.at(index);
-				if (!manager.is_managed())
-					break;
-				if (manager.hash_equal(hashv))
-					return &manager.value();
-			}
-
-			return nullptr;
+			const Manager_t* manager = try_get_manager(hashv);
+			if (manager == nullptr || !manager->is_managed())
+				return nullptr;
+			return &manager->value();
 		}
 
-		Value_t* set_store(const Value_t& store, hash_t hashv)
+		template<typename V>
+		Value_t* set_value(V&& value, hash_t hashv)
 		{
-			Manager_t store_manager{ store, hashv, 0 };
+			Manager_t value_manager{ std::forward<V>(value), hashv, 0 };
 			Value_t* ret = nullptr;
-			for (c_size index = super::hash2index(hashv), i = 0; i < capacity(); index = (index + 1) % capacity(), ++i)
+			c_size capacity_ = capacity();
+			for (c_size index = super::hash2index(hashv), i = 0; i < capacity_; ++i)
 			{
-				Manager_t& manager = robin_managers_.at(index);
+				Manager_t& manager = robin_managers_.at((index + i) % capacity_);
 				if (!manager.is_managed())
 				{
-					manager = std::move(store_manager);
+					manager = std::move(value_manager);
 					ret = &manager.value();
 					break;
 				}
-				else if (store_manager.move_more_than(manager))
+				else if (value_manager.move_more_than(manager))
 				{
-					store_manager.swap(manager);
+					value_manager.swap(manager);
 				}
-				store_manager.add_move_dist();
+				value_manager.add_move_dist();
 			}
 
 			if (ret == nullptr)
-				RuntimeError("RobinHashBucket set_store failed, bucekt is full");
+				RuntimeError("RobinHashBucket set_value failed, bucekt is full");
 
 			return ret;
+		}
+
+		void pop(hash_t hashv)
+		{
+			c_size capacity_ = capacity();
+			Manager_t* manager = try_get_manager(hashv);
+			if (manager == nullptr || !manager->is_managed())
+				return;
+
+			c_size cur_idx = std::distance(&robin_managers_.at(0), manager);
+			while (true)
+			{
+				c_size next_idx = (cur_idx + 1) % capacity_;
+				Manager_t& cur_manager = robin_managers_.at(cur_idx);
+				Manager_t& next_manager = robin_managers_.at(next_idx);
+				if (next_manager.is_managed() && next_manager.move_more_than(0))
+				{
+					cur_manager = std::move(next_manager);
+				}
+				else
+				{
+					cur_manager.unmanage();
+					break;
+				}
+				++cur_idx;
+			}
 		}
 
 		void expand(c_size new_capacity) noexcept override
 		{
 			Array<Manager_t> temp_managers(std::move(robin_managers_));
 			robin_managers_.resize(new_capacity);
-
 			for (auto&& manager : temp_managers)
-				set_store(manager.value(), manager.hashv());
+				if (manager.is_managed())
+					set_value(manager.value(), manager.hashv());
 		}
 
 		void clear() override { robin_managers_.resize(0); }
@@ -236,7 +274,7 @@ namespace ayr
 		{
 			using self = RobinHashBucketIterator;
 		public:
-			using Container_t = std::conditional_t<IsConst, const RobinHashBucket, RobinHashBucket>;
+			using Container_t = std::conditional_t<IsConst, const Array<Manager_t>, Array<Manager_t>>;
 
 			using iterator_category = std::forward_iterator_tag;
 
@@ -267,17 +305,18 @@ namespace ayr
 				return *this;
 			}
 
-			reference operator*() { return bucket_ptr_->robin_managers_[index_].value(); }
+			reference operator*() { return bucket_ptr_->at(index_).value(); }
 
-			const_reference operator*() const { return bucket_ptr_->robin_managers_[index_].value(); }
+			const_reference operator*() const { return bucket_ptr_->at(index_).value(); }
 
-			pointer operator->() { return &bucket_ptr_->robin_managers_[index_].value(); }
+			pointer operator->() { return &bucket_ptr_->at(index_).value(); }
 
-			const_pointer operator->() const { return &bucket_ptr_->robin_managers_[index_].value(); }
+			const_pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
 
 			self& operator++()
 			{
-				while (++index_ < bucket_ptr_->capacity() && !bucket_ptr_->robin_managers_[index_].is_managed());
+				++index_;
+				while (index_ < bucket_ptr_->size() && !bucket_ptr_->at(index_).is_managed()) ++index_;
 				return *this;
 			}
 
@@ -306,7 +345,7 @@ namespace ayr
 		{
 			for (c_size i = 0; i < capacity(); ++i)
 				if (robin_managers_.at(i).is_managed())
-					return Iterator(this, i);
+					return Iterator(&this->robin_managers_, i);
 			return end();
 		}
 
@@ -314,14 +353,13 @@ namespace ayr
 		{
 			for (c_size i = 0; i < capacity(); ++i)
 				if (robin_managers_.at(i).is_managed())
-					return ConstIterator(this, i);
+					return ConstIterator(&this->robin_managers_, i);
 			return end();
 		}
 
-		Iterator end() { return Iterator(this, capacity()); }
+		Iterator end() { return Iterator(&this->robin_managers_, capacity()); }
 
-		ConstIterator end() const { return ConstIterator(this, capacity()); }
-
+		ConstIterator end() const { return ConstIterator(&this->robin_managers_, capacity()); }
 	private:
 		Array<Manager_t> robin_managers_;
 	};
