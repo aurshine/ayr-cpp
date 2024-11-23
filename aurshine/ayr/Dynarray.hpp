@@ -45,7 +45,7 @@ namespace ayr
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_destroy(blocks_);
+			ayr_destroy(&blocks_);
 
 			return *ayr_construct(this, other);
 		}
@@ -53,7 +53,7 @@ namespace ayr
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_destroy(blocks_);
+			ayr_destroy(&blocks_);
 
 			return *ayr_construct(this, std::move(other));
 		}
@@ -179,6 +179,8 @@ namespace ayr
 			using reference = value_type&;
 
 			using const_reference = const value_type&;
+
+			_Iterator() : _Iterator(nullptr) {}
 
 			_Iterator(Container_t* dynarray) : _Iterator(dynarray, 0, 0) {}
 

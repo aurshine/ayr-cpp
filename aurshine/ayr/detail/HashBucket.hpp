@@ -155,6 +155,22 @@ namespace ayr
 
 		RobinHashBucket(RobinHashBucket&& other) noexcept : robin_managers_(std::move(other.robin_managers_)) {}
 
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+
+			robin_managers_ = other.robin_managers_;
+			return *this;
+		}
+
+		self& operator=(self&& other) noexcept
+		{
+			if (this == &other) return *this;
+
+			robin_managers_ = std::move(other.robin_managers_);
+			return *this;
+		}
+
 		c_size capacity() const override { return robin_managers_.size(); }
 
 		self* clone() const override { return new self(*this); }

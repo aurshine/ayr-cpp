@@ -48,6 +48,34 @@ namespace ayr
 			size_ = 0;
 		};
 
+		self& operator=(const self& other)
+		{
+			if (this == &other)
+				return *this;
+
+			ayr_destroy(arr_, size_);
+			ayr_delloc(arr_);
+
+			return *ayr_construct(this, other);;
+		}
+
+		self& operator=(self&& other) noexcept
+		{
+			if (this == &other)
+				return *this;
+
+			ayr_destroy(arr_, size_);
+			ayr_delloc(arr_);
+
+			size_ = other.size_;
+			arr_ = std::move(other.arr_);
+
+			other.size_ = 0;
+			other.arr_ = 0;
+
+			return *this;
+		}
+
 		T* data() { return arr_; }
 
 		const T* data() const { return arr_; }
