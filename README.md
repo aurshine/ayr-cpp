@@ -13,7 +13,7 @@
 ## json 格式解析
 在json/parse.hpp中实现对json格式的字符串解析为一个json对象
 ```cpp
-#include <ayr/json/parse.hpp>
+#include <ayr/json.hpp>
 
 using namespace ayr;
 
@@ -84,7 +84,7 @@ pass time: 3003.89 ms
 ## 协程
 使用生成器函数
 ```cpp
-#include <ayr/coro/coro.hpp>
+#include <ayr/coro.hpp>
 
 using namespace ayr;
 
@@ -120,7 +120,7 @@ int main()
 
 ## 协程打印hello world
 ```cpp
-#include <ayr/coro/coro.hpp>
+#include <ayr/coro.hpp>
 
 
 using namespace ayr;
@@ -167,7 +167,7 @@ hello result: 114 world result: 514
 
 ## 协程睡眠排序
 ```
-#include <ayr/coro/coro.hpp>
+#include <ayr/coro.hpp>
 
 using namespace ayr;
 using namespace std::chrono_literals;
@@ -202,7 +202,7 @@ int main()
 
 ## tcp回声服务器
 ```
-#include <ayr/socket/tcp.hpp>
+#include <ayr/net.hpp>
 
 constexpr int PORT = 14514;
 
