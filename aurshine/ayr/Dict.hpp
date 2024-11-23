@@ -209,13 +209,142 @@ namespace ayr
 			keys_.pop(keys_.find(key));
 		}
 
+		self operator&(const self& other) const
+		{
+			if (this == &other) return *this;
+			else if (size() > other.size()) return other & *this;
+
+			self result((std::min)(capacity(), other.capacity()));
+			for (auto&& kv : *this)
+				if (contains(kv.key()))
+					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			return result;
+		}
+
+		self& operator&= (const self& other)
+		{
+			if (this == &other) return *this;
+			for (auto&& kv : other)
+				if (contains(kv.key()))
+					insert(kv.key(), kv.value(), ayrhash(kv.key()));
+			return *this;
+		}
+
+		self operator|(const self& other) const
+		{
+			if (this == &other) return *this;
+			else if (size() > other.size()) return other | *this;
+
+			self result(static_cast<c_size>((size() + other.size()) / MAX_LOAD_FACTOR));
+			for (auto&& kv : *this)
+				result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			for (auto&& kv : other)
+				result.insert(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			return result;
+		}
+
+		self& operator|= (const self& other)
+		{
+			if (this == &other) return *this;
+
+			for (auto&& kv : other)
+				insert(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			return *this;
+		}
+
+		self operator^(const self& other) const
+		{
+			if (this == &other) return self();
+			else if (size() > other.size()) return other ^ *this;
+
+			self result((std::min)(capacity(), other.capacity()));
+			for (auto&& kv : *this)
+				if (!other.contains(kv.key()))
+					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			for (auto&& kv : other)
+				if (!contains(kv.key()))
+					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			return result;
+		}
+
+		self& operator^= (const self& other)
+		{
+			if (this == &other)
+			{
+				clear();
+				return *this;
+			}
+
+			for (auto&& kv : other)
+				if (contains(kv.key()))
+					pop(kv.key());
+
+			return *this;
+		}
+
+
+		self operator+ (const self& other) const
+		{
+			return *this | other;
+		}
+
+		self& operator+= (const self& other)
+		{
+			return *this |= other;
+		}
+
+		self operator- (const self& other) const
+		{
+			if (this == &other) return self();
+
+			self result(capacity());
+			for (auto&& kv : *this)
+				if (!other.contains(kv.key()))
+					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+
+			return result;
+		}
+
+		self& operator-= (const self& other)
+		{
+			if (this == &other)
+			{
+				clear();
+				return *this;
+			}
+
+			for (auto&& kv : other)
+				pop(kv.key());
+
+			return *this;
+		}
+
 		void clear() { bucket_.clear(); keys_.clear(); }
+
+		bool __equals__(const self& other) const
+		{
+			if (size() != other.size()) return false;
+			for (auto&& kv : *this)
+			{
+				if (!other.contains(kv.key()))
+					return false;
+
+				if (kv.value() != other.get(kv.key()))
+					return false;
+			}
+			return true;
+		}
 
 		CString __str__() const
 		{
 			std::stringstream stream;
 			stream << "{";
-			for (auto& item : *this)
+			for (auto&& item : *this)
 			{
 				if constexpr (issame<Key_t, CString, Atring, std::string>)
 					stream << "\"" << item.key() << "\"";

@@ -68,6 +68,150 @@ namespace ayr
 				insert_impl(value, hashv);
 		}
 
+		void pop(const Value_t& value)
+		{
+			bucket_.pop(ayrhash(value));
+			--size_;
+		}
+
+		self operator& (const self& other) const
+		{
+			if (this == &other)
+				return this;
+			else if (size() > other.size())
+				return other & *this;
+
+			self result((std::max)(capacity(), other.capacity()));
+			for (auto&& v : *this)
+				if (other.contains(v))
+					result.insert_impl(v);
+
+			return result;
+		}
+
+		self& operator&=(const self& other)
+		{
+			if (this == &other) return *this;
+			for (auto&& v : other)
+				if (contains(v))
+					pop(v);
+			return *this;
+		}
+
+		self operator| (const self& other) const
+		{
+			if (this == &other)
+				return this;
+			else if (size() < other.size())
+				return other | *this;
+
+			self result(static_cast<c_size>((size() + other.size()) / MAX_LOAD_FACTOR));
+			for (auto&& v : *this)
+				result.insert_impl(v);
+
+			for (auto&& v : other)
+				result.insert(v);
+
+			return result;
+		}
+
+		self& operator|=(const self& other)
+		{
+			if (this == &other) return *this;
+			for (auto&& v : other)
+				insert(v);
+			return *this;
+		}
+
+		self operator^ (const self& other) const
+		{
+			if (this == &other)
+				return self();
+
+			self result(static_cast<c_size>(size() / MAX_LOAD_FACTOR));
+			for (auto&& v : *this)
+				if (!other.contains(v))
+					result.insert_impl(v);
+
+			for (auto&& v : other)
+				if (!contains(v))
+					result.insert_impl(v);
+
+			return result;
+		}
+
+		self& operator^=(const self& other)
+		{
+			if (this == &other)
+			{
+				clear();
+				return this;
+			}
+
+			for (auto&& v : other)
+				if (contains(v))
+					pop(v);
+				else
+					insert_impl(v);
+
+			return *this;
+		}
+
+		self operator+ (const self& other) const
+		{
+			return *this | other;
+		}
+
+		self& operator+=(const self& other)
+		{
+			return *this |= other;
+		}
+
+		self operator- (const self& other) const
+		{
+			if (this == &other)
+				return self();
+
+			self result(capacity());
+			for (auto&& v : *this)
+				if (!other.contains(v))
+					result.insert_impl(v);
+
+			return result;
+		}
+
+		self& operator-=(const self& other)
+		{
+			if (this == &other)
+			{
+				clear();
+				return this;
+			}
+
+			for (auto&& v : other)
+				pop(v);
+
+			return *this;
+		}
+
+		void clear()
+		{
+			bucket_.clear();
+			size_ = 0;
+		}
+
+		bool __equals__(const self& other)
+		{
+			if (size() != other.size())
+				return false;
+
+			for (auto v : *this)
+				if (!other.contains(v))
+					return false;
+
+			return true;
+		}
+
 		CString __str__() const
 		{
 			std::stringstream stream;
@@ -95,7 +239,7 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_store(value, hashv);
+			bucket_.set_value(value, hashv);
 			++size_;
 		}
 
@@ -104,7 +248,7 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_store(std::move(value), hashv);
+			bucket_.set_value(std::move(value), hashv);
 			++size_;
 		}
 

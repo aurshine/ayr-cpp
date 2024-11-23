@@ -327,7 +327,7 @@ namespace ayr
 				return temp;
 			}
 
-			bool __equals__(const self& other) const override
+			bool __equals__(const self& other) const
 			{
 				return bucket_ptr_ == other.bucket_ptr_ && index_ == other.index_;
 			}
