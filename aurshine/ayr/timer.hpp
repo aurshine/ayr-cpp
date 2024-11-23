@@ -5,7 +5,6 @@
 #include <chrono>
 
 #include <ayr/detail/Printer.hpp>
-#include <ayr/detail/Wrapper.hpp>
 #include <ayr/Array.hpp>
 
 
@@ -99,7 +98,7 @@ namespace ayr
 
 
 	template<typename Duration>
-	class Timer : public Wrapper<Timer<Duration>>
+	class Timer : public Object<Timer<Duration>>
 	{
 	public:
 		void into() { start_time = std::chrono::high_resolution_clock::now(); }
