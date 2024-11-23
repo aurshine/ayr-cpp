@@ -98,54 +98,33 @@ namespace ayr
 	};
 
 
-	class Timer : public Wrapper
+	template<typename Duration>
+	class Timer : public Wrapper<Timer<Duration>>
 	{
 	public:
-		Timer() : Timer("ms") {};
+		void into() { start_time = std::chrono::high_resolution_clock::now(); }
 
-		// 构造函数，传入单位，单位为s、ms、us
-		Timer(const CString& sec_option) : dvd(0)
-		{
-			if (sec_option == cstr("s"))
-				dvd = 1000000;
-			else if (sec_option == cstr("ms"))
-				dvd = 1000;
-			else if (sec_option == cstr("us"))
-				dvd = 1;
-			else
-				ValueError(std::format("invalid option for Timer sec_option {}", sec_option.data()));
-		}
-
-
-		void start() override
-		{
-			start_time = std::chrono::high_resolution_clock::now();
-		}
-
-
-		void stop() override
-		{
-			CString sign = "";
-			if (dvd == 1000)
-				sign = cstr("ms");
-			else if (dvd == 1000000)
-				sign = cstr("s");
-			else if (dvd == 1)
-				sign = cstr("us");
-			print(std::format("pass time: {:.2f}", get_pass_time()), sign);
-		}
-
-		double get_pass_time() const
+		long long escape()
 		{
 			auto end_time = std::chrono::high_resolution_clock::now();
-			auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time).count();
-			return 1.0 * duration / dvd;
+			auto duration = std::chrono::duration_cast<Duration>(end_time - start_time).count();
+			return duration;
 		}
 
+		template<typename F, typename ...Args>
+		long long operator()(F&& call_, Args&&... args)
+		{
+			into();
+			call_(std::forward<Args>(args)...);
+			return escape();
+		}
 	private:
 		std::chrono::steady_clock::time_point start_time;
-
-		long long dvd;
 	};
+
+	using Timer_s = Timer<std::chrono::seconds>;
+	using Timer_ms = Timer<std::chrono::milliseconds>;
+	using Timer_us = Timer<std::chrono::microseconds>;
+	using Timer_ns = Timer<std::chrono::nanoseconds>;
 }
 #endif

@@ -2,35 +2,33 @@
 #define AYR_WRAPPER_HPP
 
 #include <type_traits>
+#include <functional>
+
 #include <ayr/detail/Object.hpp>
 
 
 namespace ayr
 {
-	class Wrapper : public Object<Wrapper>
+	struct ScopeFunc : Object<ScopeFunc>
+	{
+		ScopeFunc(std::function<void()> f) : f_(f) {}
+
+		~ScopeFunc() { f_(); }
+
+		std::function<void()> f_;
+	};
+
+	template<typename Derived>
+	struct Wrapper : public Object<Wrapper<Derived>>
 	{
 	public:
-		virtual void start() {}
-
-		virtual void stop() {}
-
 		template<typename F, typename ...Args>
-			requires issame<std::invoke_result_t<F, Args...>, void>
-		void operator()(F&& call_, Args&&... args)
-		{
-			start();
-			call_(std::forward<Args>(args)...);
-			stop();
-		}
-
-		template<typename F, typename ...Args>
-			requires (!issame<std::invoke_result_t<F, Args...>, void>)
 		auto operator()(F&& call_, Args&&... args)
 		{
-			start();
-			auto result = call_(std::forward<Args>(args)...);
-			stop();
-			return result;
+			Derived* derived = static_cast<Derived*>(this);
+			derived->into();
+			ScopeFunc stop([derived]() { derived->escape(); });
+			return call_(std::forward<Args>(args)...);
 		}
 	};
 }
