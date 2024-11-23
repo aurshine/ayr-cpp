@@ -3,9 +3,9 @@
 
 #include <algorithm>
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/ayr_memory.hpp>
-#include <ayr/detail/Sequence.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/ayr_memory.hpp>
+#include <ayr/base/Sequence.hpp>
 
 
 namespace ayr

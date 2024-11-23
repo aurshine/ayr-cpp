@@ -6,7 +6,7 @@
 #include <memory>
 
 #include <ayr/DynArray.hpp>
-#include <ayr/detail/NoCopy.hpp>
+#include <ayr/base/NoCopy.hpp>
 #include "Path.hpp"
 
 

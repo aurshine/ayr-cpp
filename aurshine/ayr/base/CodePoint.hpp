@@ -2,7 +2,7 @@
 #define AURSHINE_DETAIL_CODEPOINT_HPP
 
 #include <ayr/DynArray.hpp>
-#include <ayr/detail/Encoding.hpp>
+#include <ayr/base/Encoding.hpp>
 
 namespace ayr
 {

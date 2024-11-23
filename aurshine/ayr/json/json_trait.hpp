@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_JSON_TRAIT_HPP
 #define AYR_JSON_TRAIT_HPP
 
-#include <ayr/detail/ayr_concepts.hpp>
+#include <ayr/base/ayr_concepts.hpp>
 #include <ayr/Atring.hpp>
 #include <ayr/DynArray.hpp>
 #include <ayr/Dict.hpp>

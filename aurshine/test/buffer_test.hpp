@@ -1,6 +1,6 @@
 #pragma once
 
-#include <ayr/detail/buffer.hpp>
+#include <ayr/base/buffer.hpp>
 
 void buffer_test()
 {

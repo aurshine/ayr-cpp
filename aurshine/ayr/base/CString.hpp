@@ -5,8 +5,8 @@
 #include <string>
 #include <format>
 
-#include <ayr/detail/hash.hpp>
-#include <ayr/detail/ayr_memory.hpp>
+#include <ayr/base/hash.hpp>
+#include <ayr/base/ayr_memory.hpp>
 
 
 namespace ayr

@@ -3,9 +3,9 @@
 
 #include <algorithm>
 #include <ayr/ayr_memory.hpp>
-#include <ayr/detail/bunit.hpp>
-#include <ayr/detail/HashBucket.hpp>
-#include <ayr/detail/RelationIterator.hpp>
+#include <ayr/base/bunit.hpp>
+#include <ayr/base/HashBucket.hpp>
+#include <ayr/base/RelationIterator.hpp>
 #include <ayr/Atring.hpp>
 
 

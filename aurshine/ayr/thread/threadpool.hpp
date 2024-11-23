@@ -8,7 +8,7 @@
 #include <condition_variable>
 
 
-#include <ayr/detail/NoCopy.hpp>
+#include <ayr/base/NoCopy.hpp>
 #include <ayr/Array.hpp>
 
 

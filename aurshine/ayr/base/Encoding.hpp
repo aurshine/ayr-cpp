@@ -1,7 +1,7 @@
 #ifndef AYR_DETAIL_ENCODING
 #define AYR_DETAIL_ENCODING
 
-#include <ayr/detail/printer.hpp>
+#include <ayr/base/printer.hpp>
 #include <ayr/Dict.hpp>
 
 namespace ayr

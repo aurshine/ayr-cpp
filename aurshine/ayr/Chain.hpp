@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_CHAIN_HPP
 #define AYR_CHAIN_HPP
 
-#include <ayr/detail/Node.hpp>
+#include <ayr/base/Node.hpp>
 #include <ayr/ayr_memory.hpp>
 
 

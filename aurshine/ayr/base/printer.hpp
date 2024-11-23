@@ -5,8 +5,8 @@
 #include <format>
 #include <source_location>
 
-#include <ayr/detail/CString.hpp>
-#include <ayr/detail/Object.hpp>
+#include <ayr/base/CString.hpp>
+#include <ayr/base/Object.hpp>
 
 namespace ayr
 {

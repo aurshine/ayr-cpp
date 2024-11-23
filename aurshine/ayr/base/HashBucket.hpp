@@ -6,9 +6,9 @@
 #include <chrono>
 #include <thread>
 
-#include <ayr/detail/Array.hpp>
-#include <ayr/detail/hash.hpp>
-#include <ayr/detail/RelationIterator.hpp>
+#include <ayr/base/Array.hpp>
+#include <ayr/base/hash.hpp>
+#include <ayr/base/RelationIterator.hpp>
 
 namespace ayr
 {

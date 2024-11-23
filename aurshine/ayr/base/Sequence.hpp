@@ -1,8 +1,8 @@
 ﻿#ifndef AYR_DETAIL_SEQUENCE_HPP
 #define AYR_DETAIL_SEQUENCE_HPP
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/IndexIterator.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/IndexIterator.hpp>
 
 
 namespace ayr

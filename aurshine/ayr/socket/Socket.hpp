@@ -4,9 +4,9 @@
 #include <stdlib.h>
 #include <mutex>
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/Buffer.hpp>
-#include <ayr/detail/NoCopy.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/Buffer.hpp>
+#include <ayr/base/NoCopy.hpp>
 #include <ayr/fs/filesystem.hpp>
 
 namespace ayr

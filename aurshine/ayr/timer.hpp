@@ -4,7 +4,7 @@
 #include <ctime>
 #include <chrono>
 
-#include <ayr/detail/Printer.hpp>
+#include <ayr/base/Printer.hpp>
 #include <ayr/Array.hpp>
 
 

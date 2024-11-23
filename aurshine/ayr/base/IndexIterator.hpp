@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_DETAIL_INDEXITERATOR_HPP
 #define AYR_DETAIL_INDEXITERATOR_HPP
 
-#include <ayr/detail/Object.hpp>
+#include <ayr/base/Object.hpp>
 
 namespace ayr
 {

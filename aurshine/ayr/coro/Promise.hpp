@@ -3,8 +3,8 @@
 
 #include <coroutine>
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/NoCopy.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/NoCopy.hpp>
 #include "co_utils.hpp"
 
 

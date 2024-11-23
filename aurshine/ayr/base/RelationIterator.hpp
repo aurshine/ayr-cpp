@@ -1,9 +1,9 @@
 #ifndef AYR_DETIAL_RELATIONITERATOR_HPP
 #define AYR_DETIAL_RELATIONITERATOR_HPP
 
-#include <ayr/detail/Object.hpp>
-#include <ayr/detail/ayr_concepts.hpp>
-#include <ayr/detail/printer.hpp>
+#include <ayr/base/Object.hpp>
+#include <ayr/base/ayr_concepts.hpp>
+#include <ayr/base/printer.hpp>
 
 
 namespace ayr

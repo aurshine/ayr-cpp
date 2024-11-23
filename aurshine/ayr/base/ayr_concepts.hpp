@@ -5,8 +5,8 @@
 #include <concepts>
 #include <ranges>
 
-#include <ayr/detail/ayr.h>
-#include <ayr/detail/ayr_traits.hpp>
+#include <ayr/base/ayr.h>
+#include <ayr/base/ayr_traits.hpp>
 
 
 namespace ayr

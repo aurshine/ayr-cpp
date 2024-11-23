@@ -3,8 +3,8 @@
 
 #include <utility>
 
-#include <ayr/detail/bunit.hpp>
-#include <ayr/detail/Buffer.hpp>
+#include <ayr/base/bunit.hpp>
+#include <ayr/base/Buffer.hpp>
 #include <ayr/Array.hpp>
 
 namespace ayr

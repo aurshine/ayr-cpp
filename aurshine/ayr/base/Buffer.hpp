@@ -3,10 +3,10 @@
 #ifndef AYR_DEValue_tAIL_BUFFER_HPP
 #define AYR_DEValue_tAIL_BUFFER_HPP
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/ayr_memory.hpp>
-#include <ayr/detail/Array.hpp>
-#include <ayr/detail/RelationIterator.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/ayr_memory.hpp>
+#include <ayr/base/Array.hpp>
+#include <ayr/base/RelationIterator.hpp>
 
 namespace ayr
 {

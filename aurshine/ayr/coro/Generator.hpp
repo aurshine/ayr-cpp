@@ -1,8 +1,8 @@
 #ifndef AYR_CORO_GENERATOR_HPP
 #define AYR_CORO_GENERATOR_HPP
 
-#include <ayr/detail/printer.hpp>
-#include <ayr/detail/NoCopy.hpp>
+#include <ayr/base/printer.hpp>
+#include <ayr/base/NoCopy.hpp>
 
 namespace ayr
 {

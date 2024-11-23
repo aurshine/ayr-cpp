@@ -5,7 +5,7 @@
 #include <chrono>
 
 #include "Task.hpp"
-#include <ayr/detail/ayr_traits.hpp>
+#include <ayr/base/ayr_traits.hpp>
 
 namespace ayr
 {

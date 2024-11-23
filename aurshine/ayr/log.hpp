@@ -4,7 +4,7 @@
 #include <ctime>
 #include <functional>
 
-#include <ayr/detail/printer.hpp>
+#include <ayr/base/printer.hpp>
 #include <ayr/timer.hpp>
 #include <ayr/Array.hpp>
 

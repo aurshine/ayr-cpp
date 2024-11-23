@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_FS_WIN_PATH_HPP
 #define AYR_FS_WIN_PATH_HPP
 
-#include <ayr/detail/Printer.hpp>
+#include <ayr/base/Printer.hpp>
 
 #include "winlib.hpp"
 

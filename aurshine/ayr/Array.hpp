@@ -2,8 +2,8 @@
 #define AYR_ARRAY_HPP
 
 
-#include <ayr/detail/Array.hpp>
-#include <ayr/detail/ayr_concepts.hpp>
+#include <ayr/base/Array.hpp>
+#include <ayr/base/ayr_concepts.hpp>
 
 
 namespace ayr

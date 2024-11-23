@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include <ayr/detail/ayr.h>
+#include <ayr/base/ayr.h>
 
 namespace ayr
 {
