@@ -216,7 +216,7 @@ namespace ayr
 
 			self result((std::min)(capacity(), other.capacity()));
 			for (auto&& kv : *this)
-				if (contains(kv.key()))
+				if (other.contains(kv.key()))
 					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
 
 			return result;
@@ -225,9 +225,7 @@ namespace ayr
 		self& operator&= (const self& other)
 		{
 			if (this == &other) return *this;
-			for (auto&& kv : other)
-				if (contains(kv.key()))
-					insert(kv.key(), kv.value(), ayrhash(kv.key()));
+			*this = *this & other;
 			return *this;
 		}
 
@@ -241,7 +239,7 @@ namespace ayr
 				result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
 
 			for (auto&& kv : other)
-				result.insert(kv.key(), kv.value(), ayrhash(kv.key()));
+				result.insert(kv.key(), kv.value());
 
 			return result;
 		}
@@ -251,7 +249,7 @@ namespace ayr
 			if (this == &other) return *this;
 
 			for (auto&& kv : other)
-				insert(kv.key(), kv.value(), ayrhash(kv.key()));
+				insert(kv.key(), kv.value());
 
 			return *this;
 		}
@@ -283,6 +281,8 @@ namespace ayr
 			for (auto&& kv : other)
 				if (contains(kv.key()))
 					pop(kv.key());
+				else
+					insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
 
 			return *this;
 		}

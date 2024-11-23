@@ -77,14 +77,14 @@ namespace ayr
 		self operator& (const self& other) const
 		{
 			if (this == &other)
-				return this;
+				return *this;
 			else if (size() > other.size())
 				return other & *this;
 
 			self result((std::max)(capacity(), other.capacity()));
 			for (auto&& v : *this)
 				if (other.contains(v))
-					result.insert_impl(v);
+					result.insert_impl(v, ayrhash(v));
 
 			return result;
 		}
@@ -92,22 +92,20 @@ namespace ayr
 		self& operator&=(const self& other)
 		{
 			if (this == &other) return *this;
-			for (auto&& v : other)
-				if (contains(v))
-					pop(v);
+			*this = *this & other;
 			return *this;
 		}
 
 		self operator| (const self& other) const
 		{
 			if (this == &other)
-				return this;
+				return *this;
 			else if (size() < other.size())
 				return other | *this;
 
 			self result(static_cast<c_size>((size() + other.size()) / MAX_LOAD_FACTOR));
 			for (auto&& v : *this)
-				result.insert_impl(v);
+				result.insert_impl(v, ayrhash(v));
 
 			for (auto&& v : other)
 				result.insert(v);
@@ -131,11 +129,11 @@ namespace ayr
 			self result(static_cast<c_size>(size() / MAX_LOAD_FACTOR));
 			for (auto&& v : *this)
 				if (!other.contains(v))
-					result.insert_impl(v);
+					result.insert_impl(v, ayrhash(v));
 
 			for (auto&& v : other)
 				if (!contains(v))
-					result.insert_impl(v);
+					result.insert_impl(v, ayrhash(v));
 
 			return result;
 		}
@@ -145,14 +143,14 @@ namespace ayr
 			if (this == &other)
 			{
 				clear();
-				return this;
+				return *this;
 			}
 
 			for (auto&& v : other)
 				if (contains(v))
 					pop(v);
 				else
-					insert_impl(v);
+					insert_impl(v, ayrhash(v));
 
 			return *this;
 		}
@@ -175,7 +173,7 @@ namespace ayr
 			self result(capacity());
 			for (auto&& v : *this)
 				if (!other.contains(v))
-					result.insert_impl(v);
+					result.insert_impl(v, ayrhash(v));
 
 			return result;
 		}
@@ -185,7 +183,7 @@ namespace ayr
 			if (this == &other)
 			{
 				clear();
-				return this;
+				return *this;
 			}
 
 			for (auto&& v : other)
