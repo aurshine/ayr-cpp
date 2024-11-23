@@ -19,13 +19,13 @@ namespace ayr
 		struct StopFlag
 		{
 			// 不停止
-			static constexpr int8_t STOP_NONE = -1;
+			static constexpr int8_t WAIT_FOREVER = -1;
 
 			// 立即停止
 			static constexpr int8_t STOP_NOW = 0;
 
 			// 等待所有任务完成后停止
-			static constexpr int8_t STOP_FINISH = 1;
+			static constexpr int8_t STOP_FINISHED = 1;
 		};
 
 
@@ -38,23 +38,24 @@ namespace ayr
 			using PoolTask = std::function<void()>;
 
 			// 线程池构造函数，传入线程池的线程数量
-			ThreadPool(size_t num_pool) :threads(num_pool), stop_flag(StopFlag::STOP_NONE)
+			ThreadPool(size_t num_pool) :threads(num_pool), stop_flag(StopFlag::WAIT_FOREVER)
 			{
-				auto work = [this]() {
-					while (true)
+				auto work = [this]()
 					{
-						std::unique_lock<std::mutex> lock(this->mtx);
-						this->condition.wait(lock, [this]() {
-							return this->check_stop_now() || this->check_stop_finish() || !this->tasks.empty();
-							});
+						while (true)
+						{
+							std::unique_lock<std::mutex> lock(this->mtx);
+							this->condition.wait(lock, [this]() {
+								return this->check_stop_now() || this->check_task_finished() || this->check_has_task();
+								});
 
-						if (this->check_stop_now() || this->check_stop_finish())	return;
-						PoolTask task = std::move(this->tasks.front());
-						this->tasks.pop();
+							if (this->check_stop_now() || this->check_task_finished())	return;
+							PoolTask task = std::move(this->tasks.front());
+							this->tasks.pop();
 
-						lock.unlock();
-						task();
-					}
+							lock.unlock();
+							task();
+						}
 					};
 				for (auto& t : this->threads)
 					t = std::thread(work);
@@ -73,7 +74,7 @@ namespace ayr
 				std::future<ResultType> future = pkg_task->get_future();
 
 				{
-					std::unique_lock<std::mutex> lock(this->mtx);
+					std::lock_guard<std::mutex> lock(this->mtx);
 					tasks.push([pkg_task]() { (*pkg_task)(); });
 				}
 
@@ -85,7 +86,7 @@ namespace ayr
 			void stop() { set_stop_flag(StopFlag::STOP_NOW); join(); }
 
 			// 等待所有任务完成后停止线程池
-			void wait() { set_stop_flag(StopFlag::STOP_FINISH); join(); }
+			void wait() { set_stop_flag(StopFlag::STOP_FINISHED); join(); }
 		private:
 			void join()
 			{
@@ -96,20 +97,29 @@ namespace ayr
 
 			void set_stop_flag(int8_t flag)
 			{
-				std::unique_lock<std::mutex> lock(mtx);
-				stop_flag = flag;
-				lock.unlock();
+				{
+					std::lock_guard<std::mutex> lock(mtx);
+					stop_flag = flag;
+				}
 				condition.notify_all();
 			}
 
+			// 检查是否立即停止
+			// 默认此时持有锁
 			bool check_stop_now() const
 			{
 				return stop_flag == StopFlag::STOP_NOW;
 			}
 
-			bool check_stop_finish() const
+			// 检查任务是否完成
+			bool check_task_finished() const
 			{
-				return stop_flag == StopFlag::STOP_FINISH && tasks.empty();
+				return stop_flag == StopFlag::STOP_FINISHED && tasks.empty();
+			}
+
+			bool check_has_task() const
+			{
+				return !tasks.empty();
 			}
 
 			Array<std::thread> threads;
