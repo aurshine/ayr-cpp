@@ -53,12 +53,12 @@ void test_vi()
 
 void runspeed_test()
 {
-	auto tm = Timer("ms");
+	Timer_ms tm;
 
-	tm(test_das);
-	tm(test_vs);
-	tm(test_dai);
-	tm(test_vi);
+	print("dynarray append str time:", tm(test_das), "ms");
+	print("vector push_back str time:", tm(test_vs), "ms");
+	print("dayarray append int time:", tm(test_dai), "ms");
+	print("vector push_back int time:", tm(test_vi), "ms");
 }
 
 void iterate_test()
@@ -67,17 +67,17 @@ void iterate_test()
 	for (int i = 0; i < 1e6; ++i)
 		da.append(i);
 
-	Timer tm("ms");
-	tm.start();
+	Timer_ms tm;
+	tm.into();
 	for (auto& i : da)
 		i;
-	tm.stop();
+	print("DynArray iterate time:", tm.escape());
 
-	tm.start();
+	tm.into();
 	for (int i = 0, size = da.size(); i < size; ++i)
 		da.at(i);
 
-	tm.stop();
+	print("DynArray at time:", tm.escape());
 }
 
 void dynarray_test()
