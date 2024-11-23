@@ -3,8 +3,8 @@
 
 #include <sstream>
 
-#include <ayr/base/CString.hpp>
-#include <ayr/base/ayr_concepts.hpp>
+#include "CString.hpp"
+#include "ayr_concepts.hpp"
 
 
 namespace ayr

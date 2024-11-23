@@ -1,7 +1,7 @@
 ﻿#ifndef AYR_DETIAL_BUNIT_HPP
 #define AYR_DETIAL_BUNIT_HPP
 
-#include <ayr/base/ayr.h>
+#include "ayr.h"
 
 namespace ayr
 {

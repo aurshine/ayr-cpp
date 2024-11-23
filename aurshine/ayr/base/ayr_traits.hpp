@@ -1,5 +1,5 @@
-﻿#ifndef AYR_DETAIL_AYR_TRAITS_HPP
-#define AYR_DETAIL_AYR_TRAITS_HPP
+﻿#ifndef AYR_BASE_AYR_TRAITS_HPP
+#define AYR_BASE_AYR_TRAITS_HPP
 
 #include <type_traits>
 

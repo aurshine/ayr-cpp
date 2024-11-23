@@ -2,8 +2,7 @@
 
 #include <thread>
 
-#include <ayr/socket/tcp.hpp>
-#include <ayr/socket/udp.hpp>
+#include <ayr/net.hpp>
 
 
 using namespace std::chrono_literals;

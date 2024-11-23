@@ -5,9 +5,9 @@
 #include <atomic>
 #include <memory>
 
-#include <ayr/DynArray.hpp>
-#include <ayr/base/NoCopy.hpp>
 #include "Path.hpp"
+#include "../../DynArray.hpp"
+#include "../../base/NoCopy.hpp"
 
 
 namespace ayr

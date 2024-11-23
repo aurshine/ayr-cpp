@@ -1,5 +1,5 @@
-﻿#ifndef AYR_THREAD_THREADPOOL_HPP
-#define AYR_THREAD_THREADPOOL_HPP
+﻿#ifndef AYR_ASYNC_THREADPOOL_HPP
+#define AYR_ASYNC_THREADPOOL_HPP
 
 #include <thread>
 #include <queue>
@@ -7,9 +7,8 @@
 #include <functional>
 #include <condition_variable>
 
-
-#include <ayr/base/NoCopy.hpp>
-#include <ayr/Array.hpp>
+#include "../Array.hpp"
+#include "../base/NoCopy.hpp"
 
 
 namespace ayr

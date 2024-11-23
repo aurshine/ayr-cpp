@@ -1,5 +1,5 @@
-﻿#ifndef AYR_DETAIL_AYR_H
-#define AYR_DETAIL_AYR_H
+﻿#ifndef AYR_BASE_AYR_H
+#define AYR_BASE_AYR_H
 
 #include <cstdint>
 #include <cassert>
@@ -7,14 +7,6 @@
 
 namespace ayr
 {
-#ifdef max
-#undef max
-#endif
-
-#ifdef min
-#undef min
-#endif
-
 #define def inline auto
 
 #define der(R) inline R

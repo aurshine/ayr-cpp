@@ -1,8 +1,8 @@
 ﻿#ifndef AYR_CHAIN_HPP
 #define AYR_CHAIN_HPP
 
-#include <ayr/base/Node.hpp>
-#include <ayr/ayr_memory.hpp>
+#include "base/Node.hpp"
+#include "ayr_memory.hpp"
 
 
 namespace ayr

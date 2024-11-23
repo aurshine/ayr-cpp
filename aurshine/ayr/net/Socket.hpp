@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <mutex>
 
-#include <ayr/base/printer.hpp>
-#include <ayr/base/Buffer.hpp>
-#include <ayr/base/NoCopy.hpp>
-#include <ayr/fs/filesystem.hpp>
+#include "../base/raise_error.hpp"
+#include "../base/Buffer.hpp"
+#include "../base/NoCopy.hpp"
+#include "../fs/filesystem.hpp"
 
 namespace ayr
 {

@@ -1,14 +1,14 @@
-﻿#ifndef AYR_DETAIL_HASH_BUCKET_HPP
-#define AYR_DETAIL_HASH_BUCKET_HPP
+﻿#ifndef AYR_BASE_HASH_BUCKET_HPP
+#define AYR_BASE_HASH_BUCKET_HPP
 
 #include <algorithm>
 #include <functional>
 #include <chrono>
 #include <thread>
 
-#include <ayr/base/Array.hpp>
-#include <ayr/base/hash.hpp>
-#include <ayr/base/RelationIterator.hpp>
+#include "Array.hpp"
+#include "hash.hpp"
+#include "RelationIterator.hpp"
 
 namespace ayr
 {

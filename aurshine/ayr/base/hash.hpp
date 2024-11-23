@@ -1,8 +1,7 @@
-﻿#ifndef AYR_DETAIL_HASH_HPP
-#define AYR_DETAIL_HASH_HPP
+﻿#ifndef AYR_BASE_HASH_HPP
+#define AYR_BASE_HASH_HPP
 
-#include <ayr/base/ayr_concepts.hpp>
-#include <ayr/base/ayr.h>
+#include "ayr_concepts.hpp"
 
 
 namespace ayr

@@ -3,9 +3,9 @@
 
 #include <coroutine>
 
-#include <ayr/base/printer.hpp>
-#include <ayr/base/NoCopy.hpp>
 #include "co_utils.hpp"
+#include "../base/printer.hpp"
+#include "../base/NoCopy.hpp"
 
 
 namespace ayr

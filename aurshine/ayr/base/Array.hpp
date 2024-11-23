@@ -1,11 +1,11 @@
-﻿#ifndef AYR_DETAIL_ARRAY_HPP
-#define AYR_DETAIL_ARRAY_HPP
+﻿#ifndef AYR_BASE_ARRAY_HPP
+#define AYR_BASE_ARRAY_HPP
 
 #include <algorithm>
 
-#include <ayr/base/printer.hpp>
-#include <ayr/base/ayr_memory.hpp>
-#include <ayr/base/Sequence.hpp>
+#include "raise_error.hpp"
+#include "ayr_memory.hpp"
+#include "Sequence.hpp"
 
 
 namespace ayr

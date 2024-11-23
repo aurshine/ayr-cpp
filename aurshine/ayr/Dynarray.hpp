@@ -3,9 +3,9 @@
 
 #include <utility>
 
-#include <ayr/base/bunit.hpp>
-#include <ayr/base/Buffer.hpp>
-#include <ayr/Array.hpp>
+#include "base/bunit.hpp"
+#include "base/Buffer.hpp"
+#include "Array.hpp"
 
 namespace ayr
 {

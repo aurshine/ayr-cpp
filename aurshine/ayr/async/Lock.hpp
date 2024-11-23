@@ -1,4 +1,6 @@
-﻿#pragma once
+﻿#ifndef AYR_ASYNC_LOCK_HPP
+#define AYR_ASYNC_LOCK_HPP
+
 #include <atomic>
 #include <thread>
 
@@ -42,3 +44,5 @@ namespace ayr
 		std::atomic<bool> hold;
 	};
 }
+
+#endif // AYR_ASYNC_LOCK_HPP

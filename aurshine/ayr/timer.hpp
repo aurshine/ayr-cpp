@@ -4,9 +4,7 @@
 #include <ctime>
 #include <chrono>
 
-#include <ayr/base/Printer.hpp>
-#include <ayr/Array.hpp>
-
+#include "base/raise_error.hpp"
 
 namespace ayr
 {
@@ -68,8 +66,9 @@ namespace ayr
 
 		cmp_t __cmp__(const Date& date) const
 		{
-			Array<int> a = Array<int>{ year_, month_, day_ }, b = Array<int>{ date.year(), date.month(), date.day() };
-			return a.__cmp__(b);
+			if (year_ != date.year_) return year_ - date.year_;
+			if (month_ != date.month_) return month_ - date.month_;
+			return day_ - date.day_;
 		}
 
 		bool __equals__(const Date& date) const { return __cmp__(date) == 0; }

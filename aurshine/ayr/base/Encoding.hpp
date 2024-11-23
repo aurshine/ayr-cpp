@@ -1,8 +1,8 @@
-#ifndef AYR_DETAIL_ENCODING
-#define AYR_DETAIL_ENCODING
+#ifndef AYR_BASE_ENCODING
+#define AYR_BASE_ENCODING
 
-#include <ayr/base/printer.hpp>
-#include <ayr/Dict.hpp>
+#include "../Dict.hpp"
+
 
 namespace ayr
 {

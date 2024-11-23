@@ -1,18 +1,21 @@
-#ifndef AYR_DETAIL_NOCOPY_HPP_
-#define AYR_DETAIL_NOCOPY_HPP_
+#ifndef AYR_BASE_NOCOPY_HPP_
+#define AYR_BASE_NOCOPY_HPP_
 
-struct NoCopy
+namespace ayr
 {
-	NoCopy() = default;
+	struct NoCopy
+	{
+		NoCopy() = default;
 
-	NoCopy(const NoCopy&) = delete;
+		NoCopy(const NoCopy&) = delete;
 
-	NoCopy& operator=(const NoCopy&) = delete;
+		NoCopy& operator=(const NoCopy&) = delete;
 
-	NoCopy(NoCopy&&) = delete;
+		NoCopy(NoCopy&&) = delete;
 
-	NoCopy& operator=(NoCopy&&) = delete;
+		NoCopy& operator=(NoCopy&&) = delete;
 
-	~NoCopy() = default;
-};
+		~NoCopy() = default;
+	};
+}
 #endif

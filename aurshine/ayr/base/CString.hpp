@@ -1,12 +1,12 @@
-﻿#ifndef AYR_DETAIL_CSTRING_HPP
-#define AYR_DETAIL_CSTRING_HPP
+﻿#ifndef AYR_BASE_CSTRING_HPP
+#define AYR_BASE_CSTRING_HPP
 
 #include <cstring>
 #include <string>
 #include <format>
 
-#include <ayr/base/hash.hpp>
-#include <ayr/base/ayr_memory.hpp>
+#include "hash.hpp"
+#include "ayr_memory.hpp"
 
 
 namespace ayr
@@ -116,4 +116,4 @@ struct std::formatter<ayr::CString> : std::formatter<const char*>
 	}
 };
 
-#endif // AYR_DETAIL_CSTRING_HPP
+#endif // AYR_BASE_CSTRING_HPP

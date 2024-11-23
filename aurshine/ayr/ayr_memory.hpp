@@ -1,9 +1,9 @@
 ﻿#ifndef AYR_AYR_MEMORY_HPP
 #define AYR_AYR_MEMORY_HPP
 
-#include <ayr/base/ayr_memory.hpp>
-#include <ayr/base/ayr_traits.hpp>
-#include <ayr/DynArray.hpp>
+#include "base/ayr_memory.hpp"
+#include "base/ayr_traits.hpp"
+#include "DynArray.hpp"
 
 
 namespace ayr

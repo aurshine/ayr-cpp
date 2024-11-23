@@ -1,9 +1,9 @@
-﻿#ifndef AYR_DETAIL_AYR_MEMORY_HPP
-#define AYR_DETAIL_AYR_MEMORY_HPP
+﻿#ifndef AYR_BASE_AYR_MEMORY_HPP
+#define AYR_BASE_AYR_MEMORY_HPP
 
 #include <memory>
 
-#include <ayr/base/ayr.h>
+#include "ayr.h"
 
 namespace ayr
 {

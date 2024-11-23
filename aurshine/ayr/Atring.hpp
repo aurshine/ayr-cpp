@@ -1,8 +1,8 @@
 ﻿#ifndef AYR_STRING_HPP
 #define AYR_STRING_HPP
 
-#include <ayr/base/CodePoint.hpp>
-#include <ayr/base/NoCopy.hpp>
+#include "base/CodePoint.hpp"
+#include "base/NoCopy.hpp"
 
 namespace ayr
 {

@@ -1,12 +1,12 @@
-﻿#ifndef AYR_DETAIL_AYR_CONCEPTS_HPP
-#define AYR_DETAIL_AYR_CONCEPTS_HPP
+﻿#ifndef AYR_BASE_AYR_CONCEPTS_HPP
+#define AYR_BASE_AYR_CONCEPTS_HPP
 
 #include <iostream>
 #include <concepts>
 #include <ranges>
 
-#include <ayr/base/ayr.h>
-#include <ayr/base/ayr_traits.hpp>
+#include "ayr.h"
+#include "ayr_traits.hpp"
 
 
 namespace ayr

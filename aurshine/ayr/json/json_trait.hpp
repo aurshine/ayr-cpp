@@ -1,11 +1,9 @@
 ﻿#ifndef AYR_JSON_TRAIT_HPP
 #define AYR_JSON_TRAIT_HPP
 
-#include <ayr/base/ayr_concepts.hpp>
-#include <ayr/Atring.hpp>
-#include <ayr/DynArray.hpp>
-#include <ayr/Dict.hpp>
-
+#include "../Atring.hpp"
+#include "../DynArray.hpp"
+#include "../Dict.hpp"
 
 namespace ayr
 {

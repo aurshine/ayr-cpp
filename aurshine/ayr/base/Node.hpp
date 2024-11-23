@@ -1,7 +1,7 @@
-﻿#ifndef AYR_DETAIL_NODE_HPP
+﻿#ifndef AYR_BASE_NODE_HPP
 #define AYR_DETIAL_NODE_HPP
 
-#include <ayr/base/printer.hpp>
+#include "raise_error.hpp"
 
 
 namespace ayr

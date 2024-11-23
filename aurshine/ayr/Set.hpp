@@ -2,11 +2,12 @@
 #define AYR_SER_HPP
 
 #include <algorithm>
-#include <ayr/ayr_memory.hpp>
-#include <ayr/base/bunit.hpp>
-#include <ayr/base/HashBucket.hpp>
-#include <ayr/base/RelationIterator.hpp>
-#include <ayr/Atring.hpp>
+
+#include "ayr_memory.hpp"
+#include "Atring.hpp"
+#include "base/bunit.hpp"
+#include "base/HashBucket.hpp"
+#include "base/RelationIterator.hpp"
 
 
 namespace ayr
