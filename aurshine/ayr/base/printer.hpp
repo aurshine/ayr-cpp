@@ -148,4 +148,6 @@ struct std::formatter<Ayr> : std::formatter<const char*>
 	}
 };
 
+#define tlog(expr) print(#expr, " = ", expr)
+
 #endif // AYR_BASE_PRINTER_HPP
