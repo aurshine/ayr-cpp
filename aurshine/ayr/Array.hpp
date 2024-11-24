@@ -15,6 +15,8 @@ namespace ayr
 
 		Range(c_size end) : Range(0, end, 1) {}
 
+		c_size size() const { return (_end - _start + _step - 1) / _step; }
+
 		class RangeIterator : public Object<RangeIterator>
 		{
 			using self = RangeIterator;
