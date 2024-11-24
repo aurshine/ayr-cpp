@@ -14,7 +14,7 @@ namespace ayr
 	struct IsSame<T1, Args...> : std::bool_constant<(IsSame<T1, Args>::value || ...)> {};
 
 	template<typename T1, typename Arg>
-	struct IsSame<T1, Arg> : std::bool_constant<std::is_same_v<std::remove_cvref_t<T1>, std::remove_cvref_t<Arg>>> {};
+	struct IsSame<T1, Arg> : std::bool_constant<std::is_same_v<std::decay_t<T1>, std::decay_t<Arg>>> {};
 
 	template<typename T, typename... Args>
 	constexpr bool issame = IsSame<T, Args...>::value;
@@ -45,19 +45,37 @@ namespace ayr
 
 	// 用于判断是否为void，如果是void则返回void，否则返回T&
 	template<typename T>
-	struct void_or_ref
-	{
-		using type = T&;
-	};
+	struct VoidOrRef : std::type_identity<T&> {};
 
 	template<>
-	struct void_or_ref<void>
-	{
-		using type = void;
-	};
+	struct VoidOrRef<void> : std::type_identity<void> {};
 
 	template<typename T>
-	using void_or_ref_t = typename void_or_ref<T>::type;
+	using void_or_ref_t = typename VoidOrRef<T>::type;
+
+	// 可迭代对象对内部迭代器类型萃取
+	template<typename T>
+	struct inner_iterator_type : std::type_identity<decltype(std::declval<T>().begin())> {};
+
+	template<typename T>
+	struct inner_iterator_type<T*> : std::type_identity<T*> {};
+
+	template<typename T>
+	struct inner_iterator_type<T[]> : std::type_identity<T*> {};
+
+	template<typename T, std::size_t N>
+	struct inner_iterator_type<T[N]> : std::type_identity<T*> {};
+
+	template<typename T>
+		requires hasattr(T, iterator)
+	struct inner_iterator_type<T> : std::type_identity<typename T::iterator> {};
+
+	template<typename T>
+		requires hasattr(T, Iterator)
+	struct inner_iterator_type<T> : std::type_identity<typename T::Iterator> {};
+
+	template<typename T>
+	using traits_inner_iterator_t = typename inner_iterator_type<T>::type;
 }
 
 #endif

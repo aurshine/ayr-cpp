@@ -18,9 +18,10 @@ namespace ayr
 
 	// 可输出的类型约束概念
 	template<typename T>
-	concept StdPrintable = std::is_pointer_v<T> || issame<std::decay_t<T>, char*> || issame<T,
+	concept StdPrintable = std::is_pointer_v<T> || issame<T,
 		bool,
 		char,
+		char*,
 		short,
 		unsigned short,
 		int,
@@ -62,6 +63,7 @@ namespace ayr
 
 	template<typename T>
 	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
+
 
 	// 可迭代类型约束概念
 	template<typename T>

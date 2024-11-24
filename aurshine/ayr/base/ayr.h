@@ -18,9 +18,13 @@ namespace ayr
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))
 
-#define hasattr(T, attr) requires(T t) { &T::attr;}
+#define hastype(T, type) requires(T t) { typename T::type; }
+
+#define hasmember(T, member) requires(T t) { &T::member; }
 
 #define hasmethod(T, method, ...) requires(T t) { t.method( ##__VA_ARGS__);}
+
+#define hasattr(T, attr) hasmember(T, attr) || hastype(T, attr)
 
 	// container size type 
 	using c_size = int64_t;
