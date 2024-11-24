@@ -9,7 +9,9 @@ using namespace ayr;
 
 int main()
 {
-
-	dynarray_test();
+	print.setsep("aaa");
+	print.setend("bbb");
+	print(cstr("hello world!"));
+	//dynarray_test();
 	return 0;
 }
