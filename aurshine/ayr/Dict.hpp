@@ -26,21 +26,11 @@ namespace ayr
 
 		KeyValueView(const Key_t* key, const Value_t* value) : key_(key), value_(value) {}
 
-		KeyValueView(const self& other) : key_(other.key_), value_(other.value_) {}
+		KeyValueView(const self& other) = default;
 
-		self& operator=(const self& other)
-		{
-			key_ = other.key_;
-			value_ = other.value_;
-			return *this;
-		}
+		self& operator=(const self& other) = default;
 
-		self& set_kv(const Key_t* key, const Value_t* value)
-		{
-			key_ = key;
-			value_ = value;
-			return *this;
-		}
+		self& set_kv(const Key_t* key, const Value_t* value) { key_ = key; value_ = value; return *this; }
 
 		const Key_t& key() const
 		{
@@ -73,63 +63,72 @@ namespace ayr
 
 		Dict(c_size bucket_size = MIN_BUCKET_SIZE) : bucket_(bucket_size), keys_() {}
 
-		Dict(std::initializer_list<std::pair<Key_t, Value_t>>&& kv_list) : Dict(roundup2(c_size(kv_list.size() / MAX_LOAD_FACTOR)))
+		Dict(std::initializer_list<std::pair<Key_t, Value_t>>&& kv_list) : Dict(roundup2(kv_list.size() / MAX_LOAD_FACTOR))
 		{
 			for (auto&& kv : kv_list)
-				insert_impl(std::move(kv.first), std::move(kv.second), ayrhash(kv.first));
+				insert(kv.first, kv.second);
 		}
 
-		Dict(const self& other) : bucket_(other.bucket_), keys_(other.keys_) {}
+		Dict(const self& other) : bucket_(other.bucket_), keys_(other.keys_) {};
 
-		Dict(self&& other) noexcept : bucket_(std::move(other.bucket_)), keys_(std::move(other.keys_)) {}
+		Dict(self&& other)noexcept : bucket_(std::move(other.bucket_)), keys_(std::move(other.keys_)) {};
 
 		Dict& operator=(const self& other)
 		{
 			if (this == &other) return *this;
+
 			bucket_ = other.bucket_;
 			keys_ = other.keys_;
+
 			return *this;
 		}
 
 		Dict& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
+
 			bucket_ = std::move(other.bucket_);
 			keys_ = std::move(other.keys_);
+
 			return *this;
 		}
+
+		~Dict() = default;
 
 		// key-value对的数量
 		c_size size() const { return keys_.size(); }
 
+		// 桶容量
 		c_size capacity() const { return bucket_.capacity(); }
 
-		bool contains(const K& key) const { return contains_hashv(ayrhash(key)); }
+		bool contains(const Key_t& key) const { return contains_hashv(ayrhash(key)); }
 
+		// 负载因子
 		double load_factor() const { return 1.0 * size() / capacity(); }
 
+		// 键的迭代视图
 		auto keys() const { return std::ranges::subrange(keys_.begin(), keys_.end()); }
 
+		// 值的迭代视图
 		auto values() const { return std::ranges::subrange(bucket_.begin(), bucket_.end()); }
 
 		// 重载[]运算符, key 必须存在, 否则KeyError
-		const V& operator[](const K& key) const { return get(key); }
+		const V& operator[](const Key_t& key) const { return get(key); }
 
 		// 重载[]运算符, 若key不存在, 则创建并返回一个默认值
-		V& operator[](const K& key)
+		Value_t& operator[](const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
 			if (!contains_hashv(hashv))
-				insert(key, V());
+				return insert_impl(key, V(), hashv);
 
-			return get(key);
+			return *get_impl(hashv);
 		}
 
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
-		V& get(const K& key)
+		Value_t& get(const Key_t& key)
 		{
-			hash_t hashv = ayrhash(key);
-			Value_t* value = bucket_.try_get(hashv);
+			Value_t* value = get_impl(ayrhash(key));
 
 			if (value != nullptr) return *value;
 			KeyError(std::format("Key '{}' not found in dict", key));
@@ -137,9 +136,9 @@ namespace ayr
 		}
 
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
-		const V& get(const K& key) const
+		const Value_t& get(const Key_t& key) const
 		{
-			const Value_t* value = bucket_.try_get(ayrhash(key));
+			const Value_t* value = get_impl(ayrhash(key));
 
 			if (value != nullptr) return *value;
 			KeyError(std::format("Key '{}' not found in dict", key));
@@ -147,27 +146,30 @@ namespace ayr
 		}
 
 		// 获得key对应的value, 若key不存在, 则返回default_value
-		V& get(const K& key, V& default_value)
+		Value_t& get(const Key_t& key, Value_t& default_value)
 		{
-			Value_t* value = bucket_.try_get(ayrhash(key));
+			Value_t* value = get_impl(ayrhash(key));
 			if (value != nullptr) return *value;
 
 			return default_value;
 		}
 
 		// 获得key对应的value, 若key不存在, 则返回default_value
-		const V& get(const K& key, const V& default_value) const
+		const Value_t& get(const Key_t& key, const Key_t& default_value) const
 		{
-			const Value_t* value = bucket_.try_get(ayrhash(key));
+			const Value_t* value = get_impl(ayrhash(key));
 			if (value != nullptr) return *value;
 
 			return default_value;
 		}
 
 		// 若key不存在, 则添加一个默认值
-		self& setdefault(const K& key, const V& default_value)
+		template<typename _V>
+		self& setdefault(const Key_t& key, _V&& default_value)
 		{
-			if (!contains(key)) insert_impl(key, default_value);
+			hash_t hashv = ayrhash(key);
+			if (!contains_hashv(hashv))
+				insert_impl(key, std::forward<_V>(default_value), hashv);
 
 			return *this;
 		}
@@ -176,38 +178,52 @@ namespace ayr
 		self& update(const self& other)
 		{
 			for (auto&& kv : other)
-				insert(kv.key, kv.value);
+				insert(kv.key(), kv.value());
 
 			return *this;
 		}
 
+		self& update(self&& other)
+		{
+			for (auto& key : other.keys_)
+			{
+				hash_t hashv = ayrhash(key);
+				Value_t& value = *other.get_impl(hashv);
+				insert(std::move(key), std::move(value), hashv);
+			}
+			return *this;
+		}
+
 		// 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
-		void insert(const K& key, const V& value)
+		template<typename _K, typename _V>
+		Value_t& insert(_K&& key, _V&& value)
 		{
 			hash_t hashv = ayrhash(key);
-			Value_t* m_value = bucket_.try_get(hashv);
+			Value_t* m_value = get_impl(hashv);
 			if (m_value != nullptr)
-				*m_value = value;
-			else
-				insert_impl(key, value, hashv);
+				return *m_value = std::forward<_V>(value);
+
+			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), hashv);
 		}
 
-		void insert(K&& key, V&& value)
+		template<typename _K, typename _V>
+		Value_t& insert(_K&& key, _V&& value, hash_t hashv)
 		{
-			hash_t hashv = ayrhash(key);
-			Value_t* m_value = bucket_.try_get(hashv);
+			Value_t* m_value = get_impl(hashv);
 			if (m_value != nullptr)
-				*m_value = std::move(value);
-			else
-				insert_impl(std::move(key), std::move(value), hashv);
+				return *m_value = std::forward<_V>(value);
+
+			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), hashv);
 		}
 
-		void pop(const K& key)
+		void pop(const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
 			bucket_.pop(hashv);
 			keys_.pop(keys_.find(key));
 		}
+
+		void clear() { bucket_.clear(); keys_.clear(); }
 
 		self operator&(const self& other) const
 		{
@@ -323,8 +339,6 @@ namespace ayr
 
 			return *this;
 		}
-
-		void clear() { bucket_.clear(); keys_.clear(); }
 
 		bool __equals__(const self& other) const
 		{
@@ -457,24 +471,31 @@ namespace ayr
 
 		void expand() { bucket_.expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
 
-		// 插入一个key-value对, 不对key是否存在做检查
-		void insert_impl(const K& key, const V& value, hash_t hashv)
+		// 向字典中插入一个key-value对
+		// 不检查key是否存在
+		template<typename _K, typename _V>
+		Value_t& insert_impl(_K&& key, _V&& value)
+		{
+			insert_impl(std::forward<_K>(key), std::forward<_V>(value), ayrhash(static_cast<const Key_t&>(key)));
+		}
+
+		template<typename _K, typename _V>
+		Value_t& insert_impl(_K&& key, _V&& value, hash_t hashv)
 		{
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_value(value, hashv);
-			keys_.append(key);
+			Value_t v = *bucket_.set_value(std::forward<_V>(value), hashv);
+			keys_.append(std::forward<_K>(key));
+
+			return v;
 		}
 
-		void insert_impl(K&& key, V&& value, hash_t hashv)
-		{
-			if (load_factor() >= MAX_LOAD_FACTOR)
-				expand();
+		// 获得hash值对应的value指针
+		// 不检查key是否存在
+		Value_t* get_impl(hash_t hashv) { return bucket_.try_get(hashv); }
 
-			bucket_.set_value(std::move(value), hashv);
-			keys_.append(std::move(key));
-		}
+		const Value_t* get_impl(hash_t hashv) const { return bucket_.try_get(hashv); }
 	private:
 		Bucket_t bucket_;
 

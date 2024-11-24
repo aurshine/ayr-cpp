@@ -31,7 +31,7 @@ namespace ayr
 		Set(std::initializer_list<Value_t>&& il) : Set(roundup2(c_size(il.size() / MAX_LOAD_FACTOR)))
 		{
 			for (auto& v : il)
-				insert_impl(std::move(v), ayrhash(v));
+				insert(v);
 		}
 
 		Set(const Set& other) : bucket_(other.bucket_) {}
@@ -42,15 +42,13 @@ namespace ayr
 
 		Set& operator=(const Set& other)
 		{
-			if (this != &other)
-				bucket_ = other.bucket_;
+			if (this != &other) bucket_ = other.bucket_;
 			return *this;
 		}
 
 		Set& operator=(Set&& other) noexcept
 		{
-			if (this != &other)
-				bucket_ = std::move(other.bucket_);
+			if (this != &other) bucket_ = std::move(other.bucket_);
 			return *this;
 		}
 
@@ -58,15 +56,16 @@ namespace ayr
 
 		c_size capacity() const { return bucket_.capacity(); }
 
-		bool contains(const Value_t& value) const { return contains_hash(ayrhash(value)); }
+		bool contains(const Value_t& value) const { return contains_hashv(ayrhash(value)); }
 
 		double load_factor() const { return 1.0 * size() / capacity(); }
 
-		void insert(const Value_t& value)
+		template<typename _V>
+		void insert(_V&& value)
 		{
 			hash_t hashv = ayrhash(value);
-			if (!contains_hash(hashv))
-				insert_impl(value, hashv);
+			if (!contains_hashv(hashv))
+				insert_impl(std::forward<_V>(value), hashv);
 		}
 
 		void pop(const Value_t& value)
@@ -193,11 +192,7 @@ namespace ayr
 			return *this;
 		}
 
-		void clear()
-		{
-			bucket_.clear();
-			size_ = 0;
-		}
+		void clear() { bucket_.clear(); size_ = 0; }
 
 		bool __equals__(const self& other)
 		{
@@ -229,28 +224,26 @@ namespace ayr
 			return str;
 		}
 	private:
-		bool contains_hash(hash_t hashv) const { return bucket_.contains(hashv); }
+		bool contains_hashv(hash_t hashv) const { return bucket_.contains(hashv); }
 
 		void expand() { bucket_.expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
 
-		void insert_impl(const Value_t& value, hash_t hashv)
+		template<typename _V>
+		void insert_impl(_V&& value) { insert_impl(std::forward<_V>(value), ayrhash(static_cast<const Value_t&>(value))); }
+
+		template<typename _V>
+		void insert_impl(_V&& value, hash_t hashv)
 		{
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			bucket_.set_value(value, hashv);
+			bucket_.set_value(std::forward<_V>(value), hashv);
 			++size_;
 		}
 
-		void insert_impl(Value_t&& value, hash_t hashv)
-		{
-			if (load_factor() >= MAX_LOAD_FACTOR)
-				expand();
+		Value_t* get_impl(hash_t hashv) { return bucket_.try_get(hashv); }
 
-			bucket_.set_value(std::move(value), hashv);
-			++size_;
-		}
-
+		const Value_t* get_impl(hash_t hashv) const { return bucket_.try_get(hashv); }
 
 		Iterator begin() { return bucket_.begin(); }
 

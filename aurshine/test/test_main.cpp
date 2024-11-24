@@ -9,9 +9,7 @@ using namespace ayr;
 
 int main()
 {
-	print.setsep("aaa");
-	print.setend("bbb");
-	print(cstr("hello world!"));
-	//dynarray_test();
+	dict_test();
+	set_test();
 	return 0;
 }
