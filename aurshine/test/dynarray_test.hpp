@@ -85,50 +85,65 @@ void dynarray_test()
 	runspeed_test();
 
 	DynArray<int> da;
+	print.setend("\n\n");
 	da.append(1);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(2);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(3);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(4);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(5);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(6);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(7);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(8);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(9);
-	print(da[-1]);
+	tlog(da[-1]);
 	da.append(10);
-	print(da[-1]);
+	tlog(da[-1]);
 
 	da.pop();
-	print("popped -1:", da);
+	tlog(std::format("popped -1: {}", da));
 	da.pop(2);
-	print("popped 2:", da);
+	tlog(std::format("popped 2: {}", da));
 	da.clear();
-	print("cleared:", da);
+	tlog(std::format("cleared: {}", da));
 	da.insert(0, 1);
-	print("inserted 1 at 0:", da);
+	tlog(std::format("inserted 1 at 0: {}", da));
 	da.insert(0, 2);
-	print("inserted 2 at 0:", da);
+	tlog(std::format("inserted 2 at 0: {}", da));
 	da.insert(0, 3);
-	print("inserted 3 at 0:", da);
+	tlog(std::format("inserted 3 at 0: {}", da));
 	da.insert(0, 4);
-	print("inserted 4 at 0:", da);
+	tlog(std::format("inserted 4 at 0: {}", da));
 	da.insert(0, 5);
-	print("inserted 5 at 0:", da);
+	tlog(std::format("inserted 5 at 0: {}", da));
 	da.insert(10, 6);
-	print("inserted 6 at 10:", da);
+	tlog(std::format("inserted 6 at 10: {}", da));
 	da.insert(10, 7);
-	print("inserted 7 at 10:", da);
+	tlog(std::format("inserted 7 at 10: {}", da));
 
 	da.clear();
-	for (int i = 0; i < 64; ++i)
-		da.append(i);
-	print("appended 64:", da);
+
+	tlog(da.extend(Range(64)));
+
+	DynArray<int> da2({ 1, 2, 3, 4, 5 });
+	tlog(std::format("initialized with list: {}", da2));
+
+	DynArray<int> da3(da2);
+	tlog(std::format("copy constructed: {}", da3));
+
+	tlog(da2 + da3);
+	tlog(da2.extend(da3));
+
+	tlog(da2.extend(DynArray<int>({ 6, 7, 8 })));
+	tlog(da3.to_array());
+	tlog(da3.move_array());
+	tlog(da3);
+	tlog(DynArray<int>(std::vector<int>{1, 2, 3, 4, 5}));
 }

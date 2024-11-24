@@ -9,7 +9,6 @@ using namespace ayr;
 
 int main()
 {
-	dict_test();
-	set_test();
+	dynarray_test();
 	return 0;
 }
