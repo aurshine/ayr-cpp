@@ -11,7 +11,7 @@
 #elif defined(__APPLE__)
 #define AYR_MAC
 #include "fs/mac/File.hpp"
-#include "/fsmac/Path.hpp"
+#include "fs/mac/Path.hpp"
 #endif
 
 
