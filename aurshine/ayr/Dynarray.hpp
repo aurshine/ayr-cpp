@@ -27,6 +27,12 @@ namespace ayr
 
 		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0), back_block_index_(-1) {}
 
+		DynArray(std::initializer_list<Value_t> init) : DynArray()
+		{
+			for (auto&& item : init)
+				append(std::forward<decltype(item)>(item));
+		}
+
 		DynArray(const self& other) : DynArray()
 		{
 			for (const Value_t& item : other)
@@ -34,32 +40,63 @@ namespace ayr
 		}
 
 		DynArray(self&& other) noexcept :
-			blocks_(std::move(other.blocks_)), size_(other.size_), back_block_index_(other.back_block_index_)
+			blocks_(std::move(other.blocks_)),
+			size_(other.size_),
+			back_block_index_(other.back_block_index_)
 		{
 			other.size_ = 0;
 			other.back_block_index_ = -1;
 		}
 
-		~DynArray() {};
+		template<Iteratable I>
+		DynArray(I&& other) : DynArray()
+		{
+			for (auto&& item : other)
+				append(std::forward<decltype(item)>(item));
+		}
+
+		~DynArray() = default;
 
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_destroy(&blocks_);
+			blocks_ = other.blocks_;
+			size_ = other.size_;
+			back_block_index_ = other.back_block_index_;
 
-			return *ayr_construct(this, other);
+			return *this;
 		}
 
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_destroy(&blocks_);
+			blocks_ = std::move(other.blocks_);
+			size_ = other.size_;
+			back_block_index_ = other.back_block_index_;
 
-			return *ayr_construct(this, std::move(other));
+			other.size_ = 0;
+			other.back_block_index_ = -1;
+			return *this;
 		}
 
 		// 容器存储的数据长度
 		c_size size() const { return size_; }
+
+		// 对index范围不做检查
+		T& at(c_size index)
+		{
+			int block_index = _get_block_index(index + 1);
+			c_size inblock_index = _get_inblock_index(index + 1, block_index);
+			return blocks_.at(block_index).at(inblock_index);
+		}
+
+		// 对index范围不做检查
+		const T& at(c_size index) const
+		{
+			int block_index = _get_block_index(index + 1);
+			c_size inblock_index = _get_inblock_index(index + 1, block_index);
+			return blocks_.at(block_index).at(inblock_index);
+		}
 
 		// 追加元素
 		template<typename U>
@@ -70,6 +107,14 @@ namespace ayr
 			T& res = _back_block().append(std::forward<U>(item));
 			++size_;
 			return res;
+		}
+
+		template<typename U>
+		void insert(c_size index, U&& item)
+		{
+			append(std::forward<U>(item));
+			for (c_size i = size() - 1; i > index; --i)
+				std::swap(at(i), at(i - 1));
 		}
 
 		// 移除指定位置的元素
@@ -89,12 +134,12 @@ namespace ayr
 			--size_;
 		}
 
-		template<typename U>
-		void insert(c_size index, U&& item)
+		void clear()
 		{
-			append(std::forward<U>(item));
-			for (c_size i = size() - 1; i > index; --i)
-				std::swap(at(i), at(i - 1));
+			for (auto&& block : blocks_)
+				block.resize(0);
+			size_ = 0;
+			back_block_index_ = -1;
 		}
 
 		// 转换为Array
@@ -115,9 +160,25 @@ namespace ayr
 			Array<T> arr(m_size);
 			for (c_size i = 0; i < m_size; ++i)
 				arr.at(i) = std::move(at(i));
-
+			clear();
 			return arr;
 		}
+
+		template<Iteratable I>
+		self& extend(I&& other)
+		{
+			for (auto&& item : other)
+				append(std::forward<decltype(item)>(item));
+			return *this;
+		}
+
+		self operator+ (const self& other) const { return self(*this).extend(other); }
+
+		self operator+ (self&& other) const { return self(*this).extend(std::move(other)); }
+
+		self& operator+= (const self& other) { return extend(other); }
+
+		self& operator+= (self&& other) { return extend(std::move(other)); }
 
 		// 容器的字符串形式
 		CString __str__() const
@@ -132,31 +193,6 @@ namespace ayr
 			stream << "]";
 
 			return CString(stream.str());
-		}
-
-		// 对index范围不做检查
-		T& at(c_size index)
-		{
-			int block_index = _get_block_index(index + 1);
-			c_size inblock_index = _get_inblock_index(index + 1, block_index);
-			return blocks_.at(block_index).at(inblock_index);
-		}
-
-		// 对index范围不做检查
-		const T& at(c_size index) const
-		{
-			int block_index = _get_block_index(index + 1);
-			c_size inblock_index = _get_inblock_index(index + 1, block_index);
-			return blocks_.at(block_index).at(inblock_index);
-		}
-
-
-		void clear()
-		{
-			for (auto&& block : blocks_)
-				block.resize(0);
-			size_ = 0;
-			back_block_index_ = -1;
 		}
 
 		template<bool IsConst>
@@ -350,8 +386,7 @@ namespace ayr
 		// 移除最后一个块
 		void _pop_back_block() { _back_block().resize(0); --back_block_index_; }
 
-		// 唤醒一个新的块
-		// 此时的size一定要大于0
+		// 尝试唤醒一个新的块
 		void try_wakeup()
 		{
 			c_size bbi = _back_block_index();
