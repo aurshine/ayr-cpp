@@ -30,14 +30,9 @@ namespace ayr
 	// hash type
 	using hash_t = uint64_t;
 
-	constexpr char __NONE__[20] = "\0";
-
-	// 空值
+	// 空值, 不会被使用, 仅用于占位符
 	template<typename T>
-	T& None = *reinterpret_cast<T*>(const_cast<char*>(__NONE__));
-
-	template<typename T>
-	def is_none(const T& val) -> bool { return &val == &None<T>; }
+	T& None = *reinterpret_cast<T*>(nullptr);
 }
 
 #endif
