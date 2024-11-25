@@ -40,19 +40,6 @@ namespace ayr
 	def closesocket(int socket) { ::close(socket); }
 #endif
 
-	CString error_msg()
-	{
-		CString error_msg{ 128 };
-#ifdef _WIN32 || _WIN64
-		int errorno = WSAGetLastError();
-		FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, errorno,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), error_msg.data(), 128, nullptr);
-#else
-		strerror(error_msg.data(), errno);
-#endif
-		return error_msg;
-	}
-
 
 	struct SockAddrIn : public Object<SockAddrIn>
 	{
@@ -66,7 +53,7 @@ namespace ayr
 			if (ip == nullptr)
 				addr_.sin_addr.s_addr = INADDR_ANY;
 			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 		}
 
 		sockaddr* get_sockaddr() { return reinterpret_cast<sockaddr*>(&addr_); }
@@ -79,7 +66,7 @@ namespace ayr
 		{
 			CString ip{ 16 };
 			if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 			return ip;
 		}
 
@@ -113,7 +100,7 @@ namespace ayr
 
 			socket_ = socket(family, type, protocol);
 			if (socket_ == INVALID_SOCKET)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 		}
 
 		Socket(Socket&& other) noexcept : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
@@ -124,10 +111,13 @@ namespace ayr
 
 		Socket& operator=(Socket&& other) noexcept
 		{
+			close();
 			socket_ = other.socket_;
 			other.socket_ = INVALID_SOCKET;
 			return *this;
 		}
+
+		int get_socket() const { return socket_; }
 
 		// 绑定ip:port
 		void bind(const char* ip, int port) const
@@ -135,14 +125,14 @@ namespace ayr
 			SockAddrIn addr(ip, port);
 
 			if (::bind(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 		}
 
 		// 监听端口
 		void listen(int backlog = 8) const
 		{
 			if (::listen(socket_, backlog) != 0)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 		}
 
 		// 接受一个连接
@@ -157,7 +147,7 @@ namespace ayr
 			SockAddrIn addr(ip, port);
 
 			if (::connect(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 		}
 
 		// 发送size个字节的数据, 数据头部包含了数据大小，需要用recv接收
@@ -177,7 +167,7 @@ namespace ayr
 			int head_size = 0;
 			int recvd = ::recv(socket_, (char*)&head_size, 4, flags);
 			if (recvd == SOCKET_ERROR)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 			else if (recvd == 0)
 				return "";
 
@@ -189,7 +179,7 @@ namespace ayr
 		{
 			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
 			if (num_send == SOCKET_ERROR)
-				RuntimeError(error_msg());
+				RuntimeError(get_error_msg());
 			else if (num_send != size)
 				RuntimeError(std::format("Failed to send all data.{}/{}", num_send, size));
 		}
@@ -231,7 +221,7 @@ namespace ayr
 			{
 				int num_send = ::send(socket_, ptr, size, flags);
 				if (num_send == SOCKET_ERROR)
-					RuntimeError(error_msg());
+					RuntimeError(get_error_msg());
 				else if (num_send == 0)
 					continue;
 				ptr += num_send;
@@ -248,7 +238,7 @@ namespace ayr
 			{
 				int recvd = ::recv(socket_, ptr, size, flags);
 				if (recvd == SOCKET_ERROR)
-					RuntimeError(error_msg());
+					RuntimeError(get_error_msg());
 				ptr += recvd;
 				size -= recvd;
 			}
