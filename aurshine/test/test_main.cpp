@@ -9,6 +9,6 @@ using namespace ayr;
 
 int main()
 {
-	dynarray_test();
+	dict_test();
 	return 0;
 }

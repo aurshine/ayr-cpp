@@ -17,7 +17,6 @@ constexpr int N = 1e6;
 
 void test_das()
 {
-	print("test_das");
 	for (int i = 0; i < N; ++i)
 	{
 		das.append("hello");
@@ -26,7 +25,6 @@ void test_das()
 
 void test_vs()
 {
-	print("test_vs");
 	for (int i = 0; i < N; ++i)
 	{
 		vs.push_back("hello");
@@ -35,7 +33,6 @@ void test_vs()
 
 void test_dai()
 {
-	print("test_dai");
 	for (int i = 0; i < N; ++i)
 	{
 		dai.append(i);
@@ -44,7 +41,6 @@ void test_dai()
 
 void test_vi()
 {
-	print("test_vi");
 	for (int i = 0; i < N; ++i)
 	{
 		vi.push_back(i);
@@ -86,26 +82,16 @@ void dynarray_test()
 
 	DynArray<int> da;
 	print.setend("\n\n");
-	da.append(1);
-	tlog(da[-1]);
-	da.append(2);
-	tlog(da[-1]);
-	da.append(3);
-	tlog(da[-1]);
-	da.append(4);
-	tlog(da[-1]);
-	da.append(5);
-	tlog(da[-1]);
-	da.append(6);
-	tlog(da[-1]);
-	da.append(7);
-	tlog(da[-1]);
-	da.append(8);
-	tlog(da[-1]);
-	da.append(9);
-	tlog(da[-1]);
-	da.append(10);
-	tlog(da[-1]);
+	tlog(da.append(1));
+	tlog(da.append(2));
+	tlog(da.append(3));
+	tlog(da.append(4));
+	tlog(da.append(5));
+	tlog(da.append(6));
+	tlog(da.append(7));
+	tlog(da.append(8));
+	tlog(da.append(9));
+	tlog(da.append(10));
 
 	da.pop();
 	tlog(std::format("popped -1: {}", da));
@@ -130,17 +116,17 @@ void dynarray_test()
 
 	da.clear();
 
-	tlog(da.extend(Range(64)));
+	da.extend(Range(1e6));
+	for (int i = 0; i < 1e6; ++i)
+		if (i != da[i])
+			tlog(std::format("da[{}] == {}", i, da[i]));
 
 	DynArray<int> da2({ 1, 2, 3, 4, 5 });
-	tlog(std::format("initialized with list: {}", da2));
-
+	tlog(DynArray<int>({ 1, 2, 3, 4, 5 }));
 	DynArray<int> da3(da2);
-	tlog(std::format("copy constructed: {}", da3));
-
+	tlog(DynArray<int>(da2));
 	tlog(da2 + da3);
 	tlog(da2.extend(da3));
-
 	tlog(da2.extend(DynArray<int>({ 6, 7, 8 })));
 	tlog(da3.to_array());
 	tlog(da3.move_array());

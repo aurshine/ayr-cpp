@@ -27,10 +27,10 @@ namespace ayr
 
 		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0), back_block_index_(-1) {}
 
-		DynArray(std::initializer_list<Value_t> init) : DynArray()
+		DynArray(std::initializer_list<Value_t>&& init) : DynArray()
 		{
-			for (auto&& item : init)
-				append(std::forward<decltype(item)>(item));
+			for (auto& item : init)
+				append(item);
 		}
 
 		DynArray(const self& other) : DynArray()
