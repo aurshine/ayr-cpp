@@ -11,6 +11,16 @@
 
 namespace ayr
 {
+	struct _Flush : public Object<_Flush> {};
+
+	constexpr static const _Flush flush{};
+
+	std::ostream& operator<<(std::ostream& os, const _Flush& flush)
+	{
+		os.flush();
+		return os;
+	}
+
 	class Printer : public Object<Printer>
 	{
 	public:
@@ -45,6 +55,8 @@ namespace ayr
 		void __print__(const std::string& object) const { std::fprintf(output_file_, object.c_str()); }
 
 		void __print__(const CString& object) const { std::fprintf(output_file_, object.data()); }
+
+		void __print__(const _Flush& flush) const { std::fflush(output_file_); }
 
 		template<typename T>
 			requires std::is_integral_v<T>
