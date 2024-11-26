@@ -10,7 +10,7 @@ namespace ayr
 	namespace json
 	{
 		class Json;
-		class Null {};
+		class Null : public Object<Null> {};
 
 		// 定义Json类型枚举
 		struct JsonType

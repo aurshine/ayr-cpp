@@ -11,46 +11,41 @@ namespace ayr
 		class Json : public Object<Json>
 		{
 		public:
-			template<JsonTypeStrictConcept T>
-			Json(T&& item) : json_item(new T(std::forward<T>(item))), json_type(GetJsonTypeIDStrict<T>::ID) {}
-
 			Json() : Json(Null()) {}
 
-			Json(Json&& other) noexcept
-			{
-				json_type = other.json_type;
-				json_item = other.json_item;
+			template<JsonTypeConcept T>
+			Json(T&& item) : json_item(new std::decay_t<T>(std::forward<T>(item))), json_type(GetJsonTypeID<T>::ID) {}
 
+			Json(Json&& other) noexcept : json_item(other.json_item), json_type(other.json_type)
+			{
 				other.json_item = nullptr;
 				other.json_type = GetJsonTypeIDStrict<JsonType::JsonNull>::ID;
 			}
 
-			Json(const Json& other)
+			Json(const Json& other) : json_item(nullptr), json_type(other.json_type)
 			{
-				json_type = other.json_type;
-
-				switch (json_type)
+				switch (other.json_type)
 				{
 				case GetJsonTypeID<JsonType::JsonInt>::ID:
-					this->json_item = new JsonType::JsonInt(other.transform<JsonType::JsonInt>());
+					ayr_construct(this, other.transform<JsonType::JsonInt>());
 					break;
 				case GetJsonTypeID<JsonType::JsonFloat>::ID:
-					this->json_item = new JsonType::JsonFloat(other.transform<JsonType::JsonFloat>());
+					ayr_construct(this, other.transform<JsonType::JsonFloat>());
 					break;
 				case GetJsonTypeID<JsonType::JsonBool>::ID:
-					this->json_item = new JsonType::JsonBool(other.transform<JsonType::JsonBool>());
+					ayr_construct(this, other.transform<JsonType::JsonBool>());
 					break;
 				case GetJsonTypeID<JsonType::JsonStr>::ID:
-					this->json_item = new JsonType::JsonStr(other.transform<JsonType::JsonStr>());
+					ayr_construct(this, other.transform<JsonType::JsonStr>());
 					break;
 				case GetJsonTypeID<JsonType::JsonArray>::ID:
-					this->json_item = new JsonType::JsonArray(other.transform<JsonType::JsonArray>());
+					ayr_construct(this, other.transform<JsonType::JsonArray>());
 					break;
 				case GetJsonTypeID<JsonType::JsonDict>::ID:
-					this->json_item = new JsonType::JsonDict(other.transform<JsonType::JsonDict>());
+					ayr_construct(this, other.transform<JsonType::JsonDict>());
 					break;
 				case GetJsonTypeID<JsonType::JsonNull>::ID:
-					this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
+					ayr_construct(this, other.transform<JsonType::JsonNull>());
 					break;
 				default:
 					ValueError(std::format("json_type {} is not valid", json_type));
@@ -61,58 +56,17 @@ namespace ayr
 
 			Json& operator=(const Json& other)
 			{
-				if (this != &other)
-				{
-					release();
-					json_type = other.json_type;
-
-					switch (json_type)
-					{
-					case GetJsonTypeID<JsonType::JsonInt>::ID:
-						this->json_item = new JsonType::JsonInt(other.transform<JsonType::JsonInt>());
-						break;
-					case GetJsonTypeID<JsonType::JsonFloat>::ID:
-						this->json_item = new JsonType::JsonFloat(other.transform<JsonType::JsonFloat>());
-						break;
-					case GetJsonTypeID<JsonType::JsonBool>::ID:
-						this->json_item = new JsonType::JsonBool(other.transform<JsonType::JsonBool>());
-						break;
-					case GetJsonTypeID<JsonType::JsonStr>::ID:
-						this->json_item = new JsonType::JsonStr(other.transform<JsonType::JsonStr>());
-						break;
-					case GetJsonTypeID<JsonType::JsonArray>::ID:
-						this->json_item = new JsonType::JsonArray(other.transform<JsonType::JsonArray>());
-						break;
-					case GetJsonTypeID<JsonType::JsonDict>::ID:
-						this->json_item = new JsonType::JsonDict(other.transform<JsonType::JsonDict>());
-						break;
-					case GetJsonTypeID<JsonType::JsonNull>::ID:
-						this->json_item = new JsonType::JsonNull(other.transform<JsonType::JsonNull>());
-						break;
-					default:
-						ValueError(std::format("json_type {} is not valid", json_type));
-					}
-				}
-
-				return *this;
+				if (this == &other) return *this;
+				release();
+				return *ayr_construct(this, other);
 			}
-
 
 			Json& operator=(Json&& other) noexcept
 			{
-				if (this != &other)
-				{
-					release();
-					json_type = other.json_type;
-					json_item = other.json_item;
-
-					other.json_item = nullptr;
-					other.json_type = GetJsonTypeID<JsonType::JsonNull>::ID;
-				}
-
-				return *this;
+				if (this == &other) return *this;
+				release();
+				return *ayr_construct(this, std::move(other));
 			}
-
 
 			void swap(Json& json) noexcept
 			{
@@ -157,7 +111,7 @@ namespace ayr
 						type_name(json_type))
 					);
 
-				return reinterpret_cast<T*>(this->json_item);
+				return static_cast<T*>(this->json_item);
 			}
 
 			// 转换为指定类型，返回转换后对象的指针
@@ -169,7 +123,7 @@ namespace ayr
 						type_name(GetJsonTypeID<T>::ID),
 						type_name(json_type))
 					);
-				return reinterpret_cast<T*>(this->json_item);
+				return static_cast<const T*>(this->json_item);
 			}
 
 
@@ -223,25 +177,53 @@ namespace ayr
 
 			const Json& operator[] (const JsonType::JsonStr& key) const
 			{
-				return transform<JsonType::JsonDict>().get(key);
+				return transform<JsonType::JsonDict>()[key];
 			}
 
-			Json& operator[] (size_t index)
+			Json& operator[] (c_size index)
 			{
 				return transform<JsonType::JsonArray>()[index];
 			}
 
-			const Json& operator[] (size_t index) const
+			const Json& operator[] (c_size index) const
 			{
 				return transform<JsonType::JsonArray>()[index];
 			}
 
-			void pop(size_t index = -1)
+			Json& operator[](const Json& json_obj)
+			{
+				if (json_obj.is<JsonType::JsonStr>())
+					return transform<JsonType::JsonDict>()[json_obj.transform<JsonType::JsonStr>()];
+
+				if (json_obj.is<JsonType::JsonInt>())
+					return transform<JsonType::JsonArray>()[json_obj.transform<JsonType::JsonInt>()];
+
+				RuntimeError("Json type is not JSON_STR or JSON_INT");
+				return None<Json>;
+			}
+
+			void pop(c_size index = -1)
 			{
 				transform<JsonType::JsonArray>().pop(index);
 			}
 
-			size_t size() const
+			void pop(const JsonType::JsonStr& key)
+			{
+				transform<JsonType::JsonDict>().pop(key);
+			}
+
+			void pop(const Json& json_obj)
+			{
+				if (json_obj.is<JsonType::JsonStr>())
+					transform<JsonType::JsonDict>().pop(json_obj.transform<JsonType::JsonStr>());
+
+				if (json_obj.is<JsonType::JsonInt>())
+					transform<JsonType::JsonArray>().pop(json_obj.transform<JsonType::JsonInt>());
+
+				RuntimeError("Json type is not JSON_STR or JSON_INT");
+			}
+
+			c_size size() const
 			{
 				if (json_type == GetJsonTypeID<JsonType::JsonArray>::ID)
 					return transform<JsonType::JsonArray>().size();
@@ -250,6 +232,7 @@ namespace ayr
 					return transform<JsonType::JsonDict>().size();
 
 				RuntimeError("Json type is not JSON_ARRAY or JSON_DICT");
+				return None<c_size>;
 			}
 
 		private:
@@ -282,6 +265,8 @@ namespace ayr
 				default:
 					ValueError(std::format("json_type {} is not valid", json_type));
 				}
+				json_item = nullptr;
+				json_type = GetJsonTypeIDStrict<JsonType::JsonNull>::ID;
 			}
 
 			void* json_item;
@@ -293,7 +278,6 @@ namespace ayr
 		constexpr inline JsonType::JsonInt make_int(T&& value)
 		{
 			using RT = std::remove_cvref_t<T>;
-
 			if constexpr (std::is_arithmetic_v<RT>)
 				return static_cast<JsonType::JsonInt>(value);
 
@@ -305,7 +289,6 @@ namespace ayr
 		constexpr inline JsonType::JsonFloat make_float(T&& value)
 		{
 			using RT = std::remove_cvref_t<T>;
-
 			if constexpr (std::is_arithmetic_v<RT>)
 				return static_cast<JsonType::JsonFloat>(value);
 
