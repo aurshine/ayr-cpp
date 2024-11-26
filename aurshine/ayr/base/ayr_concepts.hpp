@@ -18,23 +18,11 @@ namespace ayr
 
 	// 可输出的类型约束概念
 	template<typename T>
-	concept StdPrintable = std::is_pointer_v<T> || issame<T,
-		bool,
-		char,
-		char*,
-		short,
-		unsigned short,
-		int,
-		unsigned int,
-		long,
-		unsigned long,
-		long long,
-		unsigned long long,
-		float,
-		double,
-		long double,
-		nullptr_t,
-		std::string>;
+	concept StdPrintable = Or<
+		std::is_pointer_v<T>,
+		std::is_integral_v<T>,
+		std::is_floating_point_v<T>,
+		issame<T, char*, nullptr_t, std::string>>;
 
 	template<typename T>
 	concept AyrPrintable = requires(T t)
