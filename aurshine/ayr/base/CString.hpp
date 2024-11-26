@@ -4,6 +4,7 @@
 #include <cstring>
 #include <string>
 #include <format>
+#include <sstream>
 
 #include "hash.hpp"
 #include "ayr_memory.hpp"
@@ -90,19 +91,38 @@ namespace ayr
 		char* str;
 	};
 
-	template<AyrPrintable T>
-	inline CString _cstr_impl(const T& value) { return value.__str__(); }
+	der(CString) cstr(bool value) { return ifelse(value, "true", "false"); }
 
-	template<StdPrintable T>
-	inline CString _cstr_impl(const T& value)
+	der(CString) cstr(char value)
 	{
-		std::stringstream stream;
-		stream << value;
-		return stream.str();
+		CString ret(1);
+		ret[0] = value;
+		return ret;
 	}
 
-	template<Printable T>
-	inline CString cstr(const T& value) { return _cstr_impl(value); }
+	der(CString) cstr(const char* value) { return value; }
+
+	der(CString) cstr(nullptr_t) { return "nullptr"; }
+
+	der(CString) cstr(const std::string& value) { return value; }
+
+	der(CString) cstr(const CString& value) { return value; }
+
+	der(CString) cstr(const std::string_view& value) { return CString(value.data(), value.size()); }
+
+	template<typename T>
+		requires Or<std::is_arithmetic_v<T>, std::is_pointer_v<T>>
+	der(CString) cstr(T value)
+	{
+		std::stringstream ss;
+		if constexpr (std::is_pointer_v<T>)
+			ss << "0x" << std::hex;
+		ss << value;
+		return ss.str();
+	}
+
+	template<AyrPrintable T>
+	der(CString) cstr(const T& value) { return value.__str__(); }
 }
 
 template<>

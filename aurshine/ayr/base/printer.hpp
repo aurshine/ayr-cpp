@@ -44,48 +44,10 @@ namespace ayr
 		void setsep(CString sw) { sw_ = std::move(sw); }
 
 	protected:
-		void __print__(const bool& object) const { std::fprintf(output_file_, object ? "true" : "false"); }
-
-		void __print__(const char& object) const { std::fprintf(output_file_, "%c", object); }
-
-		void __print__(const char* object) const { std::fprintf(output_file_, object); }
-
-		void __print__(std::nullptr_t) const { std::fprintf(output_file_, "nullptr"); }
-
-		void __print__(const std::string& object) const { std::fprintf(output_file_, object.c_str()); }
-
-		void __print__(const CString& object) const { std::fprintf(output_file_, object.data()); }
-
 		void __print__(const _Flush& flush) const { std::fflush(output_file_); }
 
-		template<typename T>
-			requires std::is_integral_v<T>
-		void __print__(const T& object) const
-		{
-			if constexpr (std::is_signed_v<T>)
-				std::fprintf(output_file_, "%lld", static_cast<long long>(object));
-			else
-				std::fprintf(output_file_, "%llu", static_cast<unsigned long long>(object));
-		}
-
-		template<typename T>
-			requires std::is_floating_point_v<T>
-		void __print__(const T& object) const
-		{
-			if constexpr (std::is_same_v<T, float>)
-				std::fprintf(output_file_, "%f", object);
-			else if constexpr (std::is_same_v<T, double>)
-				std::fprintf(output_file_, "%lf", object);
-			else if constexpr (std::is_same_v<T, long double>)
-				std::fprintf(output_file_, "%Lf", object);
-		}
-
-		template<typename T>
-			requires std::is_pointer_v<T>
-		void __print__(const T object) const { std::fprintf(output_file_, "0x%p", object); }
-
-		template<AyrPrintable T>
-		void __print__(const T& object) const { __print__(object.__str__()); }
+		template<Printable P>
+		void __print__(const P& object) const { std::fprintf(output_file_, cstr(object)); }
 	private:
 		CString ew_; // 结束符
 
