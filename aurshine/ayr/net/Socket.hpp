@@ -190,7 +190,11 @@ namespace ayr
 		{
 			SockAddrIn from{};
 			CString data{ 1024 };
+#if defined(AYR_WIN)
 			int addrlen = from.get_socklen();
+#elif defined(AYR_LINUX)
+			socklen_t addrlen = from.get_socklen();
+#endif
 			::recvfrom(socket_, data.data(), 1024, flags, from.get_sockaddr(), &addrlen);
 			return { data, from };
 		}
