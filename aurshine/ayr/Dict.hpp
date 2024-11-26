@@ -485,7 +485,7 @@ namespace ayr
 			if (load_factor() >= MAX_LOAD_FACTOR)
 				expand();
 
-			Value_t v = *bucket_.set_value(std::forward<_V>(value), hashv);
+			Value_t& v = *bucket_.set_value(std::forward<_V>(value), hashv);
 			keys_.append(std::forward<_K>(key));
 
 			return v;
