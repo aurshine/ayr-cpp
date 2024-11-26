@@ -103,8 +103,6 @@ namespace ayr
 
 	template<Printable T>
 	inline CString cstr(const T& value) { return _cstr_impl(value); }
-
-	inline const char* stdstr(const CString& value) { return value.data(); }
 }
 
 template<>
