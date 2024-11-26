@@ -5,20 +5,46 @@
 
 namespace ayr
 {
-	template<typename T>
-	class View
+	class View : public Object<View>
 	{
-		static_assert(std::is_object_v<T>, "T must be an object type");
+		using self = View;
 
-		const T* view_ptr_;
+		void* view_ptr_;
 	public:
+		View() : view_ptr_(nullptr) {}
+
 		template<typename U>
-			requires std::convertible_to<U, T>
-		View(const U& view_ref) : view_ptr_(std::addressof(static_cast<T&>(view_ref))) {}
+			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
+		View(U&& obj) : view_ptr_(nullptr)
+		{
+			if constexpr (issame<std::remove_reference_t<U>, self>)
+				view_ptr_ = obj.view_ptr_;
+			else if constexpr (std::is_lvalue_reference_v<U>)
+				view_ptr_ = std::addressof(obj);
+		}
 
-		const T& get() const { return *view_ptr_; }
+		template<typename U>
+			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
+		self& operator=(U&& obj)
+		{
+			if constexpr (issame<std::remove_reference_t<U>, self>)
+				view_ptr_ = obj.view_ptr_;
+			else if constexpr (std::is_lvalue_reference_v<U>)
+				view_ptr_ = std::addressof(obj);
+			return *this;
+		}
 
-		operator const T& () const { return *view_ptr_; }
+		template<typename T>
+		T& get() { return *static_cast<T*>(view_ptr_); }
+
+		template<typename T>
+		const T& get() const { return *static_cast<const T*>(view_ptr_); }
+
+		template<typename T>
+		operator T& () { return get<T>(); }
+
+		template<typename T>
+		operator const T& () const { return get<T>(); }
 	};
 }
 #endif
