@@ -30,6 +30,8 @@ namespace ayr
 
 		CString(CString&& other) noexcept : str(other.str) { other.str = nullptr; }
 
+		~CString() { ayr_delloc(str); }
+
 		CString& operator=(const CString& other)
 		{
 			if (this == &other) return *this;
