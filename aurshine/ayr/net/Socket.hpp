@@ -116,6 +116,8 @@ namespace ayr
 			return *this;
 		}
 
+		operator int() const { return socket_; }
+
 		int get_socket() const { return socket_; }
 
 		// 绑定ip:port
@@ -189,24 +191,41 @@ namespace ayr
 		{
 			SockAddrIn from{};
 			CString data{ 1024 };
-#if defined(AYR_WIN)
-			int addrlen = from.get_socklen();
-#elif defined(AYR_LINUX)
+
 			socklen_t addrlen = from.get_socklen();
-#endif
 			::recvfrom(socket_, data.data(), 1024, flags, from.get_sockaddr(), &addrlen);
 			return { data, from };
+		}
+
+		int setsockopt(int level, int optname, const void* optval, int optlen) const
+		{
+#if defined(AYR_WIN)
+			return ::setsockopt(socket_, level, optname, static_cast<const char*>(optval), optlen);
+#elif defined(AYR_LINUX)
+			return ::setsockopt(socket_, level, optname, optval, optlen);
+#endif
+		}
+
+		int getsockopt(int level, int optname, void* optval, int* optlen) const
+		{
+#if defined(AYR_WIN)
+			return ::getsockopt(socket_, level, optname, static_cast<char*>(optval), optlen);
+#elif defined(AYR_LINUX)
+			return ::getsockopt(socket_, level, optname, optval, optlen);
+#endif
 		}
 
 		void setbuffer(int size, CString mode) const
 		{
 			if (mode == "r")
-				::setsockopt(socket_, SOL_SOCKET, SO_RCVBUF, (char*)&size, sizeof(size));
-			if (mode == "w")
-				::setsockopt(socket_, SOL_SOCKET, SO_SNDBUF, (char*)&size, sizeof(size));
+				setsockopt(SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+			else if (mode == "w")
+				setsockopt(SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 			else
 				ValueError(std::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
 		}
+
+		bool valid() const { return socket_ != INVALID_SOCKET; }
 
 		void close()
 		{
