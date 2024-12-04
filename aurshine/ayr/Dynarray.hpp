@@ -1,10 +1,10 @@
-﻿#ifndef AYR_DYNAARRAY_HPP
-#define AYR_DYNAARRAY_HPP
+﻿#ifndef AYR_DYNARRAY_HPP
+#define AYR_DYNARRAY_HPP
 
 #include <utility>
 
 #include "base/bunit.hpp"
-#include "base/Buffer.hpp"
+#include "base/Appender.hpp"
 #include "Array.hpp"
 
 namespace ayr
@@ -126,7 +126,7 @@ namespace ayr
 			for (c_size i = index + 1; i < m_size; ++i)
 				at(i - 1) = std::move(at(i));
 
-			Buffer<T>& back_block = _back_block();
+			Appender<T>& back_block = _back_block();
 			if (back_block.size() == 1)
 				_pop_back_block();
 			else
@@ -381,7 +381,7 @@ namespace ayr
 		int _back_block_index() const { return back_block_index_; }
 
 		// 最后一个块
-		Buffer<T>& _back_block() { return blocks_.at(_back_block_index()); }
+		Appender<T>& _back_block() { return blocks_.at(_back_block_index()); }
 
 		// 移除最后一个块
 		void _pop_back_block() { _back_block().resize(0); --back_block_index_; }
@@ -399,7 +399,7 @@ namespace ayr
 			}
 		}
 	private:
-		Array<Buffer<T>> blocks_;
+		Array<Appender<T>> blocks_;
 
 		c_size size_;
 
