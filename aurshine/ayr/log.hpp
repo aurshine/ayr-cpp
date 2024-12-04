@@ -6,9 +6,11 @@
 #include "timer.hpp"
 #include "Array.hpp"
 
+#include "base/NoCopy.hpp"
+
 namespace ayr
 {
-	class Log : Object<Log>
+	class Log : public Object<Log>, public NoCopy
 	{
 	private:
 		Log() = delete;
@@ -17,7 +19,7 @@ namespace ayr
 
 		Log& operator=(const Log&) = delete;
 	public:
-		struct LogLevel
+		struct LogLevel : public Object<LogLevel>
 		{
 			constexpr static int TRACE = 0;
 
@@ -43,12 +45,18 @@ namespace ayr
 		};
 
 
-		class LogEvent : Object
+		class LogEvent : public Object<LogEvent>
 		{
 		public:
 			constexpr LogEvent() : level_(LogLevel::INACTIVE), output_(nullptr) {}
 
 			constexpr LogEvent(int level, FILE* output) : level_(level), output_(output) {}
+
+			~LogEvent()
+			{
+				if (output_ && output_ != stdout && output_ != stderr)
+					fclose(output_);
+			}
 
 			int level_;
 
@@ -57,23 +65,30 @@ namespace ayr
 
 		static void print_logevent(const LogEvent& evt, const char* msg, const Date& date, const char* file, int line)
 		{
-			fprintf(evt.output_, "%s %s%-5s%s %s:%d ", date.__str__(), LogLevel::LEVEL_COLORS[evt.level_], LogLevel::LEVEL_NAMES[evt.level_], Color::CLOSE, file, line);
+			fprintf(evt.output_, "%s %s%-5s%s %s:%d ",
+				cstr(date).data(),
+				LogLevel::LEVEL_COLORS[evt.level_],
+				LogLevel::LEVEL_NAMES[evt.level_],
+				Color::CLOSE,
+				file,
+				line);
 			fprintf(evt.output_, msg);
 			fprintf(evt.output_, "\n");
 			fflush(evt.output_);
 		}
 
-
-		static void add_log(const LogEvent& evt)
+		static void add_log(int level, FILE* output)
 		{
 			if (event_count + 1 >= MAX_LOG_SIZE)
 				RuntimeError("Log event buffer overflow");
 
-			events[event_count++] = evt;
+			events[event_count++] = LogEvent(level, output);
 		}
 
+		static void add_log(int level, const char* filename) { add_log(level, std::fopen(filename, "w")); }
+
 		template<ConveribleToCstr Str>
-		static void log(const Str msg, int level, const Str file, int line, Date date = Date{})
+		static void log(const Str& msg, int level, const Str& file, int line, Date date = Date{})
 		{
 			for (int i = 0; i < event_count; ++i)
 				if (events[i].level_ <= level)
