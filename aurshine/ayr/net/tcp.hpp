@@ -138,6 +138,9 @@ namespace ayr
 			return socket_.valid();
 		}
 
+		// 检查是否有异常事件发生
+		// 如果有则调用error_callback_
+		// 如果回调后调用服务器停止函数，则返回false
 		bool check_errorset(const Socket& fd)
 		{
 			if (!FD_ISSET(fd, &error_set)) return;
