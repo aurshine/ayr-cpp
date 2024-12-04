@@ -10,6 +10,9 @@
 
 #pragma comment(lib, "Ws2_32.lib")
 
+#undef max
+#undef min
+
 namespace ayr
 {
 	// 错误码转化为字符串
