@@ -1,7 +1,9 @@
 #ifndef AYR_CORO_GENERATOR_HPP
 #define AYR_CORO_GENERATOR_HPP
 
-#include "../base/printer.hpp"
+#include "Promise.hpp"
+
+#include "../base/raise_error.hpp"
 #include "../base/NoCopy.hpp"
 
 namespace ayr
@@ -11,14 +13,17 @@ namespace ayr
 		template<typename T>
 		class Generator : public Object<Generator<T>>, public NoCopy
 		{
-			using self = Generator<T>;
 			static_assert(std::is_default_constructible_v<T>, "Generator requires default constructible result type");
+
+			using self = Generator<T>;
 		public:
 			struct promise_type : public PromiseImpl<T>
 			{
 				using super = PromiseImpl<T>;
 
 				using co_type = std::coroutine_handle<promise_type>;
+
+				std::suspend_never initial_suspend() const noexcept { return {}; }
 
 				std::suspend_always yield_value(T value) noexcept
 				{
@@ -35,18 +40,18 @@ namespace ayr
 
 			Generator(Generator&& other) : coro_(std::move(other)) { other.coro_ = nullptr; };
 
+			~Generator() { if (coro_) { coro_.destroy(); coro_ = nullptr; } }
+
 			Generator& operator=(Generator&& other)
 			{
-				if (this != &other)
-				{
-					if (coro_) coro_.destroy();
-					coro_ = other.coro_;
-					other.coro_ = nullptr;
-				}
+				if (this == &other) return *this;
+
+				if (coro_) coro_.destroy();
+				coro_ = other.coro_;
+				other.coro_ = nullptr;
+
 				return *this;
 			}
-
-			~Generator() { if (coro_) { coro_.destroy(); coro_ = nullptr; } }
 
 			struct GeneratorIterator : public Object<GeneratorIterator>
 			{
