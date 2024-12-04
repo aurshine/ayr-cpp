@@ -95,8 +95,10 @@ namespace ayr
 			error_callback_ = error_callback;
 		}
 
+		// 停止服务器
 		void stop() { socket_.close(); }
 
+		// 运行服务器，直到服务器停止
 		void run(long tv_sec, long tv_usec = 0)
 		{
 			while (socket_.valid())
