@@ -1,24 +1,20 @@
 ﻿#pragma once
 
-#ifndef AYR_DEValue_tAIL_BUFFER_HPP
-#define AYR_DEValue_tAIL_BUFFER_HPP
+#ifndef AYR_BASE_BUFFER_HPP
+#define AYR_BASE_BUFFER_HPP
 
-#include "raise_error.hpp"
-#include "ayr_memory.hpp"
-#include "Array.hpp"
-#include "RelationIterator.hpp"
+#include "Appender.hpp"
 
 namespace ayr
 {
-	template<typename T>
-	class Buffer : public Sequence<Buffer<T>, T>
+	class Buffer : public Sequence<Buffer, char>
 	{
-		using self = Buffer<T>;
+		using self = Buffer;
 
-		using super = Sequence<Buffer<T>, T>;
+		using super = Sequence<Buffer, char>;
 
 	public:
-		using Value_t = T;
+		using Value_t = char;
 
 		using Iterator = super::Iterator;
 
@@ -30,11 +26,10 @@ namespace ayr
 
 		Buffer(const Buffer& other) : size_(other.size_), capacity_(other.capacity_), buffer_(ayr_alloc<Value_t>(capacity_))
 		{
-			for (c_size i = 0; i < other.size(); ++i)
-				ayr_construct(buffer_ + i, *(other.buffer_ + i));
+			std::memcpy(buffer_, other.buffer_, size_);
 		}
 
-		Buffer(Buffer&& other) : size_(other.size_), capacity_(other.capacity_), buffer_(other.buffer_)
+		Buffer(Buffer&& other) noexcept : size_(other.size_), capacity_(other.capacity_), buffer_(other.buffer_)
 		{
 			other.buffer_ = nullptr;
 			other.size_ = 0;
@@ -43,8 +38,7 @@ namespace ayr
 
 		Buffer& operator=(const Buffer& other)
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
 
 			ayr_destroy(this);
 			return *ayr_construct(this, other);
@@ -52,8 +46,7 @@ namespace ayr
 
 		Buffer& operator=(Buffer&& other) noexcept
 		{
-			if (this == &other)
-				return *this;
+			if (this == &other) return *this;
 
 			ayr_destroy(this);
 			return *ayr_construct(this, std::move(other));
@@ -61,7 +54,6 @@ namespace ayr
 
 		~Buffer()
 		{
-			ayr_destroy(buffer_, size());
 			ayr_delloc(buffer_);
 			size_ = capacity_ = 0;
 		}
@@ -76,13 +68,7 @@ namespace ayr
 
 		const Value_t* data() const { return buffer_; }
 
-		// 在buffer末尾追加元素
-		template<typename... Args>
-		Value_t& append(Args&&... args)
-		{
-			ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
-			return buffer_[size_++];
-		}
+		const Value_t& at(c_size index) const { return buffer_[index]; }
 
 		void append_bytes(const void* ptr, c_size size)
 		{
@@ -90,42 +76,9 @@ namespace ayr
 			size_ += size;
 		}
 
-		void pop_back()
-		{
-			ayr_destroy(buffer_ + size_);
-			--size_;
-		}
+		void append_bytes(const self& other) { append_bytes(other.data(), other.size()); }
 
-		// 重新分配内存
-		void resize(c_size size)
-		{
-			ayr_destroy(this);
-			ayr_construct(this, size);
-		}
-
-		const Value_t& at(c_size index) const { return buffer_[index]; }
-
-		Value_t& at(c_size index) { return buffer_[index]; }
-
-		Array<Value_t> to_array() const
-		{
-			Array<Value_t> arr(size());
-			for (c_size i = 0; i < size(); ++i)
-				arr[i] = at(i);
-			return arr;
-		}
-
-		Array<Value_t> move_array()
-		{
-			Array<Value_t> arr(size());
-			for (c_size i = 0; i < size(); ++i)
-				arr[i] = std::move(at(i));
-
-			size_ = 0;
-			return arr;
-		}
 	private:
-
 		c_size size_, capacity_;
 
 		Value_t* buffer_;

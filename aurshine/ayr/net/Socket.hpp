@@ -5,7 +5,6 @@
 #include <mutex>
 
 #include "../filesystem.hpp"
-#include "../base/raise_error.hpp"
 #include "../base/Buffer.hpp"
 #include "../base/NoCopy.hpp"
 
@@ -153,7 +152,7 @@ namespace ayr
 		// 发送size个字节的数据, 数据头部包含了数据大小，需要用recv接收
 		void send(const char* data, int size, int flags = 0) const
 		{
-			Buffer<char> head_data{ 4 + size };
+			Buffer head_data{ 4 + size };
 			int head_size = htonl(size);
 			head_data.append_bytes(&head_size, 4);
 			head_data.append_bytes(data, size);
