@@ -9,6 +9,6 @@ using namespace ayr;
 
 int main()
 {
-	generator_test();
+	tcp_echo_server_test();
 	return 0;
 }
