@@ -1,12 +1,13 @@
-#ifndef AYR_SOCKET_IMPL_HPP
-#define AYR_SOCKET_IMPL_HPP
+#ifndef AYR_NET_SOCKET_HPP
+#define AYR_NET_SOCKET_HPP
 
 #include <stdlib.h>
 #include <mutex>
 
-#include "../filesystem.hpp"
 #include "../base/Buffer.hpp"
 #include "../base/NoCopy.hpp"
+
+#include "SockAddr.hpp"
 
 namespace ayr
 {
@@ -38,44 +39,6 @@ namespace ayr
 
 	def closesocket(int socket) { ::close(socket); }
 #endif
-
-
-	struct SockAddrIn : public Object<SockAddrIn>
-	{
-		SockAddrIn() { memset(&addr_, 0, sizeof(sockaddr_in)); };
-
-		SockAddrIn(const char* ip, int port, int family = AF_INET) : SockAddrIn()
-		{
-			addr_.sin_family = family;
-			addr_.sin_port = htons(port);
-
-			if (ip == nullptr)
-				addr_.sin_addr.s_addr = INADDR_ANY;
-			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
-				RuntimeError(get_error_msg());
-		}
-
-		sockaddr* get_sockaddr() { return reinterpret_cast<sockaddr*>(&addr_); }
-
-		const sockaddr* get_sockaddr() const { return reinterpret_cast<const sockaddr*>(&addr_); }
-
-		int get_socklen() const { return sizeof(sockaddr_in); }
-
-		CString get_ip(int family = AF_INET) const
-		{
-			CString ip{ 16 };
-			if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
-				RuntimeError(get_error_msg());
-			return ip;
-		}
-
-		int get_port() const { return ntohs(addr_.sin_port); }
-
-		CString __str__() const { return std::format("{}:{}", get_ip(), get_port()); }
-	private:
-		sockaddr_in addr_;
-	};
-
 
 	class Socket : public Object<Socket>, public NoCopy
 	{

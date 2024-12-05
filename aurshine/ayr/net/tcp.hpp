@@ -35,25 +35,13 @@ namespace ayr
 		CString recv(int index, int flags = 0) const { return client(index).recv(flags); }
 
 		const Socket& client(int index) const { return clients_[index]; }
+
+		auto clients() const { return std::ranges::subrange(clients_.begin(), clients_.end()); }
+
 	protected:
 		Socket socket_;
 
 		std::vector<Socket> clients_;
-	};
-
-	class TcpClient : public Object<TcpClient>
-	{
-	public:
-		TcpClient(const char* ip, int port, int family = AF_INET) : socket_(family, SOCK_STREAM)
-		{
-			socket_.connect(ip, port);
-		}
-
-		void send(const char* data, int size, int flags = 0) const { socket_.send(data, size, flags); }
-
-		CString recv(int flags = 0) const { return socket_.recv(flags); }
-	protected:
-		Socket socket_;
 	};
 
 	class MiniTcpServer : public TcpServer
@@ -113,8 +101,8 @@ namespace ayr
 
 				if (ret == -1) RuntimeError(get_error_msg());
 
-				for (auto& i : clients_)
-					if (!check_readset(i) || !check_errorset(i))
+				for (auto& client : super::clients())
+					if (!check_readset(client) || !check_errorset(client))
 						return;
 			}
 		}
