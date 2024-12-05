@@ -1,5 +1,5 @@
-#ifndef AYR_SOCKET_UDP_HPP_
-#define AYR_SOCKET_UDP_HPP_
+#ifndef AYR_NET_UDP_HPP_
+#define AYR_NET_UDP_HPP_
 
 #include <vector>
 

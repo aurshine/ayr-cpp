@@ -1,5 +1,5 @@
-#ifndef AYR_SOCKET_TCP_HPP
-#define AYR_SOCKET_TCP_HPP
+#ifndef AYR_NET_TCP_HPP
+#define AYR_NET_TCP_HPP
 
 #include <vector>
 
