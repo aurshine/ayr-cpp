@@ -52,9 +52,9 @@ namespace ayr
 		template<size_t... Is, Awaitable... As>
 		def when_all_impl(std::index_sequence<Is...>, As&&... as) -> Task<void>
 		{
-			size_t count = sizeof...(As);
+			size_t NA = sizeof...(As);
 			Coroutine cur_coro = co_await CurrentCoro();
-			Task<Coroutine, PreviousPromise> tasks[] = { when_all_helper(std::forward<As>(as), count, cur_coro)... };
+			Task<Coroutine, PreviousPromise> tasks[] = { when_all_helper(std::forward<As>(as), NA, cur_coro)... };
 			co_await _WhenAllAwaitable<sizeof...(As)>(tasks);
 		}
 

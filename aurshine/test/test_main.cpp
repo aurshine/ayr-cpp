@@ -9,6 +9,7 @@ using namespace ayr;
 
 int main()
 {
-	tcp_echo_server_test();
+	// tcp_echo_server_test();
+	dynarray_test();
 	return 0;
 }
