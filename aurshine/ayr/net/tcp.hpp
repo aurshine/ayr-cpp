@@ -4,6 +4,7 @@
 #include <functional>
 
 #include "../base/ayr_memory.hpp"
+#include "../base/View.hpp"
 
 #include "Socket.hpp"
 
@@ -39,10 +40,13 @@ namespace ayr
 			return std::ranges::subrange(clients_.begin(), clients_.end());
 		}
 
-		void disconnect(const Socket& client) { clients_.pop(clients_.index(client)); }
-
-		// 关闭服务器
-		void close() { socket_.close(); clients_.clear(); }
+		void disconnect(const Socket& client)
+		{
+			c_size index = clients_.index(client);
+			if (index == -1)
+				RuntimeError("Client not found.");
+			clients_.pop(index);
+		}
 	protected:
 		Socket socket_;
 
@@ -107,9 +111,10 @@ namespace ayr
 			return client;
 		}
 
+		void push_disconnected(const Socket& client) { disconnected_queue_.append(client); }
+
 		void disconnect(const Socket& client)
 		{
-			super::disconnect(client);
 			int client_fd = client;
 			FD_CLR(client_fd, read_set);
 			FD_CLR(client_fd, error_set);
@@ -119,6 +124,7 @@ namespace ayr
 				for (int client : super::clients())
 					max_fd = std::max(max_fd, client);
 			}
+			super::disconnect(client);
 		}
 
 		// 阻塞运行服务器，直到服务器停止
@@ -147,15 +153,14 @@ namespace ayr
 						if (!check_readset(client, &read_set_copy) || !check_errorset(client, &error_set_copy))
 							return;
 				}
-			}
-		}
 
-		void close()
-		{
-			max_fd = 0;
-			FD_ZERO(read_set);
-			FD_ZERO(error_set);
-			super::close();
+				if (disconnected_queue_.size())
+				{
+					for (auto& client : disconnected_queue_)
+						disconnect(client);
+					disconnected_queue_.clear();
+				}
+			}
 		}
 	private:
 		// 检查是否有可读事件发生
@@ -192,6 +197,10 @@ namespace ayr
 		}
 	private:
 		fd_set* read_set, * error_set;
+
+		// 连接断开的队列
+		// 用于在每轮select询问结束后统一断开连接
+		DynArray<View> disconnected_queue_;
 
 		// 最大的文件描述符
 		int max_fd = 0;
