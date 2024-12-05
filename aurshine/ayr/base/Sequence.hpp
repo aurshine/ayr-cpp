@@ -65,6 +65,15 @@ namespace ayr
 
 		bool contains(const Value_t& v) const { return find_it(v) != end(); }
 
+		c_size index(const Value_t& v, c_size pos = 0) const
+		{
+			for (c_size i = pos, size_ = size(); i < size_; ++i)
+				if (at(i) == v)
+					return i;
+
+			return -1;
+		}
+
 		c_size find(const Value_t& v) const
 		{
 			for (c_size i = 0, size_ = size(); i < size_; ++i)

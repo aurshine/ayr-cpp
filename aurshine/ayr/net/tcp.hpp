@@ -1,7 +1,6 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
-#include <vector>
 
 #include "../base/ayr_memory.hpp"
 
@@ -18,17 +17,13 @@ namespace ayr
 			socket_.listen();
 		}
 
-		Socket& accept()
-		{
-			clients_.push_back(socket_.accept());
-			return clients_.back();
-		}
+		Socket& accept() { return clients_.append(socket_.accept()); }
 
 		void send(int index, const char* data, int size, int flags = 0) const { client(index).send(data, size, flags); }
 
 		void sendall(const char* data, int size, int flags = 0) const
 		{
-			for (const auto& client : clients_)
+			for (auto& client : clients())
 				client.send(data, size, flags);
 		}
 
@@ -36,12 +31,16 @@ namespace ayr
 
 		const Socket& client(int index) const { return clients_[index]; }
 
-		auto clients() const { return std::ranges::subrange(clients_.begin(), clients_.end()); }
+		auto clients() const -> std::ranges::subrange<DynArray<Socket>::ConstIterator>
+		{
+			return std::ranges::subrange(clients_.begin(), clients_.end());
+		}
 
+		void disconnect(const Socket& client) { clients_.pop(clients_.index(client)); }
 	protected:
 		Socket socket_;
 
-		std::vector<Socket> clients_;
+		DynArray<Socket> clients_;
 	};
 
 	class MiniTcpServer : public TcpServer
@@ -86,8 +85,8 @@ namespace ayr
 		// 停止服务器
 		void stop() { socket_.close(); }
 
-		// 运行服务器，直到服务器停止
-		void run(long tv_sec, long tv_usec = 0)
+		// 阻塞运行服务器，直到服务器停止
+		void run(long tv_sec = 2, long tv_usec = 0)
 		{
 			while (socket_.valid())
 			{
