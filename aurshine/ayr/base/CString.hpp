@@ -52,7 +52,7 @@ namespace ayr
 
 		operator char* () { return data(); }
 
-		operator bool() { return size() != 0; }
+		operator bool() const { return size() != 0; }
 
 		char& operator[] (c_size index) { return str[index]; }
 
