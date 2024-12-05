@@ -1,6 +1,7 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
+#include <functional>
 
 #include "../base/ayr_memory.hpp"
 
@@ -113,7 +114,7 @@ namespace ayr
 		// 如果回调后调用服务器停止函数，则返回false
 		bool check_readset(const Socket& fd)
 		{
-			if (!FD_ISSET(fd, &read_set)) return;
+			if (!FD_ISSET(fd, &read_set)) return true;
 
 			if (fd == super::socket_.get_socket())
 			{
@@ -132,7 +133,7 @@ namespace ayr
 		// 如果回调后调用服务器停止函数，则返回false
 		bool check_errorset(const Socket& fd)
 		{
-			if (!FD_ISSET(fd, &error_set)) return;
+			if (!FD_ISSET(fd, &error_set)) return true;
 
 			int errorno = 0;
 			socklen_t len = sizeof(errorno);

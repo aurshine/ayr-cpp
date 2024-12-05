@@ -42,6 +42,7 @@ namespace ayr
 
 	class Socket : public Object<Socket>, public NoCopy
 	{
+		using self = Socket;
 	public:
 		Socket(int family, int type)
 		{
@@ -65,13 +66,13 @@ namespace ayr
 				RuntimeError(get_error_msg());
 		}
 
-		Socket(Socket&& other) noexcept : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
+		Socket(self&& other) noexcept : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
 
 		Socket(int socket) : socket_(socket) {}
 
 		~Socket() { close(); }
 
-		Socket& operator=(Socket&& other) noexcept
+		Socket& operator=(self&& other) noexcept
 		{
 			close();
 			socket_ = other.socket_;
@@ -197,6 +198,8 @@ namespace ayr
 		}
 
 		CString __str__() const { return std::format("Socket({})", socket_); }
+
+		cmp_t __cmp__(const self& other) const { return socket_ - other.socket_; }
 	private:
 		// 发送size个字节的数据
 		void send_impl(const char* data, int size, int flags) const
