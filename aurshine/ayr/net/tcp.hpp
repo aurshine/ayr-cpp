@@ -1,12 +1,10 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
-#include <functional>
-
 #include "../base/ayr_memory.hpp"
 #include "../base/View.hpp"
 
-#include "Socket.hpp"
+#include "ServerCallback.hpp"
 
 namespace ayr
 {
@@ -21,15 +19,11 @@ namespace ayr
 
 		Socket& accept() { return clients_.append(socket_.accept()); }
 
-		void send(int index, const char* data, int size, int flags = 0) const { client(index).send(data, size, flags); }
-
 		void sendall(const char* data, int size, int flags = 0) const
 		{
 			for (auto& client : clients())
 				client.send(data, size, flags);
 		}
-
-		CString recv(int index, int flags = 0) const { return client(index).recv(flags); }
 
 		c_size num_clients() const { return clients_.size(); }
 
@@ -40,6 +34,7 @@ namespace ayr
 			return std::ranges::subrange(clients_.begin(), clients_.end());
 		}
 
+		// 断开指定客户端的连接
 		void disconnect(const Socket& client)
 		{
 			c_size index = clients_.index(client);
@@ -54,11 +49,13 @@ namespace ayr
 	};
 
 
-	class MiniTcpServer : public TcpServer
+	class MiniTcpServer : public TcpServer, public ServerCallback<MiniTcpServer>
 	{
 		using self = MiniTcpServer;
 
 		using super = TcpServer;
+
+		using super2 = ServerCallback<MiniTcpServer>;
 	public:
 		MiniTcpServer(const char* ip, int port, int family = AF_INET)
 			: super(ip, port, family), read_set(new fd_set), error_set(new fd_set)
@@ -68,36 +65,16 @@ namespace ayr
 			FD_SET(super::socket_, read_set);
 			FD_SET(super::socket_, error_set);
 			max_fd = super::socket_;
-			set_accept_callback([](self*, const Socket&) {});
-			set_recv_callback([](self*, const Socket&, const CString&) {});
-			set_error_callback([](self*, const Socket&, const CString&) {});
-			set_timeout_callback([](self*) {});
+			super2::set_accept_callback([](self*, const Socket&) {});
+			super2::set_recv_callback([](self*, const Socket&, const CString&) {});
+			super2::set_error_callback([](self*, const Socket&, const CString&) {});
+			super2::set_timeout_callback([](self*) {});
 		}
 
 		~MiniTcpServer()
 		{
 			delete read_set;
 			delete error_set;
-		}
-
-		void set_accept_callback(const std::function<void(self*, const Socket&)>& accept_callback)
-		{
-			accept_callback_ = accept_callback;
-		}
-
-		void set_recv_callback(const std::function<void(self*, const Socket&, const CString&)>& recv_callback)
-		{
-			recv_callback_ = recv_callback;
-		}
-
-		void set_error_callback(const std::function<void(self*, const Socket&, const CString&)>& error_callback)
-		{
-			error_callback_ = error_callback;
-		}
-
-		void set_timeout_callback(const std::function<void(self*)>& timeout_callback)
-		{
-			timeout_callback_ = timeout_callback;
 		}
 
 		Socket& accept()
@@ -143,7 +120,7 @@ namespace ayr
 				if (num_ready == -1)
 					RuntimeError(get_error_msg());
 				else if (num_ready == 0)
-					timeout_callback_(this);
+					super2::timeout_callback_(this);
 				else
 				{
 					if (!check_readset(super::socket_, &read_set_copy) || !check_errorset(super::socket_, &error_set_copy))
@@ -173,9 +150,9 @@ namespace ayr
 			if (!FD_ISSET(fd, read_set)) return true;
 
 			if (fd == super::socket_.get_socket())
-				accept_callback_(this, accept());
+				super2::accept_callback_(this, accept());
 			else
-				recv_callback_(this, fd, fd.recv());
+				super2::recv_callback_(this, fd, fd.recv());
 
 			return socket_.valid();
 		}
@@ -192,7 +169,7 @@ namespace ayr
 			if (fd.getsockopt(SOL_SOCKET, SO_ERROR, &errorno, &len) == -1)
 				RuntimeError(get_error_msg());
 
-			error_callback_(this, fd, errorno2str(errorno));
+			super2::error_callback_(this, fd, errorno2str(errorno));
 			return socket_.valid();
 		}
 	private:
@@ -204,22 +181,84 @@ namespace ayr
 
 		// 最大的文件描述符
 		int max_fd = 0;
+	};
 
-		// 客户端接受后的回调函数
-		// 第一个参数为当前对象，第二个参数为新连接的Socket对象
-		std::function<void(self*, const Socket&)> accept_callback_;
+	class UltraTcpServer : public TcpServer, public ServerCallback<UltraTcpServer>
+	{
+		using self = UltraTcpServer;
 
-		// 接收到数据后的回调函数
-		// 第一个参数为当前对象，第二个参数为发送数据的Socket对象，第三个参数为接收到的数据
-		std::function<void(self*, const Socket&, const CString&)> recv_callback_;
+		using super = TcpServer;
 
-		// 发生错误后的回调函数
-		// 第一个参数为当前对象，第二个参数为发生错误的Socket对象, 第三参数为错误信息
-		std::function<void(self*, const Socket&, const CString&)> error_callback_;
+		using super2 = ServerCallback<UltraTcpServer>;
+#if defined(AYR_WIN)
+	public:
+		UltraTcpServer(const char* ip, int port, int family = AF_INET) : super(ip, port, family) {}
+#elif defined(AYR_LINUX)
+	public:
+		UltraTcpServer(const char* ip, int port, int family = AF_INET) :
+			super(ip, port, family), epoll_fd(::epoll_create1(0))
+		{
+			if (epoll_fd == -1)
+				RuntimeError(get_error_msg());
 
-		// 超时后的回调函数
-		// 第一个参数为当前对象
-		std::function<void(self*)> timeout_callback_;
+			epoll_ctl(EPOLL_CTL_ADD, super::socket_, EPOLLIN);
+		}
+
+		~UltraTcpServer()
+		{
+
+		}
+
+		void epoll_ctl(int op, const Socket& fd, int events)
+		{
+			struct epoll_event event;
+			event.events = events;
+			event.data.fd = fd;
+			if (::epoll_ctl(epoll_fd, op, fd, &event) == -1)
+				RuntimeError(get_error_msg());
+		}
+
+		Socket& accept()
+		{
+			Socket& client = super::accept();
+			epoll_ctl(EPOLL_CTL_ADD, client, EPOLLIN);
+			return client;
+		}
+
+		void push_disconnected(const Socket& client) { disconnected_queue_.append(client); }
+
+		void disconnect(const Socket& client)
+		{
+			epoll_ctl(EPOLL_CTL_DEL, client, nullptr);
+			super::disconnect(client);
+		}
+
+		void run(long tv_sec = 2, long tv_usec = 0)
+		{
+			while (true)
+			{
+				Array<epoll_event> events(super::num_clients() + 1);
+				int num_events = epoll_wait(epoll_fd, events.data(), events.size(), tv_sec * 1000 + tv_usec / 1000);
+				if (num_events == -1)
+			}
+			RuntimeError(get_error_msg());
+
+			for (int i = 0; i < num_events; i++)
+			{
+				if (events[i].data.fd == super::socket_)
+					accept_callback_(this, accept());
+				else
+				{
+
+				}
+			}
+		}
+	}
+private:
+	Socket epoll_fd;
+
+	DynArray<View> disconnected_queue_;
+#endif
 	};
 }
 #endif // AYR_SOCKET_TCP_HPP
