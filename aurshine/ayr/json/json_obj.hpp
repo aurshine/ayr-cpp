@@ -11,7 +11,7 @@ namespace ayr
 		class Json : public Object<Json>
 		{
 		public:
-			Json() : Json(Null()) {}
+			Json() : Json(JsonType::JsonNull()) {}
 
 			template<JsonTypeConcept T>
 			Json(T&& item) : json_item(new std::decay_t<T>(std::forward<T>(item))), json_type(GetJsonTypeID<T>::ID) {}
