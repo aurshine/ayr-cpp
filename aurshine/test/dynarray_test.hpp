@@ -132,4 +132,12 @@ void dynarray_test()
 	tlog(da3.move_array());
 	tlog(da3);
 	tlog(DynArray<int>(std::vector<int>{1, 2, 3, 4, 5}));
+
+	DynArray<int> da4;
+	for (int i = 0; i < 10; ++i)
+		da4.append(20 - i);
+	tlog(da4);
+	std::sort(da4.begin(), da4.end());
+	tlog(da4);
+	tlog(da4.end() - da4.begin());
 }
