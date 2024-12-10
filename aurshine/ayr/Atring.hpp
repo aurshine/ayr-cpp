@@ -2,11 +2,10 @@
 #define AYR_STRING_HPP
 
 #include "base/CodePoint.hpp"
-#include "base/NoCopy.hpp"
 
 namespace ayr
 {
-	class AtringManager : public Object<AtringManager>, public NoCopy
+	class AtringManager : public Object<AtringManager>
 	{
 		using self = AtringManager;
 

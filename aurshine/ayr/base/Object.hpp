@@ -15,6 +15,16 @@ namespace ayr
 	public:
 		using AyrObjectDerived = Derived;
 
+		Object() = default;
+
+		Object(const Object&) = delete;
+
+		Object(Object&&) = delete;
+
+		Object& operator=(const Object&) = delete;
+
+		Object& operator=(Object&&) = delete;
+
 		// 转换为 字符串 类型
 		CString __str__() const
 		{
@@ -40,11 +50,7 @@ namespace ayr
 	};
 
 	template<typename T>
-	concept AyrObject = requires(T & t)
-	{
-		typename T::AyrObjectDerived;
-
-	}&& isinstance<T, Object<typename T::AyrObjectDerived>>;
+	concept AyrObject = hasattr(T, AyrObjectDerived) && isinstance<T, Object<typename T::AyrObjectDerived>>;
 
 	template<AyrObject T>
 	std::ostream& operator<<(std::ostream& os, const T& obj)

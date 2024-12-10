@@ -8,7 +8,7 @@ namespace ayr
 	namespace coro
 	{
 		template<typename T, typename P>
-		class Awaiter : public Object<Awaiter<T, P>>, public NoCopy
+		class Awaiter : public Object<Awaiter<T, P>>
 		{
 			using self = Awaiter<T, P>;
 		public:
@@ -42,7 +42,7 @@ namespace ayr
 		};
 
 		template<typename P>
-		struct Awaiter<void, P> : public Object<Awaiter<void, P>>, public NoCopy
+		struct Awaiter<void, P> : public Object<Awaiter<void, P>>
 		{
 			using self = Awaiter<void, P>;
 		public:

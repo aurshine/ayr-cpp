@@ -4,14 +4,13 @@
 #include "Promise.hpp"
 
 #include "../base/raise_error.hpp"
-#include "../base/NoCopy.hpp"
 
 namespace ayr
 {
 	namespace coro
 	{
 		template<typename T>
-		class Generator : public Object<Generator<T>>, public NoCopy
+		class Generator : public Object<Generator<T>>
 		{
 			static_assert(std::is_default_constructible_v<T>, "Generator requires default constructible result type");
 

@@ -6,11 +6,9 @@
 #include "timer.hpp"
 #include "Array.hpp"
 
-#include "base/NoCopy.hpp"
-
 namespace ayr
 {
-	class Log : public Object<Log>, public NoCopy
+	class Log : public Object<Log>
 	{
 	private:
 		Log() = delete;

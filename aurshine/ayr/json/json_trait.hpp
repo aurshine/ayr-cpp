@@ -10,7 +10,15 @@ namespace ayr
 	namespace json
 	{
 		class Json;
-		class Null : public Object<Null> {};
+		class Null : public Object<Null>
+		{
+		public:
+			Null() {}
+
+			Null(const Null&) {}
+
+			Null& operator=(const Null&) { return *this; }
+		};
 
 		// 定义Json类型枚举
 		struct JsonType

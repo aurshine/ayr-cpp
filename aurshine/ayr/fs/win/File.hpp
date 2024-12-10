@@ -7,14 +7,13 @@
 
 #include "Path.hpp"
 #include "../../DynArray.hpp"
-#include "../../base/NoCopy.hpp"
 
 
 namespace ayr
 {
 	namespace fs
 	{
-		class AyrFile : public Object<AyrFile>, public NoCopy
+		class AyrFile : public Object<AyrFile>
 		{
 			using self = AyrFile;
 		public:
@@ -55,6 +54,12 @@ namespace ayr
 			}
 
 			AyrFile(self&& file) noexcept : fh(file.fh) { file.fh = nullptr; }
+
+			self& operator=(self&& file) noexcept
+			{
+				close();
+				return *ayr_construct(this, std::move(file));
+			}
 
 			~AyrFile() { close(); }
 

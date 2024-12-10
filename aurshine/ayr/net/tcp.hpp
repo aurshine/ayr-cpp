@@ -10,12 +10,26 @@ namespace ayr
 {
 	class TcpServer : public Object<TcpServer>
 	{
+		using self = TcpServer;
 	public:
 		TcpServer(const char* ip, int port, int family = AF_INET) : socket_(family, SOCK_STREAM)
 		{
 			socket_.bind(ip, port);
 			socket_.listen();
 		}
+
+		TcpServer(self&& other) noexcept : socket_(std::move(other.socket_)), clients_(std::move(other.clients_)) {}
+
+		TcpServer& operator=(self&& other) noexcept
+		{
+			if (this == &other) return *this;
+			close();
+			return *ayr_construct(this, std::move(other));
+		}
+
+		~TcpServer() { close(); };
+
+		void close() { socket_.close(); clients_.clear(); }
 
 		Socket& accept() { return clients_.append(socket_.accept()); }
 
@@ -71,7 +85,27 @@ namespace ayr
 			super2::set_timeout_callback([](self*) {});
 		}
 
-		~MiniTcpServer()
+		MiniTcpServer(self&& other) noexcept :
+			super(std::move(other)),
+			read_set(other.read_set),
+			error_set(other.error_set),
+			disconnected_queue_(std::move(other.disconnected_queue_)),
+			max_fd(other.max_fd)
+		{
+			other.read_set = nullptr;
+			other.error_set = nullptr;
+		}
+
+		MiniTcpServer& operator=(self&& other) noexcept
+		{
+			if (this == &other) return *this;
+			close();
+			return *ayr_construct(this, std::move(other));
+		}
+
+		~MiniTcpServer() { close(); }
+
+		void close()
 		{
 			delete read_set;
 			delete error_set;
@@ -204,10 +238,11 @@ namespace ayr
 			epoll_ctl(EPOLL_CTL_ADD, super::socket_, EPOLLIN);
 		}
 
-		~UltraTcpServer()
-		{
+		UltraTcpServer(self&& other) noexcept = default;
 
-		}
+		UltraTcpServer& operator=(self&& other) noexcept = default;
+
+		~UltraTcpServer() = default;
 
 		void epoll_ctl(int op, const Socket& fd, int events)
 		{

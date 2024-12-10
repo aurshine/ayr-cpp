@@ -24,6 +24,12 @@ namespace ayr
 
 			Task(Task&& other) noexcept : super(std::move(other)) {}
 
+			Task& operator=(Task&& other) noexcept
+			{
+				super::operator=(std::move(other));
+				return *this;
+			}
+
 			Coroutine await_suspend(Coroutine awaiter) noexcept
 			{
 				super::coro_.promise().previous_coro_ = awaiter;

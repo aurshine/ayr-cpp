@@ -5,7 +5,6 @@
 #include <mutex>
 
 #include "../base/Buffer.hpp"
-#include "../base/NoCopy.hpp"
 
 #include "SockAddr.hpp"
 
@@ -40,7 +39,7 @@ namespace ayr
 	def closesocket(int socket) { ::close(socket); }
 #endif
 
-	class Socket : public Object<Socket>, public NoCopy
+	class Socket : public Object<Socket>
 	{
 		using self = Socket;
 	public:

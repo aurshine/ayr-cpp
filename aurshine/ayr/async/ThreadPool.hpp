@@ -8,7 +8,6 @@
 #include <condition_variable>
 
 #include "../Array.hpp"
-#include "../base/NoCopy.hpp"
 
 
 namespace ayr
@@ -30,7 +29,7 @@ namespace ayr
 
 
 		/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
-		class ThreadPool : public Object<ThreadPool>, public NoCopy
+		class ThreadPool : public Object<ThreadPool>
 		{
 			using self = ThreadPool;
 

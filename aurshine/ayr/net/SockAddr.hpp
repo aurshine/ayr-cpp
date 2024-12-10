@@ -10,6 +10,8 @@ namespace ayr
 	{
 		SockAddrIn() { memset(&addr_, 0, sizeof(sockaddr_in)); };
 
+		SockAddrIn(const sockaddr_in& addr) : addr_(addr) {}
+
 		SockAddrIn(const char* ip, int port, int family = AF_INET) : SockAddrIn()
 		{
 			addr_.sin_family = family;
@@ -19,6 +21,14 @@ namespace ayr
 				addr_.sin_addr.s_addr = INADDR_ANY;
 			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
 				RuntimeError(get_error_msg());
+		}
+
+		SockAddrIn(const SockAddrIn& other) : addr_(other.addr_) {}
+
+		SockAddrIn& operator=(const SockAddrIn& other)
+		{
+			if (this == &other) return *this;
+			return *ayr_construct(this, other);
 		}
 
 		sockaddr* get_sockaddr() { return reinterpret_cast<sockaddr*>(&addr_); }

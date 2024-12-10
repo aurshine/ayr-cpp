@@ -24,7 +24,7 @@ namespace ayr
 		};
 
 
-		class CoroLoop : public Object<CoroLoop>, public NoCopy
+		class CoroLoop : public Object<CoroLoop>
 		{
 			using self = CoroLoop;
 

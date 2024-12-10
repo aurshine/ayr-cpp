@@ -68,28 +68,22 @@ namespace ayr
 				insert(kv.first, kv.second);
 		}
 
-		Dict(const self& other) : bucket_(other.bucket_), keys_(other.keys_) {};
+		Dict(const self& other) : bucket_(other.bucket_), keys_(other.keys_) {}
 
-		Dict(self&& other)noexcept : bucket_(std::move(other.bucket_)), keys_(std::move(other.keys_)) {};
+		Dict(self&& other) noexcept : bucket_(std::move(other.bucket_)), keys_(std::move(other.keys_)) {}
 
 		Dict& operator=(const self& other)
 		{
 			if (this == &other) return *this;
 
-			bucket_ = other.bucket_;
-			keys_ = other.keys_;
-
-			return *this;
+			return *ayr_construct(this, other);
 		}
 
 		Dict& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
 
-			bucket_ = std::move(other.bucket_);
-			keys_ = std::move(other.keys_);
-
-			return *this;
+			return *ayr_construct(this, std::move(other));
 		}
 
 		~Dict() = default;

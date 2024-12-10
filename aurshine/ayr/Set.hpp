@@ -33,22 +33,22 @@ namespace ayr
 				insert(v);
 		}
 
-		Set(const Set& other) : bucket_(other.bucket_) {}
+		Set(const Set& other) : size_(0), bucket_(other.bucket_) {}
 
-		Set(Set&& other) noexcept : bucket_(std::move(other.bucket_)) {}
+		Set(Set&& other) noexcept : size_(other.size_), bucket_(std::move(other.bucket_)) { other.size_ = 0; }
 
-		~Set() = default;
+		~Set() {}
 
 		Set& operator=(const Set& other)
 		{
-			if (this != &other) bucket_ = other.bucket_;
-			return *this;
+			if (this == &other) return *this;
+			return *ayr_construct(this, other);
 		}
 
 		Set& operator=(Set&& other) noexcept
 		{
-			if (this != &other) bucket_ = std::move(other.bucket_);
-			return *this;
+			if (this == &other) return *this;
+			return *ayr_construct(this, std::move(other));
 		}
 
 		c_size size() const { return size_; }
