@@ -3,6 +3,7 @@
 
 #include <queue>
 #include <chrono>
+#include <thread>
 
 #include "Task.hpp"
 #include "../base/ayr_traits.hpp"
@@ -27,39 +28,37 @@ namespace ayr
 		class CoroLoop : public Object<CoroLoop>
 		{
 			using self = CoroLoop;
-
-			CoroLoop() = default;
 		public:
-			static self& get_loop() { static self coro_loop; return coro_loop; }
+			CoroLoop() = default;
 
-			static void resume(Coroutine coro)
-			{
-				coro.resume();
-			}
+			// 恢复一个协程
+			void resume(Coroutine coro) { coro.resume(); }
 
-
+			// 添加一个协程到Loop中, 返回协程的promise
 			template<typename P>
-			static void_or_ref_t<P> add(std::coroutine_handle<P> coro)
+			void_or_ref_t<P> add(std::coroutine_handle<P> coro)
 			{
-				get_loop().ready_coroutines.push_back(coro);
+				ready_coroutines.push_back(coro);
 				if constexpr (std::is_void_v<P>)
 					return;
 				else
 					return coro.promise();
 			}
 
+			// 添加一个协程到Loop中, 返回协程的promise, 并设置定时器
 			template<typename P>
-			static void_or_ref_t<P> add(std::coroutine_handle<P> coro, const std::chrono::steady_clock::time_point& abs_time)
+			void_or_ref_t<P> add(std::coroutine_handle<P> coro, const std::chrono::steady_clock::time_point& abs_time)
 			{
-				get_loop().sleep_coroutines.push({ coro, abs_time });
+				sleep_coroutines.push({ coro, abs_time });
 				if constexpr (std::is_void_v<P>)
 					return;
 				else
 					return coro.promise();
 			}
 
+			// 添加一个Task到Loop中, 返回Task的promise
 			template<typename T>
-			static decltype(auto) add(Task<T>& task)
+			decltype(auto) add(Task<T>& task)
 			{
 				typename Task<T>::co_type coro = task.coro_;
 				task.coro_ = nullptr;
@@ -68,29 +67,22 @@ namespace ayr
 			}
 
 			template<typename T>
-			static decltype(auto) add(Task<T>&& task)
-			{
-				return add(task);
-			}
+			decltype(auto) add(Task<T>&& task) { return add(task); }
 
-			static void run()
+			// 运行Loop
+			void run()
 			{
-				bool& is_running = get_loop().is_running_;
-				if (is_running)
-					RuntimeError("CoroLoop is already running");
-
-				is_running = true;
-				while (!get_loop().ready_coroutines.empty() || !get_loop().sleep_coroutines.empty())
+				while (!ready_coroutines.empty() || !sleep_coroutines.empty())
 				{
-					while (!get_loop().ready_coroutines.empty())
+					while (!ready_coroutines.empty())
 					{
-						resume(get_loop().ready_coroutines.front());
-						get_loop().ready_coroutines.pop_front();
+						resume(ready_coroutines.front());
+						ready_coroutines.pop_front();
 					}
 
-					if (!get_loop().sleep_coroutines.empty())
+					if (!sleep_coroutines.empty())
 					{
-						auto& first_timer = get_loop().sleep_coroutines.top();
+						auto& first_timer = sleep_coroutines.top();
 
 						if (first_timer.abs_time_ <= std::chrono::steady_clock::now())
 							resume(first_timer.coro_);
@@ -100,20 +92,17 @@ namespace ayr
 							resume(first_timer.coro_);
 						}
 
-						get_loop().sleep_coroutines.pop();
+						sleep_coroutines.pop();
 					}
 				}
-
-				is_running = false;
 			}
 		private:
-			bool is_running_ = false;
-
 			std::deque<Coroutine> ready_coroutines;
 
 			std::priority_queue<TimerEntry> sleep_coroutines;
 		};
 
+		static CoroLoop asyncio{};
 
 		class Sleep : public std::suspend_always, public Object<Sleep>
 		{
@@ -126,9 +115,8 @@ namespace ayr
 
 			void await_suspend(std::coroutine_handle<void> coroutine)
 			{
-				CoroLoop::add<void>(coroutine, abs_time_);
+				asyncio.add<void>(coroutine, abs_time_);
 			}
-
 		private:
 			std::chrono::steady_clock::time_point abs_time_;
 		};
