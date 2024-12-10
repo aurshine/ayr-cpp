@@ -307,13 +307,9 @@ namespace ayr
 				return *this;
 			}
 
-			super::reference operator*() { return bucket_ptr_->at(index_).value(); }
+			super::reference operator*() const { return bucket_ptr_->at(index_).value(); }
 
-			super::const_reference operator*() const { return bucket_ptr_->at(index_).value(); }
-
-			super::pointer operator->() { return &bucket_ptr_->at(index_).value(); }
-
-			super::const_pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
+			super::pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
 
 			self& operator++()
 			{

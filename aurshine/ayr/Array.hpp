@@ -27,10 +27,6 @@ namespace ayr
 
 			RangeIterator(const self& other) : current_(other.current_), step_(other.step_) {}
 
-			super::reference operator*() { return current_; }
-
-			super::pointer operator->() { return &current_; }
-
 			super::const_reference operator*() const { return current_; }
 
 			super::const_pointer operator->() const { return &current_; }

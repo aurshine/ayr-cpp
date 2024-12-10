@@ -219,13 +219,9 @@ namespace ayr
 				return *this;
 			}
 
-			super::reference operator*() { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+			super::reference operator*() const { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
 
-			super::const_reference operator*() const { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
-
-			super::pointer operator->() { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
-
-			super::const_pointer operator->() const { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+			super::pointer operator->() const { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
 
 			self& operator++()
 			{
@@ -243,10 +239,10 @@ namespace ayr
 
 			self& operator--()
 			{
-				if (dynarray_->blocks_.at(block_index_).size() == 0)
+				if (inblock_index_ == 0)
 				{
 					--block_index_;
-					inblock_index_ = blocks_.at(block_index_).size() - 1;
+					inblock_index_ = dynarray_->blocks_.at(block_index_).size() - 1;
 				}
 				else
 					--inblock_index_;
@@ -288,8 +284,8 @@ namespace ayr
 					else
 					{
 						n -= inblock_index_;
-						block_index_ -= 1;
-						inblock_index_ = blocks_.at(block_index_).size() - 1;
+						--block_index_;
+						inblock_index_ = dynarray_->blocks_.at(block_index_).size() - 1;
 					}
 				}
 				return *this;

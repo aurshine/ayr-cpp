@@ -22,13 +22,9 @@ namespace ayr
 
 		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
 
-		super::reference operator*() { return container_->operator[](index_); }
+		super::reference operator*() const { return container_->operator[](index_); }
 
-		super::const_reference operator*() const { return container_->operator[](index_); }
-
-		super::pointer operator->() { return &container_->operator[](index_); }
-
-		super::const_pointer operator->() const { return &container_->operator[](index_); }
+		super::pointer operator->() const { return &container_->operator[](index_); }
 
 		self& operator++() { ++index_; return *this; }
 
