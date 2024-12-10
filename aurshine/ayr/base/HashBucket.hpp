@@ -285,29 +285,16 @@ namespace ayr
 
 
 		template<bool IsConst>
-		class RobinHashBucketIterator : public Object<RobinHashBucketIterator<IsConst>>
+		class RobinHashBucketIterator :
+			public IteratorInfo<RobinHashBucketIterator<IsConst>, add_const_t<IsConst, Array<Manager_t>>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>
 		{
 			using self = RobinHashBucketIterator;
+
+			using super = IteratorInfo<self, add_const_t<IsConst, Array<Manager_t>>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>;
 		public:
-			using Container_t = std::conditional_t<IsConst, const Array<Manager_t>, Array<Manager_t>>;
-
-			using iterator_category = std::forward_iterator_tag;
-
-			using value_type = std::conditional_t<IsConst, const Value_t, Value_t>;
-
-			using difference_type = std::ptrdiff_t;
-
-			using pointer = value_type*;
-
-			using const_pointer = const value_type*;
-
-			using reference = value_type&;
-
-			using const_reference = const value_type&;
-
 			RobinHashBucketIterator() : bucket_ptr_(nullptr), index_(0) {}
 
-			RobinHashBucketIterator(Container_t* bucket_ptr, c_size index) : bucket_ptr_(bucket_ptr), index_(index) {}
+			RobinHashBucketIterator(super::container_type* bucket_ptr, c_size index) : bucket_ptr_(bucket_ptr), index_(index) {}
 
 			RobinHashBucketIterator(const self& other) : bucket_ptr_(other.bucket_ptr_), index_(other.index_) {}
 
@@ -320,13 +307,13 @@ namespace ayr
 				return *this;
 			}
 
-			reference operator*() { return bucket_ptr_->at(index_).value(); }
+			super::reference operator*() { return bucket_ptr_->at(index_).value(); }
 
-			const_reference operator*() const { return bucket_ptr_->at(index_).value(); }
+			super::const_reference operator*() const { return bucket_ptr_->at(index_).value(); }
 
-			pointer operator->() { return &bucket_ptr_->at(index_).value(); }
+			super::pointer operator->() { return &bucket_ptr_->at(index_).value(); }
 
-			const_pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
+			super::const_pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
 
 			self& operator++()
 			{
@@ -347,7 +334,7 @@ namespace ayr
 				return bucket_ptr_ == other.bucket_ptr_ && index_ == other.index_;
 			}
 		private:
-			Container_t* bucket_ptr_;
+			super::container_type* bucket_ptr_;
 
 			c_size index_;
 		};

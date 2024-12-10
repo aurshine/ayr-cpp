@@ -382,37 +382,23 @@ namespace ayr
 			return str;
 		}
 
-		class DictIterator : public Object<DictIterator>
+		class DictIterator : public IteratorInfo<DictIterator, const Dict<K, V>, std::random_access_iterator_tag, KeyValueView<Key_t, Value_t>>
 		{
 			using self = DictIterator;
 
-			using super = Object<self>;
+			using super = IteratorInfo<DictIterator, const Dict<K, V>, std::random_access_iterator_tag, KeyValueView<Key_t, Value_t>>;
 		public:
-			using iterator_category = std::random_access_iterator_tag;
-
-			using value_type = KeyValueView<Key_t, Value_t>;
-
-			using difference_type = std::ptrdiff_t;
-
-			using pointer = value_type*;
-
-			using const_pointer = const value_type*;
-
-			using reference = value_type&;
-
-			using const_reference = const value_type&;
-
 			DictIterator() : dict_(nullptr), index_(0), kv_() {}
 
-			DictIterator(const Dict* dict, c_size index) : dict_(dict), index_(index) { update_kv(0); }
+			DictIterator(super::container_type* dict, c_size index) : dict_(dict), index_(index) { update_kv(0); }
 
 			DictIterator(const self& other) = default;
 
 			self& operator=(const self& other) = default;
 
-			const value_type& operator*() const { return kv_; }
+			super::const_reference operator*() const { return kv_; }
 
-			const value_type* operator->() const { return &kv_; }
+			super::const_pointer operator->() const { return &kv_; }
 
 			self& operator++() { update_kv(1); return *this; }
 
@@ -422,15 +408,15 @@ namespace ayr
 
 			self operator--(int) { self tmp = *this; update_kv(-1); return tmp; }
 
-			self& operator+=(difference_type n) { update_kv(n); return *this; }
+			self& operator+=(super::difference_type n) { update_kv(n); return *this; }
 
-			self& operator-=(difference_type n) { update_kv(-n); return *this; }
+			self& operator-=(super::difference_type n) { update_kv(-n); return *this; }
 
-			self operator+(difference_type n) const { return self(dict_, index_ + n); }
+			self operator+(super::difference_type n) const { return self(dict_, index_ + n); }
 
-			self operator-(difference_type n) const { return self(dict_, index_ - n); }
+			self operator-(super::difference_type n) const { return self(dict_, index_ - n); }
 
-			difference_type operator-(const self& other) const { return index_ - other.index_; }
+			super::difference_type operator-(const self& other) const { return index_ - other.index_; }
 
 			bool __equals__(const self& other) const { return dict_ == other.dict_ && index_ == other.index_; }
 
@@ -447,11 +433,11 @@ namespace ayr
 				}
 			}
 		private:
-			const Dict* dict_;
+			super::container_type* dict_;
 
 			c_size index_;
 
-			value_type kv_;
+			super::value_type kv_;
 		};
 
 		using Iterator = DictIterator;

@@ -17,37 +17,23 @@ namespace ayr
 
 		c_size size() const { return (_end - _start + _step - 1) / _step; }
 
-		class RangeIterator : public Object<RangeIterator>
+		class RangeIterator : public IteratorInfo<RangeIterator, NonContainer, std::bidirectional_iterator_tag, c_size>
 		{
 			using self = RangeIterator;
 
-			using super = Object<self>;
+			using super = IteratorInfo<RangeIterator, NonContainer, std::bidirectional_iterator_tag, c_size>;
 		public:
-			using iterator_category = std::bidirectional_iterator_tag;
-
-			using value_type = c_size;
-
-			using difference_type = std::ptrdiff_t;
-
-			using pointer = value_type*;
-
-			using const_pointer = const value_type*;
-
-			using reference = value_type&;
-
-			using const_reference = const value_type&;
-
 			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
 
 			RangeIterator(const self& other) : current_(other.current_), step_(other.step_) {}
 
-			reference operator*() { return current_; }
+			super::reference operator*() { return current_; }
 
-			pointer operator->() { return &current_; }
+			super::pointer operator->() { return &current_; }
 
-			const_reference operator*() const { return current_; }
+			super::const_reference operator*() const { return current_; }
 
-			const_pointer operator->() const { return &current_; }
+			super::const_pointer operator->() const { return &current_; }
 
 			self& operator++() { current_ += step_; return *this; }
 

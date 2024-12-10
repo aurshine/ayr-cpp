@@ -7,7 +7,10 @@
 
 namespace ayr
 {
+	struct NonContainer {};
+
 	template<
+		typename Iterator,
 		typename Container,
 		typename Category,
 		typename T,
@@ -15,9 +18,11 @@ namespace ayr
 		typename Pointer = T*,
 		typename Reference = T&>
 	struct IteratorInfo :
-		public Object<IteratorInfo<Container, Category, T, Distance, Pointer, Reference>>
+		public Object<Iterator>
 	{
 	public:
+		using iterator_type = Iterator;
+
 		using container_type = Container;
 
 		using iterator_category = Category;
