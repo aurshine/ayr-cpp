@@ -27,11 +27,7 @@ namespace ayr
 			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
 		self& operator=(U&& obj)
 		{
-			if constexpr (issame<std::remove_reference_t<U>, self>)
-				view_ptr_ = obj.view_ptr_;
-			else if constexpr (std::is_lvalue_reference_v<U>)
-				view_ptr_ = const_cast<std::decay_t<U>*>(std::addressof(obj));
-			return *this;
+			return *ayr_construct(this, std::forward<U>(obj));
 		}
 
 		template<typename T>
