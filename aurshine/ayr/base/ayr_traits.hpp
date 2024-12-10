@@ -76,6 +76,16 @@ namespace ayr
 
 	template<typename T>
 	using traits_inner_iterator_t = typename inner_iterator_type<T>::type;
+
+	// 类型添加const修饰
+	template<bool cond, typename T>
+	struct AddConstIf : std::type_identity<T> {};
+
+	template<typename T>
+	struct AddConstIf<true, T> : std::type_identity<const T> {};
+
+	template<bool cond, typename T>
+	using add_const_t = typename AddConstIf<cond, T>::type;
 }
 
 #endif
