@@ -6,7 +6,6 @@
 #include "ayr_memory.hpp"
 #include "base/bunit.hpp"
 #include "base/HashBucket.hpp"
-#include "base/RelationIterator.hpp"
 
 namespace ayr
 {

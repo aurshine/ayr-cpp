@@ -8,7 +8,6 @@
 
 #include "Array.hpp"
 #include "hash.hpp"
-#include "RelationIterator.hpp"
 
 namespace ayr
 {
