@@ -89,7 +89,7 @@ namespace ayr
 
 			using co_type = A::co_type;
 
-			using result_type = std::decay_t<decltype(std::declval<A>().await_resume())>;
+			using result_type = std::remove_reference_t<decltype(std::declval<A>().await_resume())>;
 		};
 	}
 }
