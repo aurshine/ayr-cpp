@@ -60,22 +60,22 @@ namespace ayr
 		return os;
 	}
 
-	template<AyrObject T>
-	bool operator==(const T& a, const T& b) { return a.__equals__(b); }
+	template<AyrObject T, typename U>
+	bool operator==(const T& a, const U& b) { return a.__equals__(b); }
 
-	template<AyrObject T>
-	bool operator!=(const T& a, const T& b) { return !a.__equals__(b); }
+	template<AyrObject T, typename U>
+	bool operator!=(const T& a, const U& b) { return !a.__equals__(b); }
 
-	template<AyrObject T>
-	bool operator>(const T& a, const T& b) { return a.__cmp__(b) > 0; }
+	template<AyrObject T, typename U>
+	bool operator>(const T& a, const U& b) { return a.__cmp__(b) > 0; }
 
-	template<AyrObject T>
-	bool operator<(const T& a, const T& b) { return a.__cmp__(b) < 0; }
+	template<AyrObject T, typename U>
+	bool operator<(const T& a, const U& b) { return a.__cmp__(b) < 0; }
 
-	template<AyrObject T>
+	template<AyrObject T, typename U>
 	bool operator>=(const T& a, const T& b) { return a.__cmp__(b) >= 0; }
 
-	template<AyrObject T>
-	bool operator<=(const T& a, const T& b) { return a.__cmp__(b) <= 0; }
+	template<AyrObject T, typename U>
+	bool operator<=(const T& a, const U& b) { return a.__cmp__(b) <= 0; }
 }
 #endif
