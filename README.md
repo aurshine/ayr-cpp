@@ -96,25 +96,22 @@ pass time: 3003.89 ms
 ## 协程
 使用生成器函数
 ```cpp
-#include <ayr/coro.hpp>
+#include "ayr/coro.hpp"
 
 using namespace ayr;
 
-coro::Generator<int> dfs(int n)
+coro::Generator<int> numbers(int n)
 {
-	while (n > 0)
-		co_yield n--;
+	for (int i = n; i; i--)
+		co_yield i;
+	co_return n + 1;
 }
 
-
-int main()
+void generator_test()
 {
-	for (int i : dfs(10))
+	for (int i : numbers(10))
 		print(i);
-
-	return 0;
 }
-
 /* 
 输出: 
 10
@@ -127,53 +124,52 @@ int main()
 3
 2
 1
+11
 */
 ```
 
 ## 协程打印hello world
 ```cpp
-#include <ayr/coro.hpp>
-
+#include "ayr/coro.hpp"
+#include "ayr/base/CString.hpp"
 
 using namespace ayr;
-using namespace std::chrono_literals;
+using namespace coro;
 
-coro::Task<int> hello()
+Task<CString> hello()
 {
-	print("hello");
+	print("into hello, wait for 2s");
 	co_await coro::Sleep(2s);
-	print("hello * 2");
+	print("hello");
+	co_return "hello";
+}
+
+Task<int> world()
+{
+	print("into world, wait for 1s");
+	co_await coro::Sleep(1s);
+	print("world");
 	co_return 114;
 }
 
-coro::Task<int> world()
+coro::Task<void> when_all_hello_world()
 {
-	print("world");
-	co_await coro::Sleep(1s);
-	print("world * 2");
-	co_return 514;
+	auto [a, b] = co_await coro::when_all(hello(), world());
+	print(a, b);
 }
 
-
-int main()
+void when_all_test()
 {
-	auto& hello_promise = coro::CoroLoop::add(hello());
-	print("add coroutine hello");
-	auto& world_promise = coro::CoroLoop::add(world());
-	print("add coroutine world");
-	coro::CoroLoop::run();
-
-	print("hello result:", hello_promise.result(), "world result:", world_promise.result());
+	asyncio.add(when_all_hello_world());
+	asyncio.run();
 }
 /*
 输出:
-add coroutine hello
-add coroutine world
-hello
+into world, wait for 1s
+into world, wait for 1s
 world
-world * 2
-hello * 2
-hello result: 114 world result: 514
+hello
+hello 114
 */
 ```
 
@@ -181,27 +177,24 @@ hello result: 114 world result: 514
 ```cpp
 #include <ayr/coro.hpp>
 
-using namespace ayr;
-using namespace std::chrono_literals;
+using namespace ayr::coro;
 
-coro::Task<void> async_num(int num)
+void sleep_sort_test()
 {
-	co_await coro::Sleep(num * 1s);
-	print(num);
-	co_return;
-}
+	auto async_num = [](int num) -> Task<void>
+		{
+			co_await coro::Sleep(num * 1s);
+			print(num);
+			co_return;
+		};
 
-int main()
-{
-	coro::CoroLoop::add(async_num(3));
-	coro::CoroLoop::add(async_num(2));
-	coro::CoroLoop::add(async_num(1));
-	coro::CoroLoop::add(async_num(5));
-	coro::CoroLoop::add(async_num(4));
-	coro::CoroLoop::run();
-	return 0;
+	asyncio.add(async_num(3));
+	asyncio.add(async_num(2));
+	asyncio.add(async_num(1));
+	asyncio.add(async_num(5));
+	asyncio.add(async_num(4));
+	asyncio.run();
 }
-
 /*
 输出:
 1
