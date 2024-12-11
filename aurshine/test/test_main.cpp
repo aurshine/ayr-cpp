@@ -4,12 +4,12 @@
 #include "json_test.hpp"
 #include "dict_test.hpp"
 #include "generator_test.hpp"
+#include "when_all_test.hpp"
 
 using namespace ayr;
 
 int main()
 {
-	// tcp_echo_server_test();
-	dynarray_test();
+	sleep_sort();
 	return 0;
 }

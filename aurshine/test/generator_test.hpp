@@ -5,11 +5,8 @@ using namespace ayr;
 coro::Generator<int> numbers(int n)
 {
 	for (int i = n; i; i--)
-	{
-		if (i == 1)
-			co_return n;
 		co_yield i;
-	}
+	co_return n + 1;
 }
 
 void generator_test()
