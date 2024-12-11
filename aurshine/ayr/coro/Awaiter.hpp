@@ -16,6 +16,8 @@ namespace ayr
 
 			using co_type = promise_type::co_type;
 
+			Awaiter() : coro_(nullptr) {}
+
 			Awaiter(co_type coro) : coro_(coro) {}
 
 			Awaiter(self&& other) : coro_(other.coro_) { other.coro_ = nullptr; }
@@ -37,6 +39,7 @@ namespace ayr
 
 			T& await_resume() const noexcept { return coro_.promise().result(); }
 
+			operator Coroutine() { return coro_; }
 		protected:
 			co_type coro_;
 		};
@@ -68,7 +71,7 @@ namespace ayr
 
 			co_type await_suspend(Coroutine coroutine) const noexcept { return coro_; }
 
-			void await_resume() const noexcept {}
+			Void await_resume() const noexcept { return {}; }
 
 		protected:
 			co_type coro_;
@@ -80,16 +83,18 @@ namespace ayr
 			{ a.await_ready() } -> std::convertible_to<bool>;
 			{ a.await_suspend(handle) };
 			{ a.await_resume() };
+			// { A::promise_type };
+			// { A::co_type };
 		};
 
 		template<Awaitable A>
 		struct AwaitableTraits
 		{
-			using promise_type = A::promise_type;
+			//using promise_type = typename A::promise_type;
 
-			using co_type = A::co_type;
+			//using co_type = typename A::co_type;
 
-			using result_type = std::remove_reference_t<decltype(std::declval<A>().await_resume())>;
+			using result_type = Voo<std::remove_reference_t<decltype(std::declval<A>().await_resume())>>;
 		};
 	}
 }

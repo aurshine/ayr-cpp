@@ -7,13 +7,13 @@ namespace ayr
 {
 	struct Void : public Object<Void>
 	{
-		constexpr Void() = default;
+		constexpr Void() {};
 
-		constexpr Void(const Void&) = default;
+		constexpr Void(const Void&) {};
 
 		constexpr Void& operator=(const Void&) { return *this; };
 
-		~Void() = default;
+		~Void() {};
 	};
 
 	template<typename T>

@@ -3,6 +3,8 @@
 
 #include <coroutine>
 
+#include "../base/Void.hpp"
+
 namespace ayr
 {
 	namespace coro

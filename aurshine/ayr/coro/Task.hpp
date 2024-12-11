@@ -7,18 +7,20 @@ namespace ayr
 {
 	namespace coro
 	{
-		template<typename T, typename P = Promise<T>>
-		class Task : public Awaiter<T, P>
+		template<typename T>
+		class Task : public Awaiter<T, Promise<T>>
 		{
-			using self = Task<T, P>;
+			using self = Task<T>;
 
-			using super = Awaiter<T, P>;
+			using super = Awaiter<T, Promise<T>>;
 		public:
 			friend class CoroLoop;
 
 			using promise_type = super::promise_type;
 
 			using co_type = super::co_type;
+
+			Task() : super() {}
 
 			Task(co_type coroutine) : super(coroutine) {}
 
