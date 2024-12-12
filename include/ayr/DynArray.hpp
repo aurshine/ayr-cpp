@@ -52,7 +52,7 @@ namespace ayr
 		DynArray(Obj&& other) : DynArray()
 		{
 			for (auto&& item : other)
-				append(std::forward<decltype(item)>(item));
+				append(cond_forward<Obj>(item));
 		}
 
 		~DynArray() = default;
@@ -168,7 +168,7 @@ namespace ayr
 		self& extend(Obj&& other)
 		{
 			for (auto&& item : other)
-				append(std::forward<decltype(item)>(item));
+				append(cond_forward<Obj>(item));
 			return *this;
 		}
 

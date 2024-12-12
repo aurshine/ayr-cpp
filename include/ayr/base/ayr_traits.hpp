@@ -86,6 +86,23 @@ namespace ayr
 
 	template<bool cond, typename T>
 	using add_const_t = typename AddConstIf<cond, T>::type;
+
+	// 万能引用时，根据T1类型转发T2类型
+	// T1为左值则T2转发为左值
+	// T1为右值则T2转发为右值
+	template<typename T1, typename T2>
+		requires std::is_lvalue_reference_v<T1>
+	def cond_forward(T2&& arg) -> T2&&
+	{
+		return static_cast<T2&&>(arg);
+	}
+
+	template<typename T1, typename T2>
+	def cond_forward(T2&& arg) -> std::remove_reference_t<T2>
+	{
+		static_assert(std::is_lvalue_reference_v<T2>, "bad forward call");
+		return static_cast<std::remove_reference_t<T2>>(arg);
+	}
 }
 
 #endif
