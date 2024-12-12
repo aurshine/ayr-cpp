@@ -60,9 +60,11 @@ namespace ayr
 
 		using Value_t = V;
 
-		Dict(c_size bucket_size = MIN_BUCKET_SIZE) : bucket_(bucket_size), keys_() {}
+		Dict() : bucket_(MIN_BUCKET_SIZE), keys_() {}
 
-		Dict(std::initializer_list<std::pair<Key_t, Value_t>>&& kv_list) : Dict(roundup2(kv_list.size() / MAX_LOAD_FACTOR))
+		Dict(c_size size) : bucket_(std::max(MIN_BUCKET_SIZE, adapt_bucket_size(size, MAX_LOAD_FACTOR))), keys_() {}
+
+		Dict(std::initializer_list<std::pair<Key_t, Value_t>>&& kv_list) : Dict(adapt_bucket_size(kv_list.size(), MAX_LOAD_FACTOR))
 		{
 			for (auto&& kv : kv_list)
 				insert(kv.first, kv.second);

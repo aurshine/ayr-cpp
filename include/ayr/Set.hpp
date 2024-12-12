@@ -5,7 +5,6 @@
 
 #include "ayr_memory.hpp"
 #include "Atring.hpp"
-#include "base/bunit.hpp"
 #include "base/HashBucket.hpp"
 
 
@@ -25,9 +24,11 @@ namespace ayr
 
 		using ConstIterator = Bucket_t::ConstIterator;
 
-		Set(c_size size = MIN_BUCKET_SIZE) : size_(0), bucket_(size) {}
+		Set() : size_(0), bucket_(MIN_BUCKET_SIZE) {}
 
-		Set(std::initializer_list<Value_t>&& il) : Set(roundup2(c_size(il.size() / MAX_LOAD_FACTOR)))
+		Set(c_size size) : size_(0), bucket_(std::max(MIN_BUCKET_SIZE, adapt_bucket_size(size, MAX_LOAD_FACTOR))) {}
+
+		Set(std::initializer_list<Value_t>&& il) : Set(il.size())
 		{
 			for (auto& v : il)
 				insert(v);
@@ -36,8 +37,6 @@ namespace ayr
 		Set(const Set& other) : size_(0), bucket_(other.bucket_) {}
 
 		Set(Set&& other) noexcept : size_(other.size_), bucket_(std::move(other.bucket_)) { other.size_ = 0; }
-
-		~Set() {}
 
 		Set& operator=(const Set& other)
 		{
@@ -260,5 +259,39 @@ namespace ayr
 
 		static constexpr c_size MIN_BUCKET_SIZE = 8;
 	};
+
+	template<typename T, IteratorU<T> It>
+	def set(const It& begin_, const It& end_)
+	{
+		Set<T> r_set(std::distance(begin_, end_));
+		It walker = begin_;
+
+		while (walker != end_)
+		{
+			r_set.insert(*walker);
+			++walker;
+		}
+		return r_set;
+	}
+
+	template<typename T, IteratorU<T> It>
+	def set(It&& begin_, It&& end_)
+	{
+		Set<T> r_set(std::distance(begin_, end_));
+		It walker = begin_;
+
+		while (walker != end_)
+		{
+			r_set.insert(std::move(*walker));
+			++walker;
+		}
+		return r_set;
+	}
+
+	template<typename T, IteratableU<T> Obj>
+	def set(const Obj& elems) { return set<T>(elems.begin(), elems.end()); }
+
+	template<typename T, IteratableU<T> Obj>
+	def set(Obj&& elems) { return set<T>(std::move(elems.begin()), std::move(elems.end())); }
 }
 #endif

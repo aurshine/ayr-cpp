@@ -105,12 +105,12 @@ namespace ayr
 	constexpr def only_one(const B& x) { return (x & x - 1) == 0; }
 
 	// 向上取整到2的幂次方
-	constexpr def roundup2(size_t x) -> size_t
+	constexpr def roundup2(c_size x) -> c_size
 	{
 		if (x <= 1)	return 1;
 
 		--x;
-		for (size_t i = 1; i < sizeof(size_t) * 8; i <<= 1)
+		for (c_size i = 1; i < sizeof(c_size) * 8; i <<= 1)
 			x |= x >> i;
 
 		return x + 1;

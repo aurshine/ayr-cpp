@@ -8,9 +8,16 @@
 
 #include "Array.hpp"
 #include "hash.hpp"
+#include "bunit.hpp"
 
 namespace ayr
 {
+	// 计算最合适的bucket数量
+	def adapt_bucket_size(c_size base_size, double max_load_factor)
+	{
+		return roundup2(base_size / max_load_factor);
+	}
+
 	template<typename T>
 	class HashBucketImpl : public Object<HashBucketImpl<T>>
 	{
