@@ -10,6 +10,6 @@ using namespace ayr;
 
 int main()
 {
-	sleep_sort();
+	set_test();
 	return 0;
 }

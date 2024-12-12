@@ -110,4 +110,7 @@ void set_test()
 	print("after pop 1, 2:", s, "\n");
 
 	set_and_or_xor_test();
+
+	Array<int> a{ 1, 2 ,3, 4 ,5 };
+	print(set<int>(a));
 }
