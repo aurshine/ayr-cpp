@@ -281,22 +281,24 @@ namespace ayr
 
 		const self rstrip(const self& pattern) const { return slice(_get_rstrip_index(pattern)); }
 
-		template<Iteratable I>
-		self join(const I& iter) const
+		template<IteratableU<self> Obj>
+		self join(const Obj& elems) const
 		{
 			c_size new_length = 0, pos = 0, m_size = size();
-			for (auto&& elem : iter)
+			for (const self& elem : elems)
 				new_length += elem.size() + m_size;
 			new_length = std::max<c_size>(0ll, new_length - m_size);
 
-			self result(new_length);
-			for (auto&& elem : iter)
-			{
-				for (c_size i = 0, e_size; i < e_size; ++i)
-					result.at(pos++) = elem.at(i);
+			auto put_back = [](self& str, const self& other, c_size& pos) {
+				for (auto&& c : other)
+					str.at(pos++) = c;
+				};
 
-				for (c_size i = 0; i < m_size; ++i)
-					result.at(pos++) = at(i);
+			self result(new_length);
+			for (const self& elem : elems)
+			{
+				put_back(result, elem, pos);
+				put_back(result, *this, pos);
 			}
 
 			return result;

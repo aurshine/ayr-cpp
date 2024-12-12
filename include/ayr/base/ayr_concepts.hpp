@@ -11,10 +11,15 @@
 
 namespace ayr
 {
+	template<typename T1, typename T2>
+	concept DecaySameAs = std::same_as<std::decay_t<T1>, std::decay_t<T2>>;
+
+	template<typename T1, typename T2>
+	concept DecayConvertibleTo = std::convertible_to<std::decay_t<T1>, std::decay_t<T2>>;
+
 	// 可以隐式转换为const char*类型约束概念
 	template<typename S>
 	concept ConveribleToCstr = std::convertible_to<S, const char*>;
-
 
 	// 可输出的类型约束概念
 	template<typename T>
@@ -52,14 +57,48 @@ namespace ayr
 	template<typename T>
 	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
 
+	// 迭代器约束, 迭代器的解引用是T
+	template<typename It, typename V>
+	concept IteratorVImpl = requires(It it) { { *it } -> DecaySameAs<V>; };
+
+	template<typename It, typename V>
+	concept IteratorV = Or<
+		std::same_as<std::remove_pointer_t<It>, V>,
+		And<std::input_or_output_iterator<It>, IteratorVImpl<It, V>>
+	>;
+
+	// 迭代器约束，迭代器的解引用可隐式转化为U
+	template<typename It, typename U>
+	concept IteratorUImpl = requires(It it) { { *it } -> DecayConvertibleTo<U>; };
+
+	template<typename It, typename U>
+	concept IteratorU = Or<
+		std::same_as<std::remove_pointer_t<It>, U>,
+		And<std::input_or_output_iterator<It>, IteratorUImpl<It, U>>
+	>;
 
 	// 可迭代类型约束概念
-	template<typename T>
-	concept Iteratable = requires(T obj)
+	template<typename Obj>
+	concept Iteratable = requires(Obj obj)
 	{
-		{ obj.begin() };
-		{ obj.end() };
-		{ obj.size() };
+		{ obj.begin() } -> std::input_or_output_iterator;
+		{ obj.end() } -> std::input_or_output_iterator;
+	};
+
+	// 可迭代类型约束概念, 迭代的成员是V类型
+	template<typename Obj, typename V>
+	concept IteratableV = requires(Obj obj)
+	{
+		{ obj.begin() } -> IteratorV<V>;
+		{ obj.end() } -> IteratorV<V>;
+	};
+
+	// 可迭代类型约束概念， 迭代的成员可隐式转化为U类型
+	template<typename Obj, typename U>
+	concept IteratableU = requires(Obj obj)
+	{
+		{ obj.begin() } -> IteratorU<U>;
+		{ obj.end() } -> IteratorU<U>;
 	};
 }
 #endif

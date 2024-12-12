@@ -48,8 +48,8 @@ namespace ayr
 			other.back_block_index_ = -1;
 		}
 
-		template<Iteratable I>
-		DynArray(I&& other) : DynArray()
+		template<IteratableU<T> Obj>
+		DynArray(Obj&& other) : DynArray()
 		{
 			for (auto&& item : other)
 				append(std::forward<decltype(item)>(item));
@@ -164,8 +164,8 @@ namespace ayr
 			return arr;
 		}
 
-		template<Iteratable I>
-		self& extend(I&& other)
+		template<IteratableU<T> Obj>
+		self& extend(Obj&& other)
 		{
 			for (auto&& item : other)
 				append(std::forward<decltype(item)>(item));

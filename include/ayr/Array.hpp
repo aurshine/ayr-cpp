@@ -17,15 +17,24 @@ namespace ayr
 
 		c_size size() const { return (_end - _start + _step - 1) / _step; }
 
-		class RangeIterator : public IteratorInfo<RangeIterator, NonContainer, std::bidirectional_iterator_tag, c_size>
+		class RangeIterator : public IteratorInfo<RangeIterator, Range, std::bidirectional_iterator_tag, c_size>
 		{
 			using self = RangeIterator;
 
-			using super = IteratorInfo<RangeIterator, NonContainer, std::bidirectional_iterator_tag, c_size>;
+			using super = IteratorInfo<RangeIterator, Range, std::bidirectional_iterator_tag, c_size>;
 		public:
+			RangeIterator() : current_(0), step_(0) {}
+
 			RangeIterator(c_size current, c_size step) : current_(current), step_(step) {}
 
 			RangeIterator(const self& other) : current_(other.current_), step_(other.step_) {}
+
+			self& operator= (const self& other)
+			{
+				current_ = other.current_;
+				step_ = other.step_;
+				return *this;
+			}
 
 			super::const_reference operator*() const { return current_; }
 
@@ -39,7 +48,7 @@ namespace ayr
 
 			self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
-			bool __equals__(const self& other) const { return current_ == other.current_; }
+			bool __equals__(const self& other) const { return current_ == other.current_ && step_ == other.step_; }
 		private:
 			c_size current_, step_;
 		};
