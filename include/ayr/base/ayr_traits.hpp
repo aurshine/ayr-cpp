@@ -3,6 +3,7 @@
 
 #include <type_traits>
 
+#include "ayr.h"
 
 namespace ayr
 {

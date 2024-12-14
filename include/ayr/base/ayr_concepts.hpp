@@ -55,7 +55,10 @@ namespace ayr
 	};
 
 	template<typename T>
-	concept Hashable = AyrLikeHashable<T> || StdHashable<T>;
+	concept HashableImpl = AyrLikeHashable<T> || StdHashable<T>;
+
+	template<typename T>
+	concept Hashable = HashableImpl<std::remove_cvref_t<T>>;
 
 	// 迭代器约束, 迭代器的解引用是T
 	template<typename It, typename V>
