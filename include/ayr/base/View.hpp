@@ -13,6 +13,8 @@ namespace ayr
 	public:
 		View() : view_ptr_(nullptr) {}
 
+		View(const self& other) : view_ptr_(other.view_ptr_) {}
+
 		template<typename U>
 			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
 		View(U&& obj) : view_ptr_(nullptr)
@@ -21,6 +23,12 @@ namespace ayr
 				view_ptr_ = obj.view_ptr_;
 			else if constexpr (std::is_lvalue_reference_v<U>)
 				view_ptr_ = const_cast<std::decay_t<U>*>(std::addressof(obj));
+		}
+
+		self& operator=(const self& other)
+		{
+			view_ptr_ = other.view_ptr_;
+			return *this;
 		}
 
 		template<typename U>
