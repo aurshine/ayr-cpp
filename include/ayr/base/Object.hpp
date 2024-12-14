@@ -40,7 +40,7 @@ namespace ayr
 		}
 
 		// hash 编码
-		hash_t __hash__() const { assert(false); return None<hash_t>; }
+		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		cmp_t __cmp__(const Derived& other) const { return static_cast<cmp_t>(this) - static_cast<cmp_t>(&other); }
