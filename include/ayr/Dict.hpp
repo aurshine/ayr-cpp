@@ -4,8 +4,8 @@
 #include <ranges>
 
 #include "ayr_memory.hpp"
-#include "Atring.hpp"
 #include "base/HashBucket.hpp"
+#include "base/View.hpp"
 
 namespace ayr
 {
@@ -21,35 +21,35 @@ namespace ayr
 
 		using Value_t = V;
 
-		KeyValueView() : key_(nullptr), value_(nullptr) {}
+		KeyValueView() : key_(), value_() {}
 
-		KeyValueView(const Key_t* key, const Value_t* value) : key_(key), value_(value) {}
+		KeyValueView(Key_t& key, Value_t& value) : key_(key), value_(value) {}
 
-		KeyValueView(const self& other) = default;
+		KeyValueView(const self& other) : key_(other.key_), value_(other.value_) {};
 
-		self& operator=(const self& other) = default;
-
-		self& set_kv(const Key_t* key, const Value_t* value) { key_ = key; value_ = value; return *this; }
-
-		const Key_t& key() const
+		self& operator=(const self& other)
 		{
-			if (key_ == nullptr)
-				KeyError("key is null");
-			return *key_;
+			if (this == &other) return *this;
+
+			key_ = other.key_;
+			value_ = other.value_;
+			return *this;
 		}
 
-		const Value_t& value() const
-		{
-			if (value_ == nullptr)
-				ValueError("value is null");
-			return *value_;
-		}
+		self& set_kv(Key_t& key, Value_t& value) { key_ = key; value_ = value; return *this; }
+
+		Key_t& key() { return key_; }
+
+		Value_t& value() { return value_; }
+
+		const Key_t& key() const { return key_; }
+
+		const Value_t& value() const { return value_; }
+
+		hash_t hashv() const { return ayrhash(key_.get<Key_t>()); }
 	private:
-		const Key_t* key_;
-
-		const Value_t* value_;
+		View key_, value_;
 	};
-
 
 	template<Hashable K, typename V, typename Bucket_t = RobinHashBucket<V>>
 	class Dict : public Object<Dict<K, V>>
@@ -59,6 +59,80 @@ namespace ayr
 		using Key_t = K;
 
 		using Value_t = V;
+
+		using Iterator = DynArray<Key_t>::Iterator;
+
+		using ConstIterator = DynArray<Key_t>::ConstIterator;
+
+		template<bool IsConst>
+		struct KeyValueViewIterator : public IteratorInfo<
+			KeyValueViewIterator<IsConst>,
+			add_const_t<IsConst, Dict>,
+			typename DynArray<Key_t>::Iterator::iterator_category,
+			KeyValueView<add_const_t<IsConst, Key_t>, Value_t>
+		>
+		{
+			using ItInfo = IteratorInfo<
+				KeyValueViewIterator<IsConst>,
+				add_const_t<IsConst, Dict>,
+				typename DynArray<Key_t>::Iterator::iterator_category,
+				KeyValueView<add_const_t<IsConst, Key_t>, add_const_t<IsConst, Value_t>>
+			>;
+
+			using DI = std::conditional_t<IsConst, typename DynArray<Key_t>::ConstIterator, typename DynArray<Key_t>::Iterator>;
+
+			KeyValueViewIterator() : dict_(nullptr), it_(), kv_() {}
+
+			KeyValueViewIterator(ItInfo::container_type* dict, DI it) : dict_(dict), it_(it), kv_() {}
+
+			KeyValueViewIterator(const KeyValueViewIterator& other) : dict_(other.dict_), it_(other.it_), kv_(other.kv_) {}
+
+			KeyValueViewIterator& operator=(const KeyValueViewIterator& other)
+			{
+				if (this == &other) return *this;
+
+				dict_ = other.dict_;
+				it_ = other.it_;
+				kv_ = other.kv_;
+				return *this;
+			}
+
+			typename ItInfo::reference operator*() const { update_kv(); return kv_; }
+
+			typename ItInfo::pointer operator->() const { update_kv(); return &kv_; }
+
+			typename ItInfo::iterator_type& operator++() { ++it_; return *this; }
+
+			typename ItInfo::iterator_type operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+
+			typename ItInfo::iterator_type& operator--() { --it_; return *this; }
+
+			typename ItInfo::iterator_type operator--(int) { auto tmp = *this; --(*this); return tmp; }
+
+			typename ItInfo::iterator_type& operator+=(typename ItInfo::difference_type n) { it_ += n; return *this; }
+
+			typename ItInfo::iterator_type operator+(typename ItInfo::difference_type n) const { auto tmp = *this; tmp += n; return tmp; }
+
+			typename ItInfo::iterator_type& operator-=(typename ItInfo::difference_type n) { it_ -= n; return *this; }
+
+			typename ItInfo::iterator_type operator-(typename ItInfo::difference_type n) const { auto tmp = *this; tmp -= n; return tmp; }
+
+			typename ItInfo::difference_type operator-(const typename ItInfo::iterator_type& other) const { return it_ - other.it_; }
+
+			bool __equals__(const typename ItInfo::iterator_type& other) const { return it_ == other.it_; }
+		private:
+			void update_kv() const { kv_.set_kv(*it_, dict_->get(*it_)); }
+
+			typename ItInfo::container_type* dict_;
+
+			mutable typename ItInfo::value_type kv_;
+
+			DI it_;
+		};
+
+		using KvIterator = KeyValueViewIterator<false>;
+
+		using ConstKvIterator = KeyValueViewIterator<true>;
 
 		Dict() : bucket_(MIN_BUCKET_SIZE), keys_() {}
 
@@ -88,8 +162,6 @@ namespace ayr
 			return *ayr_construct(this, std::move(other));
 		}
 
-		~Dict() = default;
-
 		// key-value对的数量
 		c_size size() const { return keys_.size(); }
 
@@ -106,6 +178,10 @@ namespace ayr
 
 		// 值的迭代视图
 		auto values() const { return std::ranges::subrange(bucket_.begin(), bucket_.end()); }
+
+		auto items() { return std::ranges::subrange(KvIterator(this, keys_.begin()), KvIterator(this, keys_.end())); }
+
+		auto items() const { return std::ranges::subrange(ConstKvIterator(this, keys_.begin()), ConstKvIterator(this, keys_.end())); }
 
 		// 重载[]运算符, key 必须存在, 否则KeyError
 		const V& operator[](const Key_t& key) const { return get(key); }
@@ -172,20 +248,17 @@ namespace ayr
 		// 根据传入的字典更新字典
 		self& update(const self& other)
 		{
-			for (auto&& kv : other)
-				insert(kv.key(), kv.value());
+			for (auto&& item : other.items())
+				insert(item.key(), item.value());
 
 			return *this;
 		}
 
 		self& update(self&& other)
 		{
-			for (auto& key : other.keys_)
-			{
-				hash_t hashv = ayrhash(key);
-				Value_t& value = *other.get_impl(hashv);
-				insert(std::move(key), std::move(value), hashv);
-			}
+			for (auto&& item : other.items())
+				insert(std::move(item.key()), std::move(item.value()), item.hashv());
+
 			return *this;
 		}
 
@@ -226,9 +299,9 @@ namespace ayr
 			else if (size() > other.size()) return other & *this;
 
 			self result((std::min)(capacity(), other.capacity()));
-			for (auto&& kv : *this)
-				if (other.contains(kv.key()))
-					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			for (auto&& item : items())
+				if (other.contains(item.key()))
+					result.insert_impl(item.key(), item.value(), item.hashv());
 
 			return result;
 		}
@@ -246,11 +319,11 @@ namespace ayr
 			else if (size() > other.size()) return other | *this;
 
 			self result(static_cast<c_size>((size() + other.size()) / MAX_LOAD_FACTOR));
-			for (auto&& kv : *this)
-				result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			for (auto&& item : items())
+				result.insert_impl(item.key(), item.value(), item.hashv());
 
-			for (auto&& kv : other)
-				result.insert(kv.key(), kv.value());
+			for (auto&& item : other.items())
+				result.insert(item.key(), item.value());
 
 			return result;
 		}
@@ -259,8 +332,8 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			for (auto&& kv : other)
-				insert(kv.key(), kv.value());
+			for (auto&& item : other.items())
+				insert(item.key(), item.value());
 
 			return *this;
 		}
@@ -270,14 +343,14 @@ namespace ayr
 			if (this == &other) return self();
 			else if (size() > other.size()) return other ^ *this;
 
-			self result((std::min)(capacity(), other.capacity()));
-			for (auto&& kv : *this)
-				if (!other.contains(kv.key()))
-					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			self result(std::min(capacity(), other.capacity()));
+			for (auto&& item : items())
+				if (!other.contains(item.key()))
+					result.insert_impl(item.key(), item.value(), item.hashv());
 
-			for (auto&& kv : other)
-				if (!contains(kv.key()))
-					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			for (auto&& item : other.items())
+				if (!contains(item.key()))
+					result.insert_impl(item.key(), item.value(), item.hashv());
 			return result;
 		}
 
@@ -289,11 +362,11 @@ namespace ayr
 				return *this;
 			}
 
-			for (auto&& kv : other)
-				if (contains(kv.key()))
-					pop(kv.key());
+			for (auto&& item : other.items())
+				if (contains(item.key()))
+					pop(item.key());
 				else
-					insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+					insert_impl(item.key(), item.value(), item.hashv());
 
 			return *this;
 		}
@@ -314,9 +387,9 @@ namespace ayr
 			if (this == &other) return self();
 
 			self result(capacity());
-			for (auto&& kv : *this)
-				if (!other.contains(kv.key()))
-					result.insert_impl(kv.key(), kv.value(), ayrhash(kv.key()));
+			for (auto&& item : items())
+				if (!other.contains(item.key()))
+					result.insert_impl(item.key(), item.value(), item.hashv());
 
 			return result;
 		}
@@ -329,8 +402,8 @@ namespace ayr
 				return *this;
 			}
 
-			for (auto&& kv : other)
-				pop(kv.key());
+			for (auto&& key : other)
+				pop(key);
 
 			return *this;
 		}
@@ -338,14 +411,10 @@ namespace ayr
 		bool __equals__(const self& other) const
 		{
 			if (size() != other.size()) return false;
-			for (auto&& kv : *this)
-			{
-				if (!other.contains(kv.key()))
+			for (auto&& key : keys())
+				if (!other.contains(key) || get(key) != other.get(key))
 					return false;
 
-				if (kv.value() != other.get(kv.key()))
-					return false;
-			}
 			return true;
 		}
 
@@ -353,7 +422,7 @@ namespace ayr
 		{
 			std::stringstream stream;
 			stream << "{";
-			for (auto&& item : *this)
+			for (auto&& item : items())
 			{
 				if constexpr (issame<Key_t, CString, Atring, std::string>)
 					stream << "\"" << item.key() << "\"";
@@ -378,75 +447,13 @@ namespace ayr
 			return str;
 		}
 
-		class DictIterator : public IteratorInfo<DictIterator, const Dict<K, V>, std::random_access_iterator_tag, KeyValueView<Key_t, Value_t>>
-		{
-			using self = DictIterator;
+		Iterator begin() { return keys_.begin(); }
 
-			using super = IteratorInfo<DictIterator, const Dict<K, V>, std::random_access_iterator_tag, KeyValueView<Key_t, Value_t>>;
-		public:
-			DictIterator() : dict_(nullptr), index_(0), kv_() {}
+		Iterator end() { return keys_.end(); }
 
-			DictIterator(super::container_type* dict, c_size index) : dict_(dict), index_(index) { update_kv(0); }
+		ConstIterator begin() const { return keys_.begin(); }
 
-			DictIterator(const self& other) = default;
-
-			self& operator=(const self& other) = default;
-
-			super::const_reference operator*() const { return kv_; }
-
-			super::const_pointer operator->() const { return &kv_; }
-
-			self& operator++() { update_kv(1); return *this; }
-
-			self operator++(int) { self tmp = *this; update_kv(1); return tmp; }
-
-			self& operator--() { update_kv(-1); return *this; }
-
-			self operator--(int) { self tmp = *this; update_kv(-1); return tmp; }
-
-			self& operator+=(super::difference_type n) { update_kv(n); return *this; }
-
-			self& operator-=(super::difference_type n) { update_kv(-n); return *this; }
-
-			self operator+(super::difference_type n) const { return self(dict_, index_ + n); }
-
-			self operator-(super::difference_type n) const { return self(dict_, index_ - n); }
-
-			super::difference_type operator-(const self& other) const { return index_ - other.index_; }
-
-			bool __equals__(const self& other) const { return dict_ == other.dict_ && index_ == other.index_; }
-
-		private:
-			void update_kv(c_size add)
-			{
-				index_ += add;
-				if (index_ < 0 || index_ >= dict_->size())
-					kv_.set_kv(nullptr, nullptr);
-				else
-				{
-					const Key_t& key = dict_->keys_[index_];
-					kv_.set_kv(&key, &dict_->get(key));
-				}
-			}
-		private:
-			super::container_type* dict_;
-
-			c_size index_;
-
-			super::value_type kv_;
-		};
-
-		using Iterator = DictIterator;
-
-		using ConstIterator = DictIterator;
-
-		Iterator begin() { return Iterator(this, 0); }
-
-		Iterator end() { return Iterator(this, size()); }
-
-		ConstIterator begin() const { return ConstIterator(this, 0); }
-
-		ConstIterator end() const { return ConstIterator(this, size()); }
+		ConstIterator end() const { return keys_.end(); }
 	private:
 		bool contains_hashv(hash_t hashv) const { return bucket_.contains(hashv); }
 
