@@ -10,21 +10,21 @@ namespace ayr
 	class IndexIterator :
 		public IteratorInfo<IndexIterator<IsConst, C, V>, add_const_t<IsConst, C>, std::random_access_iterator_tag, add_const_t<IsConst, V>>
 	{
-		using super = IteratorInfo<IndexIterator<IsConst, C, V>, add_const_t<IsConst, C>, std::random_access_iterator_tag, add_const_t<IsConst, V>>;
+		using ItInfo = IteratorInfo<IndexIterator<IsConst, C, V>, add_const_t<IsConst, C>, std::random_access_iterator_tag, add_const_t<IsConst, V>>;
 
 		using self = IndexIterator;
 	public:
 		IndexIterator() : container_(nullptr), index_(0) {}
 
-		IndexIterator(super::container_type* container, c_size index) : container_(container), index_(index) {}
+		IndexIterator(ItInfo::container_type* container, c_size index) : container_(container), index_(index) {}
 
 		IndexIterator(const self& other) : IndexIterator(other.container_, other.index_) {}
 
 		self& operator=(const self& other) { container_ = other.container_; index_ = other.index_; return *this; }
 
-		super::reference operator*() const { return container_->operator[](index_); }
+		ItInfo::reference operator*() const { return container_->operator[](index_); }
 
-		super::pointer operator->() const { return &container_->operator[](index_); }
+		ItInfo::pointer operator->() const { return &container_->operator[](index_); }
 
 		self& operator++() { ++index_; return *this; }
 
@@ -34,20 +34,20 @@ namespace ayr
 
 		self operator--(int) { self tmp(*this); --index_; return tmp; }
 
-		self operator+(super::difference_type n) const { return self(container_, index_ + n); }
+		self operator+(ItInfo::difference_type n) const { return self(container_, index_ + n); }
 
-		self operator-(super::difference_type n) const { return self(container_, index_ - n); }
+		self operator-(ItInfo::difference_type n) const { return self(container_, index_ - n); }
 
-		self& operator+=(super::difference_type n) { index_ += n; return *this; }
+		self& operator+=(ItInfo::difference_type n) { index_ += n; return *this; }
 
-		self& operator-=(super::difference_type n) { index_ -= n; return *this; }
+		self& operator-=(ItInfo::difference_type n) { index_ -= n; return *this; }
 
-		super::difference_type operator-(const self& other) const { return index_ - other.index_; }
+		ItInfo::difference_type operator-(const self& other) const { return index_ - other.index_; }
 
 		bool __equals__(const self& other) const { return container_ == other.container_ && index_ == other.index_; }
 
 	private:
-		super::container_type* container_;
+		ItInfo::container_type* container_;
 
 		c_size index_;
 	};

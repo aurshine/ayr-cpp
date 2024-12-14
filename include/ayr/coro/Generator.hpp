@@ -88,9 +88,9 @@ namespace ayr
 			{
 				using self = GeneratorIterator;
 
-				using super = IteratorInfo<GeneratorIterator, Generator<T>, std::forward_iterator_tag, T>;
+				using ItInfo = IteratorInfo<GeneratorIterator, Generator<T>, std::forward_iterator_tag, T>;
 
-				GeneratorIterator(super::container_type* gen, GenStatus::status_type status = GenStatus::YIELD) : gen_(gen), status_(status) {}
+				GeneratorIterator(ItInfo::container_type* gen, GenStatus::status_type status = GenStatus::YIELD) : gen_(gen), status_(status) {}
 
 				GeneratorIterator(self&& other) : gen_(other.gen_) { other.gen_ = nullptr; }
 
@@ -110,9 +110,9 @@ namespace ayr
 					return *this;
 				}
 
-				super::reference operator*() const { return gen_->result(); }
+				ItInfo::reference operator*() const { return gen_->result(); }
 
-				super::pointer operator->() const { return &gen_->result(); }
+				ItInfo::pointer operator->() const { return &gen_->result(); }
 
 				bool __equals__(const self& other) const { return gen_ == other.gen_ && status_ == other.status_; }
 			private:
@@ -130,7 +130,7 @@ namespace ayr
 				// 当前状态是return, 进入下一个状态
 				void return_next() { status_ = GenStatus::DONE; }
 
-				super::container_type* gen_;
+				ItInfo::container_type* gen_;
 
 				GenStatus::status_type status_;
 			};

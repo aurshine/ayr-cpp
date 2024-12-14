@@ -21,7 +21,7 @@ namespace ayr
 		{
 			using self = RangeIterator;
 
-			using super = IteratorInfo<RangeIterator, Range, std::bidirectional_iterator_tag, c_size>;
+			using ItInfo = IteratorInfo<RangeIterator, Range, std::bidirectional_iterator_tag, c_size>;
 		public:
 			RangeIterator() : current_(0), step_(0) {}
 
@@ -36,9 +36,9 @@ namespace ayr
 				return *this;
 			}
 
-			super::const_reference operator*() const { return current_; }
+			ItInfo::const_reference operator*() const { return current_; }
 
-			super::const_pointer operator->() const { return &current_; }
+			ItInfo::const_pointer operator->() const { return &current_; }
 
 			self& operator++() { current_ += step_; return *this; }
 

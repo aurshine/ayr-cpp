@@ -200,13 +200,13 @@ namespace ayr
 		{
 			using self = _Iterator<IsConst>;
 
-			using super = IteratorInfo<_Iterator<IsConst>, add_const_t<IsConst, DynArray<Value_t>>, std::random_access_iterator_tag, add_const_t<IsConst, Value_t>>;
+			using ItInfo = IteratorInfo<_Iterator<IsConst>, add_const_t<IsConst, DynArray<Value_t>>, std::random_access_iterator_tag, add_const_t<IsConst, Value_t>>;
 
 			_Iterator() : _Iterator(nullptr) {}
 
-			_Iterator(super::container_type* dynarray) : _Iterator(dynarray, 0, 0) {}
+			_Iterator(ItInfo::container_type* dynarray) : _Iterator(dynarray, 0, 0) {}
 
-			_Iterator(super::container_type* dynarray, c_size block_index, c_size inblock_index)
+			_Iterator(ItInfo::container_type* dynarray, c_size block_index, c_size inblock_index)
 				: block_index_(block_index), inblock_index_(inblock_index), dynarray_(dynarray) {}
 
 			_Iterator(const self& other) : _Iterator(other.dynarray_, other.block_index_, other.inblock_index_) {}
@@ -219,9 +219,9 @@ namespace ayr
 				return *this;
 			}
 
-			super::reference operator*() const { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+			ItInfo::reference operator*() const { return dynarray_->blocks_.at(block_index_).at(inblock_index_); }
 
-			super::pointer operator->() const { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
+			ItInfo::pointer operator->() const { return &dynarray_->blocks_.at(block_index_).at(inblock_index_); }
 
 			self& operator++()
 			{
@@ -251,11 +251,11 @@ namespace ayr
 
 			self operator--(int) { self tmp(*this); --tmp; return tmp; }
 
-			self operator+(super::difference_type n) const { self tmp(*this); tmp += n; return tmp; }
+			self operator+(ItInfo::difference_type n) const { self tmp(*this); tmp += n; return tmp; }
 
-			self operator-(super::difference_type n) const { self tmp(*this); tmp -= n; return tmp; }
+			self operator-(ItInfo::difference_type n) const { self tmp(*this); tmp -= n; return tmp; }
 
-			self& operator+=(super::difference_type n)
+			self& operator+=(ItInfo::difference_type n)
 			{
 				while (n)
 				{
@@ -275,7 +275,7 @@ namespace ayr
 				return *this;
 			}
 
-			self& operator-=(super::difference_type n)
+			self& operator-=(ItInfo::difference_type n)
 			{
 				while (n)
 				{
@@ -291,7 +291,7 @@ namespace ayr
 				return *this;
 			}
 
-			super::difference_type operator-(const self& other) const
+			ItInfo::difference_type operator-(const self& other) const
 			{
 				if (*this < other) return -(other - *this);
 				if (dynarray_ != other.dynarray_)
@@ -323,7 +323,7 @@ namespace ayr
 		private:
 			c_size block_index_, inblock_index_;
 
-			super::container_type* dynarray_;
+			ItInfo::container_type* dynarray_;
 		};
 
 		using Iterator = _Iterator<false>;

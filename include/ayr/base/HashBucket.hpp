@@ -292,11 +292,11 @@ namespace ayr
 		{
 			using self = RobinHashBucketIterator;
 
-			using super = IteratorInfo<self, add_const_t<IsConst, Array<Manager_t>>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>;
+			using ItInfo = IteratorInfo<self, add_const_t<IsConst, Array<Manager_t>>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>;
 		public:
 			RobinHashBucketIterator() : bucket_ptr_(nullptr), index_(0) {}
 
-			RobinHashBucketIterator(super::container_type* bucket_ptr, c_size index) : bucket_ptr_(bucket_ptr), index_(index) {}
+			RobinHashBucketIterator(ItInfo::container_type* bucket_ptr, c_size index) : bucket_ptr_(bucket_ptr), index_(index) {}
 
 			RobinHashBucketIterator(const self& other) : bucket_ptr_(other.bucket_ptr_), index_(other.index_) {}
 
@@ -309,9 +309,9 @@ namespace ayr
 				return *this;
 			}
 
-			super::reference operator*() const { return bucket_ptr_->at(index_).value(); }
+			ItInfo::reference operator*() const { return bucket_ptr_->at(index_).value(); }
 
-			super::pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
+			ItInfo::pointer operator->() const { return &bucket_ptr_->at(index_).value(); }
 
 			self& operator++()
 			{
@@ -332,7 +332,7 @@ namespace ayr
 				return bucket_ptr_ == other.bucket_ptr_ && index_ == other.index_;
 			}
 		private:
-			super::container_type* bucket_ptr_;
+			ItInfo::container_type* bucket_ptr_;
 
 			c_size index_;
 		};
