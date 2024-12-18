@@ -38,6 +38,8 @@ namespace ayr
 			return *ayr_construct(this, std::forward<U>(obj));
 		}
 
+		void* data() const { return view_ptr_; }
+
 		template<typename T>
 		T& get() { return *static_cast<T*>(view_ptr_); }
 
@@ -49,6 +51,9 @@ namespace ayr
 
 		template<typename T>
 		operator const T& () const { return get<T>(); }
+
+		template<typename T>
+		bool __equals__(const T& other) { return data() == &other || get<T>() == other; }
 	};
 }
 #endif
