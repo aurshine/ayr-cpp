@@ -100,7 +100,7 @@ namespace ayr
 			while (r != super::derived().end())
 			{
 				while (r != super::derived().end() && check(*r)) ++r;
-				if (r != super::derived().end()) break;
+				if (r == super::derived().end()) break;
 				*l = std::move(*r);
 				++l, ++r;
 			}
