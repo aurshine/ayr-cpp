@@ -13,42 +13,42 @@ namespace ayr
 		return roundup2(base_size / max_load_factor);
 	}
 
-	template<typename T>
-	class HashBucketImpl : public Object<HashBucketImpl<T>>
+	template<typename Derived, typename T>
+	class HashBucketImpl : public Object<Derived>
 	{
-		using self = HashBucketImpl<T>;
+		using self = HashBucketImpl<Derived, T>;
+
+		using super = Object<Derived>;
 	public:
 		using Value_t = T;
 
 		HashBucketImpl() = default;
 
-		virtual ~HashBucketImpl() = default;
+		~HashBucketImpl() = default;
 
 		// 容量
-		virtual c_size capacity() const = 0;
-
-		// 克隆
-		virtual self* clone() const = 0;
+		c_size capacity() const { NotImplementedError(std::format("{} not implemented capacity()", dtype(Derived))); return None<int>; };
 
 		// 尝试根据hash值获取元素，返回指针，如果没有则返回nullptr
-		virtual Value_t* try_get(hash_t hashv) = 0;
+		Value_t* try_get(hash_t hashv) { NotImplementedError(std::format("{} not implemented try_get(hash_t)", dtype(Derived))); return nullptr; };
 
-		virtual const Value_t* try_get(hash_t hashv) const = 0;
+		const Value_t* try_get(hash_t hashv) const { NotImplementedError(std::format("{} not implemented try_get(hash_t) const", dtype(Derived))); return nullptr; };
 
 		// 根据hash值删除元素
-		virtual void pop(hash_t hashv) = 0;
+		void pop(hash_t hashv) { NotImplementedError(std::format("{} not implemented pop(hash_t)", dtype(Derived))); };
 
-		virtual void expand(c_size new_capacity) noexcept = 0;
+		// 扩容
+		void expand(c_size new_capacity) noexcept { NotImplementedError(std::format("{} not implemented expand(c_size)", dtype(Derived))); };
 
-		virtual void clear() = 0;
+		// 清空
+		void clear() { NotImplementedError(std::format("{} not implemented clear()", dtype(Derived))); };
 
 		// 将hash值转换为索引
-		virtual c_size hash2index(hash_t hashv) const { return hashv % capacity(); }
+		c_size hash2index(hash_t hashv) const { return hashv % super::derived().capacity(); }
 
 		// 是否包含元素
-		virtual bool contains(hash_t hashv) const { return try_get(hashv) != nullptr; }
+		bool contains(hash_t hashv) const { return super::derived().try_get(hashv) != nullptr; }
 	};
-
 
 	template<typename T>
 	class RobinManager : public Object<RobinManager<T>>
@@ -135,14 +135,12 @@ namespace ayr
 		constexpr static int MOVED_NOTHING = INT_MAX;
 	};
 
-
 	template<typename T>
-	class RobinHashBucket : public HashBucketImpl<T>
+	class RobinHashBucket : public HashBucketImpl<RobinHashBucket<T>, T>
 	{
 		using self = RobinHashBucket<T>;
 
-		using super = HashBucketImpl<T>;
-
+		using super = HashBucketImpl<self, T>;
 	public:
 		using Value_t = super::Value_t;
 
@@ -172,9 +170,7 @@ namespace ayr
 			return *this;
 		}
 
-		c_size capacity() const override { return robin_managers_.size(); }
-
-		self* clone() const override { return new self(*this); }
+		c_size capacity() const { return robin_managers_.size(); }
 
 		// 获取合适的管理器地址
 		// 1. 找到相同的hash值, 返回该管理器地址
@@ -204,7 +200,7 @@ namespace ayr
 			return nullptr;
 		}
 
-		Value_t* try_get(hash_t hashv) override
+		Value_t* try_get(hash_t hashv)
 		{
 			Manager_t* manager = try_get_manager(hashv);
 			if (manager == nullptr || !manager->is_managed())
@@ -212,7 +208,7 @@ namespace ayr
 			return &manager->value();
 		}
 
-		const Value_t* try_get(hash_t hashv) const override
+		const Value_t* try_get(hash_t hashv) const
 		{
 			const Manager_t* manager = try_get_manager(hashv);
 			if (manager == nullptr || !manager->is_managed())
@@ -220,6 +216,9 @@ namespace ayr
 			return &manager->value();
 		}
 
+		// 根据hashv添加值，返回值的指针
+		// 默认认为hashv不存在
+		// 若bucket已满，则抛出异常
 		template<typename V>
 		Value_t* set_value(V&& value, hash_t hashv)
 		{
@@ -255,7 +254,7 @@ namespace ayr
 			if (manager == nullptr || !manager->is_managed())
 				return;
 
-			c_size cur_idx = std::distance(&robin_managers_.at(0), manager);
+			c_size cur_idx = std::distance(robin_managers_.data(), manager);
 			while (true)
 			{
 				c_size next_idx = (cur_idx + 1) % capacity_;
@@ -274,17 +273,16 @@ namespace ayr
 			}
 		}
 
-		void expand(c_size new_capacity) noexcept override
+		void expand(c_size new_capacity) noexcept
 		{
 			Array<Manager_t> temp_managers(std::move(robin_managers_));
 			robin_managers_.resize(new_capacity);
-			for (auto&& manager : temp_managers)
+			for (Manager_t& manager : temp_managers)
 				if (manager.is_managed())
 					set_value(manager.value(), manager.hashv());
 		}
 
-		void clear() override { robin_managers_.resize(0); }
-
+		void clear() { robin_managers_.resize(0); }
 
 		template<bool IsConst>
 		class RobinHashBucketIterator :
