@@ -25,6 +25,10 @@ namespace ayr
 
 		Object& operator=(Object&&) = delete;
 
+		Derived& derived() { return static_cast<Derived&>(*this); }
+
+		const Derived& derived() const { return static_cast<const Derived&>(*this); }
+
 		// 转换为 字符串 类型
 		CString __str__() const
 		{
@@ -46,7 +50,7 @@ namespace ayr
 		cmp_t __cmp__(const Derived& other) const { return static_cast<cmp_t>(this) - static_cast<cmp_t>(&other); }
 
 		// 返回true或false表示是否相等
-		bool __equals__(const Derived& other) const { return static_cast<const Derived*>(this)->__cmp__(other) == 0; }
+		bool __equals__(const Derived& other) const { return derived().__cmp__(other) == 0; }
 	};
 
 	template<typename T>
