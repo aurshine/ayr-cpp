@@ -174,14 +174,14 @@ namespace ayr
 		double load_factor() const { return 1.0 * size() / capacity(); }
 
 		// 键的迭代视图
-		auto keys() const { return std::ranges::subrange(keys_.begin(), keys_.end()); }
+		auto keys() const { return std::ranges::subrange(begin(), end()); }
 
 		// 值的迭代视图
 		auto values() const { return std::ranges::subrange(bucket_.begin(), bucket_.end()); }
 
-		auto items() { return std::ranges::subrange(KvIterator(this, keys_.begin()), KvIterator(this, keys_.end())); }
+		auto items() { return std::ranges::subrange(KvIterator(this, begin()), KvIterator(this, end())); }
 
-		auto items() const { return std::ranges::subrange(ConstKvIterator(this, keys_.begin()), ConstKvIterator(this, keys_.end())); }
+		auto items() const { return std::ranges::subrange(ConstKvIterator(this, begin()), ConstKvIterator(this, end())); }
 
 		// 重载[]运算符, key 必须存在, 否则KeyError
 		const V& operator[](const Key_t& key) const { return get(key); }

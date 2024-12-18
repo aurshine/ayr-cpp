@@ -74,6 +74,16 @@ namespace ayr
 			return -1;
 		}
 
+		template<typename F>
+		c_size index_if(F&& check, c_size pos = 0) const
+		{
+			for (c_size i = pos, size_ = size(); i < size_; ++i)
+				if (check(at(i)))
+					return i;
+
+			return -1;
+		}
+
 		c_size find(const Value_t& v) const
 		{
 			for (c_size i = 0, size_ = size(); i < size_; ++i)

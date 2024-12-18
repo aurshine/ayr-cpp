@@ -53,7 +53,7 @@ namespace ayr
 		operator const T& () const { return get<T>(); }
 
 		template<typename T>
-		bool __equals__(const T& other) { return data() == &other || get<T>() == other; }
+		bool __equals__(const T& other) const { return data() == &other || get<T>() == other; }
 	};
 }
 #endif
