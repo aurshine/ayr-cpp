@@ -78,8 +78,7 @@ namespace ayr
 
 		void pop_back()
 		{
-			ayr_destroy(buffer_ + size_);
-			--size_;
+			ayr_destroy(buffer_ + (--size_));
 		}
 
 		// 重新分配内存
