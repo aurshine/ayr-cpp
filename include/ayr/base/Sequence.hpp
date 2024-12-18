@@ -1,6 +1,8 @@
 ﻿#ifndef AYR_BASE_SEQUENCE_HPP
 #define AYR_BASE_SEQUENCE_HPP
 
+#include <functional>
+
 #include "IndexIterator.hpp"
 
 
@@ -8,12 +10,12 @@ namespace ayr
 {
 	// 需要子类实现 size() 和 at()
 	template<typename Derived, typename T>
-	class Sequence : public Object<Sequence<Derived, T>>
+	class Sequence : public Object<Derived>
 	{
 	public:
 		using self = Sequence<Derived, T>;
 
-		using super = Object<Sequence<Derived, T>>;
+		using super = Object<Derived>;
 	public:
 		using Value_t = T;
 
@@ -21,15 +23,15 @@ namespace ayr
 
 		using ConstIterator = IndexIterator<true, self, Value_t>;
 
-		Value_t& at(c_size index) { return static_cast<Derived*>(this)->at(index); }
+		using CheckTask = std::function<bool(const Value_t&)>;
 
-		const Value_t& at(c_size index) const { return static_cast<const Derived*>(this)->at(index); }
+		const Value_t& at(c_size index) const { NotImplementedError(std::format("{} Not implemented at(c_size)", dtype(Derived))); return None<c_size>; }
 
-		c_size size() const { return static_cast<const Derived*>(this)->size(); }
+		c_size size() const { NotImplementedError(std::format("{} Not implemented size()", dtype(Derived))); return None<c_size>; }
 
 		cmp_t __cmp__(const Derived& other) const
 		{
-			auto m_it = begin(), m_end = end();
+			auto m_it = super::derived().begin(), m_end = super::derived().end();
 			auto o_it = other.begin(), o_end = other.end();
 			while (m_it != m_end && o_it != o_end)
 			{
@@ -45,49 +47,73 @@ namespace ayr
 
 		bool __equals__(const Derived& other) const
 		{
-			if (size() != other.size())
+			if (super::derived().size() != other.size())
 				return false;
 
-			return static_cast<const Derived*>(this)->__cmp__(other) == 0;
+			return super::derived().__cmp__(other) == 0;
 		}
 
 		Iterator begin() { return Iterator(this, 0); }
 
-		Iterator end() { return Iterator(this, size()); }
+		Iterator end() { return Iterator(this, super::derived().size()); }
 
 		ConstIterator begin() const { return ConstIterator(this, 0); }
 
-		ConstIterator end() const { return ConstIterator(this, size()); }
+		ConstIterator end() const { return ConstIterator(this, super::derived().size()); }
 
-		Value_t& operator[] (c_size index) { return at(neg_index(index, size())); }
+		Value_t& operator[] (c_size index) { return super::derived().at(neg_index(index, super::derived().size())); }
 
-		const Value_t& operator[] (c_size index) const { return at(neg_index(index, size())); }
+		const Value_t& operator[] (c_size index) const { return super::derived().at(neg_index(index, super::derived().size())); }
 
-		bool contains(const Value_t& v) const { return find_it(v) != end(); }
+		bool contains(const Value_t& v) const { return find_it(v) != super::derived().end(); }
 
-		c_size index(const Value_t& v, c_size pos = 0) const
+		// 得到第一个满足条件的元素下标
+		c_size index_if(const CheckTask& check, c_size pos = 0) const
 		{
-			for (c_size i = pos, size_ = size(); i < size_; ++i)
-				if (at(i) == v)
+			for (c_size i = pos, size_ = super::derived().size(); i < size_; ++i)
+				if (check(super::derived().at(i)))
 					return i;
 
 			return -1;
 		}
 
-		template<typename F>
-		c_size index_if(F&& check, c_size pos = 0) const
+		// 得到第一个相等的元素下标
+		c_size index(const Value_t& v, c_size pos = 0) const
 		{
-			for (c_size i = pos, size_ = size(); i < size_; ++i)
-				if (check(at(i)))
-					return i;
+			return index_if([&v](const Value_t& x) { return x == v; }, pos);
+		}
 
-			return -1;
+		// 删除最后n个元素
+		void pop_back(c_size n = 1) { NotImplementedError(std::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
+
+		// 删除满足条件的元素, 返回删除的元素个数
+		c_size pop_if(const CheckTask& check, c_size pos = 0)
+		{
+			auto l = std::next(super::derived().begin(), pos);
+			// 找到第一个满足条件的元素
+			while (l != super::derived().end() && !check(*l)) ++l;
+
+			// 第一个满足条件后的第一个不满足条件的元素
+			auto r = std::next(l, 1);
+
+			// l 到 r 之间的元素都满足条件
+			while (r != super::derived().end())
+			{
+				while (r != super::derived().end() && check(*r)) ++r;
+				if (r != super::derived().end()) break;
+				*l = std::move(*r);
+				++l, ++r;
+			}
+
+			c_size count = std::distance(l, r);
+			super::derived().pop_back(count);
+			return count;
 		}
 
 		c_size find(const Value_t& v) const
 		{
-			for (c_size i = 0, size_ = size(); i < size_; ++i)
-				if (at(i) == v)
+			for (c_size i = 0, size_ = super::derived().size(); i < size_; ++i)
+				if (super::derived().at(i) == v)
 					return i;
 
 			return -1;
@@ -95,7 +121,7 @@ namespace ayr
 
 		Iterator find_it(const Value_t& v)
 		{
-			auto it = begin(), end_ = end();
+			auto it = super::derived().begin(), end_ = super::derived().end();
 			while (it != end_)
 			{
 				if (*it == v)
@@ -109,7 +135,7 @@ namespace ayr
 
 		ConstIterator find_it(const Value_t& v) const
 		{
-			auto it = begin(), end_ = end();
+			auto it = super::derived().begin(), end_ = super::derived().end();
 			while (it != end_)
 			{
 				if (*it == v)
