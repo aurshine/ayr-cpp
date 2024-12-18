@@ -116,11 +116,11 @@ namespace ayr
 			}
 			else if (json_str[0] == CodePoint('"'))
 			{
-				match = json_str.slice(0, json_str.slice(1).find('"') + 2);
+				match = json_str.slice(0, json_str.slice(1).index('"') + 2);
 			}
 			else
 			{
-				c_size stop_sign_idx = json_str.find(stop_sign);
+				c_size stop_sign_idx = json_str.index(stop_sign);
 				if (stop_sign_idx == -1)
 					match = json_str;
 				else

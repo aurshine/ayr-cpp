@@ -160,8 +160,6 @@ namespace ayr
 
 		hash_t __hash__() const { return __str__().__hash__(); }
 
-		c_size find(CodePoint c) const { return super::find(c); }
-
 		c_size find(const self& pattern, c_size pos = 0) const
 		{
 			c_size m_size = size(), pattern_size = pattern.size();
@@ -343,7 +341,7 @@ namespace ayr
 
 		self match(CodePoint lmatch, CodePoint rmatch) const
 		{
-			c_size l = find(lmatch);
+			c_size l = index(lmatch);
 			if (l == -1)
 				return "";
 

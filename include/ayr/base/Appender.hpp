@@ -76,9 +76,9 @@ namespace ayr
 			return buffer_[size_++];
 		}
 
-		void pop_back()
+		void pop_back(c_size n = 1)
 		{
-			ayr_destroy(buffer_ + (--size_));
+			while (n--) ayr_destroy(buffer_ + (--size_));
 		}
 
 		// 重新分配内存

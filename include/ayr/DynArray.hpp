@@ -117,6 +117,25 @@ namespace ayr
 				std::swap(at(i), at(i - 1));
 		}
 
+		void pop_back(c_size n = 1)
+		{
+			c_size temp_n = n;
+			while (n > 0)
+			{
+				if (_back_block().size() <= n)
+				{
+					n -= _back_block().size();
+					_pop_back_block();
+				}
+				else
+				{
+					_back_block().pop_back(n);
+					n = 0;
+				}
+			}
+			size_ -= temp_n;
+		}
+
 		// 移除指定位置的元素
 		void pop(c_size index = -1)
 		{

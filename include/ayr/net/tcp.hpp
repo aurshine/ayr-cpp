@@ -246,10 +246,10 @@ namespace ayr
 
 		void epoll_ctl(int op, const Socket& fd, int events)
 		{
-			struct epoll_event event;
-			event.events = events;
-			event.data.fd = fd;
-			if (::epoll_ctl(epoll_fd, op, fd, &event) == -1)
+			struct epoll_event ev;
+			ev.events = events;
+			ev.data.fd = fd;
+			if (::epoll_ctl(epoll_fd, op, fd, &ev) == -1)
 				RuntimeError(get_error_msg());
 		}
 
