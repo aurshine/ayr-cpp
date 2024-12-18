@@ -127,6 +127,8 @@ namespace ayr
 	der(CString) cstr(const T& value) { return value.__str__(); }
 }
 
+std::ostream& operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
+
 template<>
 struct std::formatter<ayr::CString> : std::formatter<const char*>
 {
