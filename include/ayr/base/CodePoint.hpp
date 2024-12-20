@@ -2,6 +2,7 @@
 #define AURSHINE_BASE_CODEPOINT_HPP
 
 #include "Encoding.hpp"
+#include "raise_error.hpp"
 #include "../DynArray.hpp"
 
 namespace ayr
@@ -30,7 +31,6 @@ namespace ayr
 		{
 			code_size_ = encoding->byte_size(data_);
 			byte_code_ = ayr_alloc<char>(code_size_);
-
 			std::memcpy(data(), data_, code_size_);
 		}
 
@@ -41,7 +41,7 @@ namespace ayr
 			std::memcpy(data(), other.data(), code_size_);
 		}
 
-		CodePoint(self&& other) noexcept : byte_code_(other.byte_code_), code_size_(other.code_size_) { other.code_size_ = 0; other.byte_code_ = nullptr; }
+		CodePoint(self&& other) noexcept : byte_code_(std::exchange(other.byte_code_, nullptr)), code_size_(std::exchange(other.code_size_, 0)) {}
 
 		~CodePoint() { ayr_delloc(byte_code_); code_size_ = 0; };
 
@@ -93,25 +93,48 @@ namespace ayr
 				return std::memcmp(data(), other.data(), m_size);
 		}
 
-		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
+		operator char() const
+		{
+			if (!isasciii())
+				EncodingError("CodePoint is not a single character");
 
-		operator char() const { return byte_code_[0]; }
+			return byte_code_[0];
+		}
 
-		self upper() const {}
+		// 转换为整数
+		int to_int(Encoding* encoding) const { return encoding->to_int(data()); }
 
-		self lower() const {}
+		// 转换为大写字母
+		self upper() const
+		{
+			if (islower()) return byte_code_[0] - 'a' + 'A';
+			return *this;
+		}
 
+		// 转换为小写字母
+		self lower() const
+		{
+			if (isupper()) return byte_code_[0] - 'A' + 'a';
+			return *this;
+		}
+
+		// 是否为空白字符
 		bool isspace() const { return isasciii() && SPACE.contains(*this); }
 
+		// 是否为字母
 		bool isalpha() const { return isasciii() && (UPPER_CASE_LETTER.contains(*this) || LOWER_CASE_LETTER.contains(*this)); }
 
+		// 是否为数字
 		bool isdigit() const { return isasciii() && DIGIT.contains(*this); }
 
+		// 是否为大写字母
 		bool isupper() const { return isasciii() && UPPER_CASE_LETTER.contains(*this); }
 
+		// 是否为小写字母
 		bool islower() const { return isasciii() && LOWER_CASE_LETTER.contains(*this); }
 
-		bool isasciii() const { return (unsigned)byte_code_[0] < 0x80; }
+		// 是否为ASCII字符
+		bool isasciii() const { return byte_code_[0] < 0x80; }
 	private:
 		char* byte_code_;
 
