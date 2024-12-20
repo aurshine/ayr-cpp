@@ -67,6 +67,30 @@ namespace ayr
 
 		bool contains(const Value_t& v) const { return find_it(v) != super::derived().end(); }
 
+		//  遍历每个元素, 并执行 func
+		void each(const std::function<void(Value_t&)>& func)
+		{
+			auto It = super::derived().begin(), End = super::derived().end();
+
+			while (It != End)
+			{
+				func(*It);
+				++It;
+			}
+		}
+
+		//  遍历每个元素, 并执行 func
+		void each(const std::function<void(const Value_t&)>& func) const
+		{
+			auto It = super::derived().begin(), End = super::derived().end();
+
+			while (It != End)
+			{
+				func(*It);
+				++It;
+			}
+		}
+
 		// 得到第一个满足条件的元素下标
 		c_size index_if(const CheckTask& check, c_size pos = 0) const
 		{
