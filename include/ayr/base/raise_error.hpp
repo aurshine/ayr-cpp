@@ -49,6 +49,8 @@ namespace ayr
 
 #define NotImplementedError(msg) Error("NotImplementedError", msg)
 
+#define NullPointerError(msg) Error("NullPointerError", msg)
+
 #define FileNotFoundError(msg) Error("FileNotFoundError", msg)
 
 #define PermissionError(msg) Error("PermissionError", msg)
