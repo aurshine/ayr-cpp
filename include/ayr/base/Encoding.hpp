@@ -186,14 +186,16 @@ namespace ayr
 
 		CString __str__() const  override { return GB2312; }
 
-		constexpr int byte_size(const char* data) const override
+		int byte_size(const char* data) const override
 		{
 			NotImplementedError("GB2312Encoding is not suppoerted yet");
+			return 0;
 		}
 
-		constexpr int to_int(const char* data, int size = -1) const override
+		int to_int(const char* data, int size = -1) const override
 		{
 			NotImplementedError("GB2312Encoding is not suppoerted yet");
+			return 0;
 		}
 
 		CString from_int(int code) const override
@@ -204,15 +206,15 @@ namespace ayr
 
 	Encoding* encoding_map(const CString& encoding_name)
 	{
-		static Dict<CString, std::unique_ptr<Encoding>> encodingMap_{
-			{ASCII, std::make_unique<ASCIIEncoding>()},
-			{UTF8, std::make_unique<UTF8Encoding>()},
-			{UTF16, std::make_unique<UTF16Encoding>()},
-			{UTF32, std::make_unique<UTF32Encoding>()},
-			{GB2312, std::make_unique<GB2312Encoding>()}
+		static Dict<CString, Encoding*> encodingMap_{
+			{ASCII, ayr_alloc<ASCIIEncoding>(1)},
+			{UTF8, ayr_alloc<UTF8Encoding>(1)},
+			{UTF16, ayr_alloc<UTF16Encoding>(1)},
+			{UTF32, ayr_alloc<UTF32Encoding>(1)},
+			{GB2312, ayr_alloc<GB2312Encoding>(1)}
 		};
 
-		return encodingMap_.get(encoding_name).get();
+		return encodingMap_.get(encoding_name);
 	}
 }
 #endif
