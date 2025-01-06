@@ -102,7 +102,7 @@ namespace ayr
 		}
 
 		// 转换为整数
-		int to_int(Encoding* encoding) const { return encoding->to_int(data()); }
+		int to_int(Encoding* encoding) const { return encoding->to_int(data(), size()); }
 
 		// 转换为大写字母
 		self upper() const

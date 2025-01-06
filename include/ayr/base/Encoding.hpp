@@ -20,13 +20,14 @@ namespace ayr
 		using super = Object<self>;
 
 	public:
+		constexpr Encoding() = default;
+
 		virtual CString __str__() const { return "Encoding"; }
 
 		// 返回当前编码方式，开头字符的字节数
 		virtual int byte_size(const char* data) const = 0;
 
-		// 返回当前编码方式的克隆
-		virtual Encoding* clone() const = 0;
+		virtual int to_int(const char* data, int size = -1) const = 0;
 
 		virtual ~Encoding() = default;
 	};
@@ -39,11 +40,13 @@ namespace ayr
 		using super = Encoding;
 
 	public:
+		constexpr ASCIIEncoding() = default;
+
 		CString __str__() const override { return ASCII; }
 
-		int byte_size(const char* data) const override { return 1; }
+		constexpr int byte_size(const char* data) const override { return 1; }
 
-		self* clone() const override { return new self(); }
+		constexpr int to_int(const char* data, int size = -1) const override { return data[0]; }
 	};
 
 
@@ -54,24 +57,39 @@ namespace ayr
 		using super = Encoding;
 
 	public:
+		constexpr UTF8Encoding() = default;
+
 		CString __str__() const override { return UTF8; }
 
-		int byte_size(const char* data) const override
+		constexpr int byte_size(const char* data) const override
 		{
-			if ((data[0] & 0x80) == 0)         // 以0    开头 (0xxxxxxx),1字节编码
+			if ((data[0] & 0x80) == 0)         // 以0    开头 1字节编码 (0xxxxxxx)
 				return 1;
-			else if ((data[0] & 0xE0) == 0xC0) // 以110  开头 (110xxxxx),2字节编码
+			else if ((data[0] & 0xE0) == 0xC0) // 以110  开头 2字节编码(110xxxxx 10xxxxxx)
 				return  2;
-			else if ((data[0] & 0xF0) == 0xE0) // 以1110 开头 (1110xxxx),3字节编码
+			else if ((data[0] & 0xF0) == 0xE0) // 以1110 开头 3字节编码 (1110xxxx 10xxxxxx 10xxxxxx)
 				return 3;
-			else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 (11110xxx),4字节编码
+			else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 4字节编码 (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx),
 				return 4;
 			else
 				ValueError("Invalid CodePoint");
 			return 0;
 		}
 
-		self* clone() const override { return new self(); }
+		constexpr int to_int(const char* data, int size = -1) const override
+		{
+			if (size == -1)
+				size = byte_size(data);
+
+			switch (size)
+			{
+			case 1: return data[0];
+			case 2: return ((data[0] & 0x1F) << 6) | (data[1] & 0x3F);
+			case 3: return ((data[0] & 0x0F) << 12) | ((data[1] & 0x3F) << 6) | (data[2] & 0x3F);
+			case 4: return ((data[0] & 0x07) << 18) | ((data[1] & 0x3F) << 12) | ((data[2] & 0x3F) << 6) | (data[3] & 0x3F);
+			default: ValueError("Invalid CodePoint");
+			}
+		}
 	};
 
 
@@ -82,17 +100,39 @@ namespace ayr
 		using super = Encoding;
 
 	public:
+		constexpr UTF16Encoding() = default;
+
 		CString __str__() const  override { return UTF16; }
 
-		int byte_size(const char* data) const override
+		constexpr int byte_size(const char* data) const override
 		{
-			if ((data[0] & 0xFC) == 0xD8) // 以110110开头 (110110xx 110111xx),4字节编码
-				return 4;
-			else
-				return 2;
+			// 检查是否是代理对
+			uint16_t first = (data[0] << 8) | data[1];
+			if (first >= 0xD800 && first <= 0xDBFF) // 高位代理
+			{
+				uint16_t second = (data[2] << 8) | data[3];
+				if (second >= 0xDC00 && second <= 0xDFFF) // 低位代理
+					return 4;
+			}
+			return 2; // BMP 范围
 		}
 
-		self* clone() const override { return new self(); }
+		constexpr int to_int(const char* data, int size = -1) const override
+		{
+			if (size == -1)
+				size = byte_size(data);
+
+			switch (size)
+			{
+			case 2:
+				// 处理单个 UTF-16 单元
+				return (data[0] << 8) | data[1];
+			case 4:
+				// 处理代理对
+				return 0x10000 + (((data[0] << 8 | data[1]) - 0xD800) << 10) + (data[2] << 8 | data[3]) - 0xDC00;
+			default: ValueError("Invalid CodePoint");
+			}
+		}
 	};
 
 
@@ -103,11 +143,16 @@ namespace ayr
 		using super = Encoding;
 
 	public:
+		constexpr UTF32Encoding() = default;
+
 		CString __str__() const  override { return UTF32; }
 
-		int byte_size(const char* data) const override { return 4; }
+		constexpr int byte_size(const char* data) const override { return 4; }
 
-		self* clone() const override { return new self(); }
+		constexpr int to_int(const char* data, int size = -1) const override
+		{
+			return (data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3];
+		}
 	};
 
 
@@ -118,24 +163,32 @@ namespace ayr
 		using super = Encoding;
 
 	public:
+		constexpr GB2312Encoding() = default;
+
 		CString __str__() const  override { return GB2312; }
 
-		int byte_size(const char* data) const override { return 0; }
+		constexpr int byte_size(const char* data) const override
+		{
+			NotImplementedError("GB2312Encoding is not suppoerted yet");
+		}
 
-		self* clone() const override { return new self(); }
+		constexpr int to_int(const char* data, int size = -1) const override
+		{
+			NotImplementedError("GB2312Encoding is not suppoerted yet");
+		}
 	};
 
 	Encoding* encoding_map(const CString& encoding_name)
 	{
-		static Dict<CString, Encoding*> encodingMap_{
-			{ASCII, new ASCIIEncoding()},
-			{UTF8, new UTF8Encoding()},
-			{UTF16, new UTF16Encoding()},
-			{UTF32, new UTF32Encoding()},
-			{GB2312, new GB2312Encoding()}
+		static Dict<CString, std::unique_ptr<Encoding>> encodingMap_{
+			{ASCII, std::make_unique<ASCIIEncoding>()},
+			{UTF8, std::make_unique<UTF8Encoding>()},
+			{UTF16, std::make_unique<UTF16Encoding>()},
+			{UTF32, std::make_unique<UTF32Encoding>()},
+			{GB2312, std::make_unique<GB2312Encoding>()}
 		};
 
-		return encodingMap_.get(encoding_name);
+		return encodingMap_.get(encoding_name).get();
 	}
 }
 #endif
