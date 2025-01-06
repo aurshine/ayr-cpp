@@ -34,7 +34,7 @@ namespace ayr
 			std::memcpy(data(), data_, code_size_);
 		}
 
-		CodePoint(int code, Encoding* encoding) : CodePoint(encoding->from_int(code), encoding) {}
+		CodePoint(int code, Encoding* encoding) : CodePoint(encoding->from_int(code).data(), encoding) {}
 
 		CodePoint(const self& other)
 		{
