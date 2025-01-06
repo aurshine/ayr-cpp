@@ -29,6 +29,8 @@ namespace ayr
 
 		virtual int to_int(const char* data, int size = -1) const = 0;
 
+		virtual CString from_int(int code) const = 0;
+
 		virtual ~Encoding() = default;
 	};
 
@@ -47,6 +49,8 @@ namespace ayr
 		constexpr int byte_size(const char* data) const override { return 1; }
 
 		constexpr int to_int(const char* data, int size = -1) const override { return data[0]; }
+
+		CString from_int(int code) const override { return CString(reinterpret_cast<const char*>(&code), 1); }
 	};
 
 
@@ -89,6 +93,11 @@ namespace ayr
 			case 4: return ((data[0] & 0x07) << 18) | ((data[1] & 0x3F) << 12) | ((data[2] & 0x3F) << 6) | (data[3] & 0x3F);
 			default: ValueError("Invalid CodePoint");
 			}
+		}
+
+		CString from_int(int code) const override
+		{
+			NotImplementedError("UTF8Encoding::from_int is not suppoerted yet");
 		}
 	};
 
@@ -133,6 +142,11 @@ namespace ayr
 			default: ValueError("Invalid CodePoint");
 			}
 		}
+
+		CString from_int(int code) const override
+		{
+			NotImplementedError("UTF16Encoding::from_int is not suppoerted yet");
+		}
 	};
 
 
@@ -152,6 +166,11 @@ namespace ayr
 		constexpr int to_int(const char* data, int size = -1) const override
 		{
 			return (data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3];
+		}
+
+		CString from_int(int code) const override
+		{
+			NotImplementedError("UTF32Encoding::from_int is not suppoerted yet");
 		}
 	};
 
@@ -175,6 +194,11 @@ namespace ayr
 		constexpr int to_int(const char* data, int size = -1) const override
 		{
 			NotImplementedError("GB2312Encoding is not suppoerted yet");
+		}
+
+		CString from_int(int code) const override
+		{
+			NotImplementedError("GB2312Encoding::from_int is not suppoerted yet");
 		}
 	};
 
