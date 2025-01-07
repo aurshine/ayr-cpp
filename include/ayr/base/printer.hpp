@@ -15,7 +15,7 @@ namespace ayr
 
 	constexpr static const _Flush flush{};
 
-	std::ostream& operator<<(std::ostream& os, const _Flush& flush)
+	der(std::ostream&) operator<<(std::ostream& os, const _Flush& flush)
 	{
 		os.flush();
 		return os;

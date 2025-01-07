@@ -126,7 +126,7 @@ namespace ayr
 	template<AyrPrintable T>
 	der(CString) cstr(const T& value) { return value.__str__(); }
 
-	std::ostream& operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
+	der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
 }
 
 template<>
