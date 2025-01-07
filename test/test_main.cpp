@@ -5,11 +5,12 @@
 #include "dict_test.hpp"
 #include "generator_test.hpp"
 #include "when_all_test.hpp"
+#include "chain_test.hpp"
 
 using namespace ayr;
 
 int main()
 {
-	set_test();
+	chain_speed_test();
 	return 0;
 }

@@ -12,19 +12,37 @@ void dict_run_speed_test()
 	Timer_ms t;
 	Dict<std::string, int> d;
 	std::vector<std::string> vs;
-	for (int i = 0; i < 1e6; i++)
+	constexpr int N = 10000;
+
+	for (int i = 0; i < N; i++)
 		vs.push_back(std::to_string(i));
 
 	t.into();
-	for (int i = 0; i < 1e6; i++)
+	for (int i = 0; i < N; i++)
 		d.insert(vs[i], i);
 	print("Dict insert time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		d[vs[i]];
+	print("Dict query time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		d.pop(vs[i]);
+	print("Dict pop time: ", t.escape(), "ms");
 
 	std::unordered_map<std::string, int> u;
 	t.into();
-	for (int i = 0; i < 1e6; i++)
+	for (int i = 0; i < N; i++)
 		u.insert(std::make_pair(vs[i], i));
 	print("std::unordered_map insert time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		u[vs[i]];
+	print("std::unordered_map query time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		u.erase(vs[i]);
+	print("std::unordered_map pop time: ", t.escape(), "ms");
 }
 
 void dict_and_or_xor_test()
@@ -66,6 +84,17 @@ void dict_test()
 	Dict<int, int> d{ {1, 1}, {2, 2}, {3, 3}, {4, 4	} };
 	print(d.size());
 	print("d:", d, "\n");
+	print.setend(" ");
+	for (auto& k : d.keys())
+		print(k);
+	print("\n");
+	for (auto& v : d.values())
+		print(v);
+	print("\n");
+	for (auto& kv : d.items())
+		print(kv.key(), kv.value());
+
+	print.setend("\n");
 
 	d.insert(5, 5);
 	d.insert(6, 6);
@@ -83,11 +112,12 @@ void dict_test()
 	d.update({ {10, 10} });
 	d.update(d2);
 	print(d.size());
-	print("after update {10, 10}:", d, "\n");
+	print("after update {9, 9}, {10, 10}:", d, "\n");
 
 	d.clear();
 	print(d.size());
 	print("after clear:", d, "\n");
+	d.items();
 	dict_run_speed_test();
 	dict_and_or_xor_test();
 }

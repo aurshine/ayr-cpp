@@ -76,6 +76,22 @@ void iterate_test()
 	print("DynArray at time:", tm.escape());
 }
 
+void pop_odd_test()
+{
+	DynArray<CString> da;
+	for (int i = 10; i < 30; ++i)
+	{
+		da.append(cstr(i));
+	}
+
+	tlog(da);
+	c_size n = da.pop_if([](const CString& s) { return s[0] % 2 == 0; });
+	tlog(da);
+
+	da.each([](CString& s) { tlog(s); s = "0"; });
+	tlog(da);
+}
+
 void dynarray_test()
 {
 	runspeed_test();
@@ -140,4 +156,6 @@ void dynarray_test()
 	std::sort(da4.begin(), da4.end());
 	tlog(da4);
 	tlog(da4.end() - da4.begin());
+
+	pop_odd_test();
 }
