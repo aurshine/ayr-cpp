@@ -43,7 +43,7 @@ namespace ayr
 		template<typename... Args>
 		T* create(Args&&... args)
 		{
-			return *ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
+			return ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
 		}
 
 		// 销毁对象
