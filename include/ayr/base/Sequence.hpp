@@ -29,6 +29,9 @@ namespace ayr
 
 		c_size size() const { NotImplementedError(std::format("{} Not implemented size()", dtype(Derived))); return None<c_size>; }
 
+		// 删除最后n个元素
+		void pop_back(c_size n = 1) { NotImplementedError(std::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
+
 		cmp_t __cmp__(const Derived& other) const
 		{
 			auto m_it = super::derived().begin(), m_end = super::derived().end();
@@ -106,9 +109,6 @@ namespace ayr
 		{
 			return index_if([&v](const Value_t& x) { return x == v; }, pos);
 		}
-
-		// 删除最后n个元素
-		void pop_back(c_size n = 1) { NotImplementedError(std::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
 
 		// 删除满足条件的元素, 返回删除的元素个数
 		c_size pop_if(const CheckTask& check, c_size pos = 0)
