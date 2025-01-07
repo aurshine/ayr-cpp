@@ -199,21 +199,6 @@ namespace ayr
 
 		self& operator+= (self&& other) { return extend(std::move(other)); }
 
-		// 容器的字符串形式
-		CString __str__() const
-		{
-			std::stringstream stream;
-			stream << "[";
-			for (c_size i = 0, m_size = size(); i < m_size; ++i)
-			{
-				if (i) stream << ", ";
-				stream << at(i);
-			}
-			stream << "]";
-
-			return CString(stream.str());
-		}
-
 		template<bool IsConst>
 		struct _Iterator : public IteratorInfo<_Iterator<IsConst>, add_const_t<IsConst, DynArray<Value_t>>, std::random_access_iterator_tag, add_const_t<IsConst, Value_t>>
 		{
