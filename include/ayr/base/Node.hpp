@@ -2,7 +2,8 @@
 #define AYR_DETIAL_NODE_HPP
 
 #include "raise_error.hpp"
-
+#include "ayr_traits.hpp"
+#include "IteratorInfo.hpp"
 
 namespace ayr
 {
@@ -25,6 +26,7 @@ namespace ayr
 
 		SimpleNode(self&& other) : value_(std::move(other.value_)), next_(std::exchange(other.next, nullptr)) {}
 
+		// 只拷贝值，不拷贝连接的节点
 		self& operator=(const self& other)
 		{
 			ayr_destroy(this);
@@ -144,26 +146,24 @@ namespace ayr
 	};
 
 
-	template<bool IsConst, typename ND>
-	struct NodeIterator : public IteratorInfo<NodeIterator<IsConst, ND>, NonContainer, std::forward_iterator_tag, typename ND::Value_t>
+	template<bool IsConst, bool IsBidirectional, typename ND>
+	struct NodeIterator : public IteratorInfo<NodeIterator<IsConst, IsBidirectional, ND>, NonContainer, std::conditional_t<IsBidirectional, std::bidirectional_iterator_tag, std::forward_iterator_tag>, add_const_t<IsConst, typename ND::Value_t>>
 	{
-		using self = NodeIterator<IsConst, ND>;
+		using self = NodeIterator<IsConst, IsBidirectional, ND>;
 
-		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, typename ND::Value_t>;
+		using ItInfo = IteratorInfo<self, NonContainer, std::conditional_t<IsBidirectional, std::bidirectional_iterator_tag, std::forward_iterator_tag>, add_const_t<IsConst, typename ND::Value_t>>;
+
+		using Node_t = ND;
 
 		NodeIterator() : node_(nullptr) {}
 
-		NodeIterator(ND* node) : node_(node) {}
+		NodeIterator(Node_t* node) : node_(node) {}
 
 		NodeIterator(const self& other) : node_(other.node_) {}
 
-		self& operator=(const self& other)
-		{
-			node_ = other.node_;
-			return *this;
-		}
+		self& operator=(const self& other) { node_ = other.node_; return *this; }
 
-		typename ItInfo::Reference operator*() const
+		typename ItInfo::reference operator*() const
 		{
 			if (node_ == nullptr)
 				NullPointerError("Dereference null pointer");
@@ -171,17 +171,65 @@ namespace ayr
 			return node_->get();
 		}
 
-		ND* operator->() const
+		typename ItInfo::pointer operator->() const
 		{
 			if (node_ == nullptr)
 				NullPointerError("Dereference null pointer");
 
-			return node_;
+			return &node_->get();
 		}
 
 		self& operator++() { node_ = node_->next_node(); return *this; }
+
+		self operator++(int) { self tmp(*this); ++*this; return tmp; }
+
+		self& operator--() requires IsBidirectional { node_ = node_->prev_node(); return *this; }
+
+		self operator--(int) requires IsBidirectional { self tmp(*this); --*this; return tmp; }
+
+		self operator+(ItInfo::difference_type n) const
+		{
+			Node_t* tmp = node_;
+			while (n--) tmp = tmp->next_node();
+			return tmp;
+		}
+
+		self operator-(ItInfo::difference_type n) const requires IsBidirectional
+		{
+			Node_t* tmp = node_;
+			while (n--) tmp = tmp->prev_node();
+			return tmp;
+		}
+
+		self& operator+=(ItInfo::difference_type n)
+		{
+			while (n--) node_ = node_->next_node();
+			return *this;
+		}
+
+		self& operator-=(ItInfo::difference_type n) requires IsBidirectional
+		{
+			while (n--) node_ = node_->prev_node();
+			return *this;
+		}
+
+		typename ItInfo::difference_type operator-(const self& other) const
+		{
+			Node_t* tmp = node_;
+			typename ItInfo::difference_type n = 0;
+			while (tmp != other.node_)
+			{
+				tmp = tmp->next_node();
+				if (tmp == nullptr)
+					RuntimeError("cannot calculate distance between two iterators");
+				++n;
+			}
+			return n;
+		}
+
+		bool __equals__(const self& other) const { return node_ == other.node_; }
 	private:
-		ND* node_;
+		Node_t* node_;
 	};
 }
 
