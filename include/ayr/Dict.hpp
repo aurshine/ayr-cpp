@@ -4,6 +4,7 @@
 #include <ranges>
 
 #include "ayr_memory.hpp"
+#include "Chain.hpp"
 #include "base/HashBucket.hpp"
 #include "base/View.hpp"
 
@@ -60,9 +61,9 @@ namespace ayr
 
 		using Value_t = V;
 
-		using Iterator = DynArray<Key_t>::Iterator;
+		using Iterator = BiChain<Key_t>::Iterator;
 
-		using ConstIterator = DynArray<Key_t>::ConstIterator;
+		using ConstIterator = BiChain<Key_t>::ConstIterator;
 
 		template<bool IsConst>
 		struct KeyValueViewIterator : public IteratorInfo<
@@ -79,7 +80,7 @@ namespace ayr
 				KeyValueView<add_const_t<IsConst, Key_t>, add_const_t<IsConst, Value_t>>
 			>;
 
-			using DI = std::conditional_t<IsConst, typename DynArray<Key_t>::ConstIterator, typename DynArray<Key_t>::Iterator>;
+			using DI = std::conditional_t<IsConst, typename BiChain<Key_t>::ConstIterator, typename BiChain<Key_t>::Iterator>;
 
 			KeyValueViewIterator() : dict_(nullptr), it_(), kv_() {}
 
@@ -284,12 +285,12 @@ namespace ayr
 			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), hashv);
 		}
 
-		void pop(const Key_t& key)
+		/*void pop(const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
 			bucket_.pop(hashv);
 			keys_.pop(keys_.find(key));
-		}
+		}*/
 
 		void clear() { bucket_.clear(); keys_.clear(); }
 
@@ -487,7 +488,7 @@ namespace ayr
 	private:
 		Bucket_t bucket_;
 
-		DynArray<Key_t> keys_;
+		BiChain<Key_t> keys_;
 
 		static constexpr double MAX_LOAD_FACTOR = 0.75;
 
