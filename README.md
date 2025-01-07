@@ -93,6 +93,76 @@ pass time: 3003.89 ms
 */
 ```
 
+## Chain&BiChain单链表双链表
+添加速度与std::list相当，随机删除速度快std::list 6倍
+```cpp
+def chain_speed_test()
+{
+	Timer_ms timer;
+	Chain<CString> chain;
+	BiChain<CString> bichain;
+	std::list<CString> stdlist;
+	std::forward_list<CString> stdflist;
+
+	int N = 1e6;
+
+	timer.into();
+	for (int i = 0; i < N; i++)
+		chain.append("hello");
+	print("chain append time: ", timer.escape(), "ms");
+
+	timer.into();
+	for (int i = 0; i < N; i++)
+		bichain.append("hello");
+	print("bichain append time: ", timer.escape(), "ms");
+
+	timer.into();
+	for (int i = 0; i < N; i++)
+		stdlist.push_back("hello");
+	print("std::list append time: ", timer.escape(), "ms");
+
+	timer.into();
+	for (int i = 0; i < N; i++)
+		stdflist.push_front("hello");
+	print("std::forward_list append time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto cnd = chain.at_node(1000);
+	while (chain.size() > 1005)
+		chain.pop_from(cnd->next_node(), 1, cnd);
+	print("chain random pop time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto bicnd = bichain.at_node(1000);
+	while (bichain.size() > 1005)
+		bichain.pop_from(bicnd->next_node(), 1);
+	print("bichain random pop time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto stdit = stdlist.begin();
+	std::advance(stdit, 1000);
+	while (stdlist.size() > 1005)
+	{
+		auto _0 = stdit++;
+		auto _1 = stdit++;
+		stdlist.erase(_1, stdit);
+		stdit = _0;
+	}
+
+	print("std::list random pop time: ", timer.escape(), "ms");
+
+}
+/*
+输出:
+chain append time:  478 ms
+bichain append time:  461 ms
+std::list append time:  601 ms
+std::forward_list append time:  559 ms
+chain random pop time:  196 ms
+bichain random pop time:  216 ms
+std::list random pop time:  1213 ms
+*/
+```
 ## 协程
 使用生成器函数
 ```cpp
