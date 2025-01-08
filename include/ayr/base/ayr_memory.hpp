@@ -30,6 +30,13 @@ namespace ayr
 		return ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
 	}
 
+	// 拷贝或移动构造一个对象, 并返回指针
+	template<typename T>
+	def ayr_cove_make(T&& obj) -> std::remove_reference_t<T>*
+	{
+		return ayr_make<std::remove_reference_t<T>>(std::forward<T>(obj));
+	}
+
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
 	def ayr_destroy(T* ptr, size_t size = 1)
