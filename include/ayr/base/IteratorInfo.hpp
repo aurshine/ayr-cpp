@@ -35,9 +35,11 @@ namespace ayr
 
 		using reference = Reference;
 
-		using const_pointer = const T*;
+		using rvalue_reference = std::remove_reference_t<T>&&;
 
-		using const_reference = const T&;
+		using const_pointer = const std::remove_reference_t<T>*;
+
+		using const_reference = const std::remove_reference_t<T>&;
 	};
 
 }
