@@ -35,17 +35,6 @@ namespace ayr
 	private:
 		DynArray<T> created_values;
 	};
-
-	template<typename T>
-	struct Ayrocator : Object<Ayrocator<T>>
-	{
-		// 分配并构造对象
-		template<typename... Args>
-		T create(Args&&... args) { return *ayr_make<T>(std::forward<Args>(args)...); }
-
-		// 销毁对象
-		void destroy(T* ptr) { ayr_desloc(ptr); }
-	};
 }
 
 #endif
