@@ -23,6 +23,13 @@ namespace ayr
 		return ptr;
 	}
 
+	// 分配一个T的内存, 并调用构造函数, 返回指针
+	template<typename T, typename ... Args>
+	def ayr_make(Args&&... args) -> T*
+	{
+		return ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
+	}
+
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
 	def ayr_destroy(T* ptr, size_t size = 1)
