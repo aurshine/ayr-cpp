@@ -54,6 +54,14 @@ namespace ayr
 		ptr = nullptr;
 	}
 
+	// 释放ptr指向的内存, 并调用析构函数
+	template<typename T>
+	def ayr_desloc(T*& ptr, size_t size)
+	{
+		ayr_destroy(ptr, size);
+		ayr_delloc(ptr);
+	}
+
 	template<typename T>
 	struct AyrDeleter
 	{
