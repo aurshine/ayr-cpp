@@ -31,10 +31,10 @@ namespace ayr
 	}
 
 	// 拷贝或移动构造一个对象, 并返回指针
-	template<typename T>
-	def ayr_cove_make(T&& obj) -> std::remove_reference_t<T>*
+	template<typename T, typename R = std::decay_t<T>>
+	def ayr_cove_make(T&& obj) -> R*
 	{
-		return ayr_make<std::remove_reference_t<T>>(std::forward<T>(obj));
+		return ayr_make<R>(std::forward<T>(obj));
 	}
 
 	// 调用ptr的析构函数,不会释放内存
@@ -48,15 +48,11 @@ namespace ayr
 
 	// 释放ptr指向的内存
 	template<typename T>
-	def ayr_delloc(T*& ptr)
-	{
-		::operator delete(ptr);
-		ptr = nullptr;
-	}
+	def ayr_delloc(T* ptr) { ::operator delete(ptr); }
 
 	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
-	def ayr_desloc(T*& ptr, size_t size)
+	def ayr_desloc(T* ptr, size_t size)
 	{
 		ayr_destroy(ptr, size);
 		ayr_delloc(ptr);
