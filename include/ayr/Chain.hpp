@@ -35,36 +35,26 @@ namespace ayr
 				append(v);
 		}
 
-		ChainImpl(ChainImpl&& other) :head_(other.head_), tail_(other.tail_), size_(0) {}
+		ChainImpl(ChainImpl&& other) :head_(std::exchange(other.head_, nullptr)), tail_(std::exchange(other.tail_, nullptr)), size_(other.size_) {}
 
 		~ChainImpl() { clear(); }
 
 		c_size size() const { return size_; }
 
-		// 获取from_node开始第n个节点在当前链表里的地址
-		Node_t* at_node_from(const Node_t& from_node, int n = 0) const
+		Node_t& at_node_from(const Node_t& from_node, int n = 0)
 		{
-			Node_t* cur_node = nullptr;
-			if (n == 0)
-			{
-				cur_node = head_;
-				while (cur_node != nullptr && *cur_node != from_node)
-					cur_node = cur_node->next_node();
-			}
-			else
-			{
-				cur_node = from_node.next_node();
-				while (--n)
-					cur_node = cur_node->next_node();
-			}
+			return at_node_from_impl(from_node, n);
+		}
 
-			return cur_node;
+		const Node_t& at_node_from(const Node_t& from_node, int n = 0) const
+		{
+			return at_node_from_impl(from_node, n);
 		}
 
 		// 返回node的索引
-		Node_t& at_node(c_size index) { return *at_node_from(*head_, index); }
+		Node_t& at_node(c_size index) { return at_node_from(*head_, index); }
 
-		const Node_t& at_node(c_size index) const { return *at_node_from(*head_, index); }
+		const Node_t& at_node(c_size index) const { return at_node_from(*head_, index); }
 
 		Value_t& at(c_size index) { return *at_node(index); }
 
@@ -147,7 +137,7 @@ namespace ayr
 
 			c_size pos = 0;
 			for (auto& current : *this)
-				ret[pos++] = current->get();
+				ret[pos++] = current;
 
 			return ret;
 		}
@@ -159,6 +149,26 @@ namespace ayr
 		ConstIterator begin() const { return *head_; }
 
 		ConstIterator end() const { return *Node_t::none_node(); }
+	private:
+		// 获取from_node开始第n个节点在当前链表里的地址
+		Node_t& at_node_from_impl(const Node_t& from_node, int n = 0) const
+		{
+			Node_t* cur_node = nullptr;
+			if (n == 0)
+			{
+				cur_node = head_;
+				while (cur_node != nullptr && *cur_node != from_node)
+					cur_node = cur_node->next_node();
+			}
+			else
+			{
+				cur_node = from_node.next_node();
+				while (--n)
+					cur_node = cur_node->next_node();
+			}
+
+			return *cur_node;
+		}
 	protected:
 		Node_t* head_, * tail_;
 
@@ -215,7 +225,7 @@ namespace ayr
 		}
 
 		// 从node节点开始删除n个节点
-		void pop_from(Node_t from_node, int n = 1)
+		void pop_from(const Node_t& from_node, int n = 1)
 		{
 			if (from_node == *super::head_)
 			{
