@@ -35,7 +35,7 @@ namespace ayr
 				append(v);
 		}
 
-		ChainImpl(ChainImpl&& other) :head_(std::exchange(other.head_, nullptr)), tail_(std::exchange(other.tail_, nullptr)), size_(other.size_) {}
+		ChainImpl(ChainImpl&& other) :head_(std::exchange(other.head_, nullptr)), tail_(std::exchange(other.tail_, nullptr)), size_(std::exchange(other.size_, 0)) {}
 
 		~ChainImpl() { clear(); }
 
