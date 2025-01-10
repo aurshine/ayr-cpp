@@ -22,17 +22,17 @@ namespace ayr
 		{
 			json_str = json_str.strip();
 
-			if (json_str[0] == CodePoint('{'))  // dict类型
+			if (json_str[0] == "{")  // dict类型
 			{
-				JsonType::JsonStr match = json_str.match('{', '}');
+				JsonType::JsonStr match = json_str.match("{", "}");
 				return _parse_dict(match);
 			}
-			else if (json_str[0] == CodePoint('['))  // array类型
+			else if (json_str[0] == "{")  // array类型
 			{
-				JsonType::JsonStr match = json_str.match('[', ']');
+				JsonType::JsonStr match = json_str.match("[", "]");
 				return _parse_array(match);
 			}
-			else if (json_str[0] == CodePoint('"'))  // str类型
+			else if (json_str[0] == "\"")  // str类型
 				return _parse_str(json_str);
 			else
 				return _parse_simple(json_str);
@@ -53,7 +53,7 @@ namespace ayr
 			bool float_flag = false;
 			for (auto&& c : json_str)
 				if (!c.isdigit())
-					if (c == CodePoint('.') && !float_flag)
+					if (c == "." && !float_flag)
 						float_flag = true;
 					else
 						ValueError(std::format("invalid number parse: {}", json_str));
@@ -90,37 +90,37 @@ namespace ayr
 		{
 			if (json_str[0].isdigit())  // number类型
 				return _parse_num(json_str);
-			else if (json_str[0] == CodePoint('n')) // null类型
+			else if (json_str[0] == "n") // null类型
 				return _parse_null(json_str);
-			else if (json_str[0] == CodePoint('t') || json_str[0] == CodePoint('f')) // bool类型
+			else if (json_str[0] == "t" || json_str[0] == "f") // bool类型
 				return _parse_bool(json_str);
 			else
 				ValueError(std::format("invalid simple parse: {}", json_str));
 		}
 
 
-		def parse_first_object(JsonType::JsonStr& json_str, CodePoint stop_sign) -> std::pair<Json, JsonType::JsonStr>
+		def parse_first_object(JsonType::JsonStr& json_str, const JsonType::JsonStr& stop_sign) -> std::pair<Json, JsonType::JsonStr>
 		{
 			json_str = json_str.strip();
 			if (json_str.size() == 0)
 				ValueError("json_str is empty");
 
 			JsonType::JsonStr match;
-			if (json_str[0] == CodePoint('['))
+			if (json_str[0] == "[")
 			{
-				match = json_str.match('[', ']');
+				match = json_str.match("[", "]");
 			}
-			else if (json_str[0] == CodePoint('{'))
+			else if (json_str[0] == "{")
 			{
-				match = json_str.match('{', '}');
+				match = json_str.match("{", "}");
 			}
-			else if (json_str[0] == CodePoint('"'))
+			else if (json_str[0] == "\"")
 			{
-				match = json_str.slice(0, json_str.slice(1).index('"') + 2);
+				match = json_str.slice(0, json_str.slice(1).find("\"") + 1);
 			}
 			else
 			{
-				c_size stop_sign_idx = json_str.index(stop_sign);
+				c_size stop_sign_idx = json_str.find(stop_sign);
 				if (stop_sign_idx == -1)
 					match = json_str;
 				else
@@ -149,7 +149,7 @@ namespace ayr
 			json_str = json_str.slice(1, -1).strip();
 			while (json_str.size())
 			{
-				auto [item, _json_str] = parse_first_object(json_str, ',');
+				auto [item, _json_str] = parse_first_object(json_str, ",");
 				arr.append(item);
 				json_str = _json_str;
 			}
@@ -166,10 +166,10 @@ namespace ayr
 
 			while (json_str.size())
 			{
-				auto [key, _json_str1] = parse_first_object(json_str, ':');
+				auto [key, _json_str1] = parse_first_object(json_str, ":");
 				json_str = _json_str1;
 
-				auto [value, _json_str2] = parse_first_object(json_str, ',');
+				auto [value, _json_str2] = parse_first_object(json_str, ",");
 				json_str = _json_str2;
 
 				dict[key] = std::move(value);
