@@ -11,6 +11,6 @@ using namespace ayr;
 
 int main()
 {
-	chain_speed_test();
+	dict_test();
 	return 0;
 }

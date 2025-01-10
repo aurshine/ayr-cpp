@@ -1,7 +1,9 @@
 #pragma once
+#include <list>
+#include <forward_list>
+
 #include "ayr/Chain.hpp"
 #include "ayr/timer.hpp"
-
 
 using namespace ayr;
 
@@ -34,16 +36,17 @@ inline void bichain_test()
 	BiChain<int> bichain;
 	for (int i = 0; i < 10; i++)
 		bichain.append(i);
+	auto node = bichain.at_node(2);
 
 	tlog(bichain.size());
 	for (auto& i : bichain)
 		tlog(i);
 
 	auto it = bichain.at_node(bichain.size() - 1);
-	while (it)
+	while (it.has_prev())
 	{
 		tlog(*it);
-		it = it->prev_node();
+		it = *it.prev_node();
 	}
 
 	bichain.pop_back(3);
@@ -78,25 +81,51 @@ def chain_speed_test()
 	Timer_ms timer;
 	Chain<CString> chain;
 	BiChain<CString> bichain;
+	std::list<CString> stdlist;
+	std::forward_list<CString> stdflist;
+
 	int N = 1e6;
 
 	timer.into();
 	for (int i = 0; i < N; i++)
 		chain.append("hello");
-	tlog(timer.escape());
+	print("chain append time: ", timer.escape(), "ms");
 
 	timer.into();
 	for (int i = 0; i < N; i++)
 		bichain.append("hello");
-	tlog(timer.escape());
+	print("bichain append time: ", timer.escape(), "ms");
 
 	timer.into();
-	while (chain.size())
-		chain.pop_from(chain.at_node(0), 1);
-	tlog(timer.escape());
+	for (int i = 0; i < N; i++)
+		stdlist.push_back("hello");
+	print("std::list append time: ", timer.escape(), "ms");
 
 	timer.into();
-	while (bichain.size())
-		bichain.pop_from(bichain.at_node(0), 1);
-	tlog(timer.escape());
+	for (int i = 0; i < N; i++)
+		stdflist.push_front("hello");
+	print("std::forward_list append time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto& cnd = chain.at_node(1000);
+	while (chain.size() > 1005)
+		chain.pop_from(*cnd.next_node(), 1, &cnd);
+	print("chain random pop time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto& bcnd = bichain.at_node(1000);
+	while (bichain.size() > 1005)
+		bichain.pop_from(*bcnd.next_node(), 1);
+	print("bichain random pop time: ", timer.escape(), "ms");
+
+	timer.into();
+	auto it = stdlist.begin();
+	std::advance(it, 1000);
+	while (stdlist.size() > 1005)
+	{
+		stdlist.erase(std::next(it, 1), std::next(it, 2));
+	}
+
+	print("std::list random pop time: ", timer.escape(), "ms");
+
 }

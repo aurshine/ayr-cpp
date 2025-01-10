@@ -1,6 +1,7 @@
 #pragma once
 #include <ayr/Dict.hpp>
 #include <ayr/Set.hpp>
+#include <ayr/timer.hpp>
 
 #include <unordered_map>
 
@@ -12,7 +13,7 @@ void dict_run_speed_test()
 	Timer_ms t;
 	Dict<std::string, int> d;
 	std::vector<std::string> vs;
-	constexpr int N = 10000;
+	constexpr int N = 1e6;
 
 	for (int i = 0; i < N; i++)
 		vs.push_back(std::to_string(i));
@@ -27,7 +28,10 @@ void dict_run_speed_test()
 	print("Dict query time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
+	{
 		d.pop(vs[i]);
+	}
+
 	print("Dict pop time: ", t.escape(), "ms");
 
 	std::unordered_map<std::string, int> u;
@@ -91,8 +95,8 @@ void dict_test()
 	for (auto& v : d.values())
 		print(v);
 	print("\n");
-	for (auto& kv : d.items())
-		print(kv.key(), kv.value());
+	for (auto [k, v] : d.items())
+		print(k, v);
 
 	print.setend("\n");
 
@@ -102,6 +106,8 @@ void dict_test()
 	d.insert(8, 8);
 	print(d.size());
 	print("after insert {5, 5}, {6, 6}, {7, 7}, {8, 8}:", d, "\n");
+
+	print("key 1 value: ", d.get(1));
 
 	d.pop(1);
 	d.pop(2);
