@@ -143,11 +143,11 @@ namespace ayr
 			return ret;
 		}
 
-		Iterator begin() { return *head_; }
+		Iterator begin() { return ifelse(head_ != nullptr, *head_, *Node_t::none_node()); }
 
 		Iterator end() { return *Node_t::none_node(); }
 
-		ConstIterator begin() const { return *head_; }
+		ConstIterator begin() const { return ifelse(head_ != nullptr, *head_, *Node_t::none_node()); }
 
 		ConstIterator end() const { return *Node_t::none_node(); }
 	private:
