@@ -60,6 +60,69 @@ namespace ayr
 		c_size _start, _end, _step;
 	};
 
+	template<std::input_or_output_iterator ...Its>
+	class ZipIterator : public IteratorInfo<ZipIterator<Its...>, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::value_type&...>>
+	{
+	public:
+		using self = ZipIterator<Its...>;
+
+		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::value_type&...>>;
+
+		ZipIterator() : its_() {}
+
+		ZipIterator(Its... its) : its_(its...) {}
+
+		ZipIterator(const self& other) : its_(other.its_) {}
+
+		self& operator= (const self& other)
+		{
+			its_ = other.its_;
+			return *this;
+		}
+
+		ItInfo::value_type operator*() const
+		{
+			return std::apply([](auto&&... its) { return ItInfo::value_type(*its...); }, its_);
+		}
+
+		self& operator++()
+		{
+			std::apply([&](auto&&... its) { ((++its), ...); }, its_);
+			return *this;
+		}
+
+		self operator++(int)
+		{
+			self tmp(*this);
+			++(*this);
+			return tmp;
+		}
+
+		bool __equals__(const self& other) const
+		{
+			return its_ == other.its_;
+		}
+
+	private:
+		std::tuple<Its...> its_;
+	};
+	template<std::input_or_output_iterator... Its>
+	def zip_it(Its... its) -> ZipIterator<Its...>
+	{
+		return  ZipIterator<Its...>(its...);
+	}
+
+	template<Iteratable ...Itables>
+	def zip(Itables&&... itables)
+	{
+		return std::ranges::subrange(
+			zip_it(itables.begin()...),
+			zip_it(itables.end()...)
+		);
+	}
+
+
+
 	template<Iteratable T, typename Init>
 	def sum(T&& obj, Init init = Init()) -> Init
 	{
