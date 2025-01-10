@@ -262,6 +262,7 @@ namespace ayr
 				Manager_t& next_manager = robin_managers_.at(next_idx);
 				if (next_manager.is_managed() && next_manager.move_more_than(0))
 				{
+					next_manager.add_move_dist(-1);
 					cur_manager = std::move(next_manager);
 				}
 				else
@@ -269,7 +270,7 @@ namespace ayr
 					cur_manager.unmanage();
 					break;
 				}
-				++cur_idx;
+				cur_idx = next_idx;
 			}
 		}
 
