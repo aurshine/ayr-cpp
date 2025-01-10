@@ -98,6 +98,7 @@ namespace ayr
 		CString from_int(int code) const override
 		{
 			NotImplementedError("UTF8Encoding::from_int is not suppoerted yet");
+			return CString();
 		}
 	};
 
@@ -146,6 +147,7 @@ namespace ayr
 		CString from_int(int code) const override
 		{
 			NotImplementedError("UTF16Encoding::from_int is not suppoerted yet");
+			return CString();
 		}
 	};
 
@@ -171,6 +173,7 @@ namespace ayr
 		CString from_int(int code) const override
 		{
 			NotImplementedError("UTF32Encoding::from_int is not suppoerted yet");
+			return CString();
 		}
 	};
 
@@ -201,20 +204,21 @@ namespace ayr
 		CString from_int(int code) const override
 		{
 			NotImplementedError("GB2312Encoding::from_int is not suppoerted yet");
+			return CString();
 		}
 	};
 
 	Encoding* encoding_map(const CString& encoding_name)
 	{
 		static Dict<CString, Encoding*> encodingMap_{
-			{ASCII, ayr_alloc<ASCIIEncoding>(1)},
-			{UTF8, ayr_alloc<UTF8Encoding>(1)},
-			{UTF16, ayr_alloc<UTF16Encoding>(1)},
-			{UTF32, ayr_alloc<UTF32Encoding>(1)},
-			{GB2312, ayr_alloc<GB2312Encoding>(1)}
+			{ASCII, ayr_make<ASCIIEncoding>()},
+			{UTF8, ayr_make<UTF8Encoding>()},
+			{UTF16, ayr_make<UTF16Encoding>()},
+			{UTF32, ayr_make<UTF32Encoding>()},
+			{GB2312, ayr_make<GB2312Encoding>()}
 		};
 
 		return encodingMap_.get(encoding_name);
 	}
-}
+} // namespace ayr
 #endif
