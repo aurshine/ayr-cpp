@@ -61,7 +61,7 @@ namespace ayr
 		const Value_t& at(c_size index) const { return *at_node(index); }
 
 		template<typename... Args>
-		void append(Args&& ...args)
+		Node_t& append(Args&& ...args)
 		{
 			Node_t* new_node = ayr_make<Node_t>(std::forward<Args>(args)...);
 
@@ -72,6 +72,7 @@ namespace ayr
 
 			tail_ = new_node;
 			size_++;
+			return *tail_;
 		}
 
 		// 删除前n个节点
@@ -182,12 +183,13 @@ namespace ayr
 	template<typename T>
 	class BiChain : public ChainImpl<BiSimpleNode<T>>
 	{
+	public:
 		using Node_t = BiSimpleNode<T>;
 
 		using self = BiChain<T>;
 
 		using super = ChainImpl<Node_t>;
-	public:
+
 		BiChain() : super() {}
 
 		BiChain(std::initializer_list<T>&& il) : super(std::move(il)) {}
