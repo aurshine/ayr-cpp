@@ -187,6 +187,7 @@ namespace ayr
 			return result.to_array();
 		}
 
+		// 切片[start, end)，内容浅拷贝
 		self slice(c_size start, c_size end)
 		{
 			c_size size_ = size();
@@ -195,6 +196,7 @@ namespace ayr
 			return self(codepoints_ + start, end - start, manager_);
 		}
 
+		// 切片[start, end)，内容浅拷贝
 		const self slice(c_size start, c_size end) const
 		{
 			c_size size_ = size();
@@ -203,10 +205,13 @@ namespace ayr
 			return self(codepoints_ + start, end - start, manager_);
 		}
 
+		// 切片[start, size())，内容浅拷贝
 		self slice(c_size start) { return slice(start, size()); }
 
+		// 切片[start, size())，内容浅拷贝
 		const self slice(c_size start) const { return slice(start, size()); }
 
+		// 判断是否以prefix开头
 		bool startswith(const self& prefix) const
 		{
 			if (prefix.size() > size())
@@ -215,6 +220,7 @@ namespace ayr
 			return slice(0, prefix.size()) == prefix;
 		}
 
+		// 判断是否以suffix结尾
 		bool endswith(const self& suffix) const
 		{
 			if (suffix.size() > size())
@@ -223,6 +229,7 @@ namespace ayr
 			return slice(size() - suffix.size()) == suffix;
 		}
 
+		// 返回新的大写字符串
 		self upper() const
 		{
 			self result = *this;
@@ -231,6 +238,7 @@ namespace ayr
 			return result;
 		}
 
+		// 返回新的小写字符串
 		self lower() const
 		{
 			self result = *this;
@@ -239,46 +247,58 @@ namespace ayr
 			return result;
 		}
 
+		// 去除两端空白，浅拷贝
 		self strip()
 		{
 			auto [l, r] = _get_strip_index();
 			return slice(l, r);
 		}
 
+		// 去除两端空白，浅拷贝
 		const self strip() const
 		{
 			auto [l, r] = _get_strip_index();
 			return slice(l, r);
 		}
 
+		// 去除两端pattern，浅拷贝
 		self strip(const self& pattern)
 		{
 			auto [l, r] = _get_strip_index(pattern);
 			return slice(l, r);
 		}
 
+		// 去除两端pattern，浅拷贝
 		const self strip(const self& pattern) const
 		{
 			auto [l, r] = _get_strip_index(pattern);
 			return slice(l, r);
 		}
 
+		// 去除左侧空白，浅拷贝
 		self lstrip() { return slice(_get_lstrip_index()); }
 
+		// 去除左侧空白，浅拷贝
 		const self lstrip() const { return slice(_get_lstrip_index()); }
 
 		self lstrip(const self& pattern) { return slice(_get_lstrip_index(pattern)); }
 
+		// 去除左侧pattern，浅拷贝
 		const self lstrip(const self& pattern) const { return slice(_get_lstrip_index(pattern)); }
 
+		// 去除右侧空白，浅拷贝
 		self rstrip() { return slice(_get_rstrip_index()); }
 
+		// 去除右侧空白，浅拷贝
 		const self rstrip() const { return slice(_get_rstrip_index()); }
 
+		// 去除右侧pattern，浅拷贝
 		self rstrip(const self& pattern) { return slice(_get_rstrip_index(pattern)); }
 
+		// 去除右侧pattern，浅拷贝
 		const self rstrip(const self& pattern) const { return slice(_get_rstrip_index(pattern)); }
 
+		// 连接字符串序列，返回新的字符串
 		template<IteratableU<self> Obj>
 		self join(const Obj& elems) const
 		{
@@ -302,6 +322,7 @@ namespace ayr
 			return result;
 		}
 
+		// 替换old_为new_，返回新的字符串
 		self replace(const self& old_, const self& new_) const
 		{
 			DynArray<c_size> indices;
@@ -329,17 +350,48 @@ namespace ayr
 			return result;
 		}
 
-		self split() const
+		// 根据空白符切分字符串,数组里的元素浅拷贝
+		Array<self> split() const
 		{
+			c_size l = 0, r = 0, size_ = size();
+			DynArray<self> result;
+			while (r < size_)
+			{
+				if (at(r).isspace())
+				{
+					if (r > l) result.append(slice(l, r));
+					l = r + 1;
+				}
+				++r;
+			}
 
+			if (r > l) result.append(slice(l, r));
+			return result.to_array();
 		}
 
-		self split(const self& pattern) const
+		// 根据pattern切分字符串,数组里的元素浅拷贝
+		Array<self> split(const self& pattern) const
 		{
+			c_size l = 0, r = 0, size_ = size(), p_size = pattern.size();
+			DynArray<self> result;
 
+			while (r + p_size < size_)
+			{
+				if (pattern == slice(r, r + p_size))
+				{
+					if (r > l) result.append(slice(l, r));
+					r += p_size;
+					l = r;
+				}
+				else
+					++r;
+			}
+
+			if (r > l) result.append(slice(l));
+			return result.to_array();
 		}
 
-		self match(CodePoint lmatch, CodePoint rmatch) const
+		self match(const CodePoint& lmatch, const CodePoint& rmatch) const
 		{
 			c_size l = index(lmatch);
 			if (l == -1)
