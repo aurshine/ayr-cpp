@@ -5,6 +5,7 @@
 
 #include "SockAddr.hpp"
 #include "startsocket.hpp"
+#include "../Atring.hpp"
 #include "../base/Buffer.hpp"
 
 namespace ayr
@@ -109,12 +110,16 @@ namespace ayr
 			return num_send;
 		}
 
-		// 接收最多bufsize个字节的数据
-		CString recv(int bufsize, int flags) const
+		// 参数为CString的重载
+		int send(const CString& data, int flags = 0) const
 		{
-			CString data{ bufsize };
-			int recvd = ::recv(socket_, data.data(), bufsize, flags);
-			return data;
+			return send(data.data(), data.size(), flags);
+		}
+
+		// 参数为Atring的重载
+		int send(const Atring& data, int flags = 0) const
+		{
+			return send(cstr(data), data.byte_size(), flags);
 		}
 
 		// 将所有数据连续发送出去，直到发送完毕或出现错误
@@ -124,6 +129,16 @@ namespace ayr
 			int num_sent = 0;
 			while (num_sent < size)
 				num_sent += send(data + num_sent, size - num_sent, flags);
+		}
+
+		void sendall(const CString& data, int flags = 0) const
+		{
+			return sendall(data.data(), data.size(), flags);
+		}
+
+		void sendall(const Atring& data, int flags = 0) const
+		{
+			return sendall(cstr(data), data.byte_size(), flags);
 		}
 
 		// 将辅助数据和普通数据一起发送
@@ -136,12 +151,14 @@ namespace ayr
 			sendall(msg_data.data(), msg_data.size(), flags);
 		}
 
-		// 将普通数据和辅助数据一起接收，并返回普通数据
-		CString recvmsg(int flags = 0) const
+		void sendmsg(const CString& data, int flags = 0) const
 		{
-			CString msg_size = recv(sizeof(u_long), flags);
-			u_long* msg_size_l = reinterpret_cast<u_long*>(msg_size.data());
-			return recv(ntohl(*msg_size_l), flags);
+			sendmsg(data.data(), data.size(), flags);
+		}
+
+		void sendmsg(const Atring& data, int flags = 0) const
+		{
+			sendmsg(cstr(data), data.byte_size(), flags);
 		}
 
 		// 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
@@ -150,6 +167,32 @@ namespace ayr
 			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
 			if (num_send == SOCKET_ERROR) RuntimeError(get_error_msg());
 			return num_send;
+		}
+
+		int sendto(const CString& data, const SockAddrIn& to, int flags = 0) const
+		{
+			return sendto(data.data(), data.size(), to, flags);
+		}
+
+		int sendto(const Atring& data, const SockAddrIn& to, int flags = 0) const
+		{
+			return sendto(cstr(data), data.byte_size(), to, flags);
+		}
+
+		// 接收最多bufsize个字节的数据
+		CString recv(int bufsize, int flags) const
+		{
+			CString data{ bufsize };
+			int recvd = ::recv(socket_, data.data(), bufsize, flags);
+			return data;
+		}
+
+		// 将普通数据和辅助数据一起接收，并返回普通数据
+		CString recvmsg(int flags = 0) const
+		{
+			CString msg_size = recv(sizeof(u_long), flags);
+			u_long* msg_size_l = reinterpret_cast<u_long*>(msg_size.data());
+			return recv(ntohl(*msg_size_l), flags);
 		}
 
 		// 接收sendto发送的数据，如果断开连接，返回空字符串
