@@ -83,7 +83,7 @@ namespace ayr
 		}
 
 		// 接受一个连接
-		Socket accept() const { return ::accept(socket_, nullptr, nullptr); }
+		Socket accept() const { int a = ::accept(socket_, nullptr, nullptr); tlog(a); return a; }
 
 		// 连接到ip:port
 		void connect(const char* ip, int port) const
@@ -123,7 +123,7 @@ namespace ayr
 		// 将辅助数据和普通数据一起发送
 		void sendmsg(const char* data, int size, int flags = 0) const
 		{
-			Buffer msg_data{ sizeof(u_long) + size };
+			Buffer msg_data(sizeof(u_long) + size);
 			int data_size = htonl(size);
 			msg_data.append_bytes(&data_size, sizeof(u_long));
 			msg_data.append_bytes(data, size);
