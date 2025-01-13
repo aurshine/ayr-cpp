@@ -7,6 +7,13 @@
 
 namespace ayr
 {
+	/*
+	* RefCount类实现了引用计数功能，支持多线程安全的引用计数。
+	*
+	* 子类通过addref()方法增加引用计数，subref()方法减少引用计数。
+	*
+	* Derived类型需要实现__zeroref__()方法，该方法在引用计数为0时被调用
+	*/
 	template<typename Derived>
 	class RefCount : public Object<Derived>
 	{
@@ -16,6 +23,8 @@ namespace ayr
 		using super = Object<Derived>;
 
 		RefCount() : count_(1) {}
+
+		RefCount(uint32_t count) : count_(count) {}
 
 		~RefCount() { subref(); }
 
