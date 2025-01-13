@@ -36,7 +36,7 @@ namespace ayr
 		void sendall(const char* data, int size, int flags = 0) const
 		{
 			for (auto& client : clients())
-				client.send(data, size, flags);
+				client.sendmsg(data, size, flags);
 		}
 
 		c_size num_clients() const { return clients_.size(); }
@@ -164,7 +164,6 @@ namespace ayr
 						if (!check_readset(client, &read_set_copy) || !check_errorset(client, &error_set_copy))
 							return;
 				}
-
 				if (disconnected_queue_.size())
 				{
 					for (auto& client : disconnected_queue_)
@@ -179,14 +178,13 @@ namespace ayr
 		// 如果有新连接，则调用accept_callback_
 		// 如果有数据到达，则调用recv_callback_
 		// 如果回调后调用服务器停止函数，则返回false
-		bool check_readset(const Socket& fd, fd_set* read_set)
+		bool check_readset(const Socket& socket, fd_set* read_set)
 		{
-			if (!FD_ISSET(fd, read_set)) return true;
-
-			if (fd == super::socket_.get_socket())
+			if (!FD_ISSET(socket, read_set)) return true;
+			if (socket == super::socket_)
 				super2::accept_callback_(this, accept());
 			else
-				super2::recv_callback_(this, fd, fd.recv());
+				super2::recv_callback_(this, socket, socket.recvmsg());
 
 			return socket_.valid();
 		}
@@ -294,6 +292,6 @@ private:
 
 	DynArray<View> disconnected_queue_;
 #endif
-	};
-}
+};
+	}
 #endif // AYR_SOCKET_TCP_HPP
