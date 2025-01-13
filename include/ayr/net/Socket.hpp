@@ -47,7 +47,7 @@ namespace ayr
 
 		Socket(int socket) : socket_(socket) {}
 
-		Socket(self&& other) noexcept : socket_(other.socket_) { other.socket_ = INVALID_SOCKET; }
+		Socket(self&& other) noexcept : socket_(std::exchange(other.socket_, INVALID_SOCKET)) {}
 
 		~Socket() { close(); }
 
@@ -83,7 +83,14 @@ namespace ayr
 		}
 
 		// 接受一个连接
-		Socket accept() const { int a = ::accept(socket_, nullptr, nullptr); tlog(a); return a; }
+		Socket accept() const
+		{
+			tlog(socket_);
+			int accsock = ::accept(socket_, nullptr, nullptr);
+			if (accsock == INVALID_SOCKET)
+				RuntimeError(get_error_msg());
+			return accsock;
+		}
 
 		// 连接到ip:port
 		void connect(const char* ip, int port) const
@@ -209,6 +216,8 @@ namespace ayr
 		CString __str__() const { return std::format("Socket({})", socket_); }
 
 		cmp_t __cmp__(const self& other) const { return socket_ - other.socket_; }
+
+		cmp_t __cmp__(const int& fd) const { return socket_ - fd; }
 	private:
 		int socket_;
 	};
