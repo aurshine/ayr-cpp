@@ -52,13 +52,11 @@ namespace ayr
 
 		operator char* () { return data(); }
 
-		operator bool() const { return size() != 0; }
-
 		char& operator[] (c_size index) { return str[index]; }
 
 		const char& operator[] (c_size index) const { return str[index]; }
 
-		size_t size() const { return std::strlen(data()); }
+		c_size size() const { return std::strlen(data()); }
 
 		char* data() { return str; }
 
