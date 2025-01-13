@@ -93,6 +93,7 @@ namespace ayr
 			case 4: return ((data[0] & 0x07) << 18) | ((data[1] & 0x3F) << 12) | ((data[2] & 0x3F) << 6) | (data[3] & 0x3F);
 			default: ValueError("Invalid CodePoint");
 			}
+			return None<int>;
 		}
 
 		CString from_int(int code) const override
@@ -142,6 +143,7 @@ namespace ayr
 				return 0x10000 + (((data[0] << 8 | data[1]) - 0xD800) << 10) + (data[2] << 8 | data[3]) - 0xDC00;
 			default: ValueError("Invalid CodePoint");
 			}
+			return None<int>;
 		}
 
 		CString from_int(int code) const override

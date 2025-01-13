@@ -99,6 +99,7 @@ namespace ayr
 				default:
 					ValueError(std::format("json_type {} is not valid", id));
 				}
+				return None<CString>;
 			}
 
 			// 转换为指定类型，返回转换后对象的指针
@@ -161,6 +162,7 @@ namespace ayr
 				default:
 					ValueError(std::format("json_type {} is not valid", json_type));
 				}
+				return None<CString>;
 			}
 
 			// 尾部添加一个Json对象，需要当前Json对象为JsonArray类型

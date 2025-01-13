@@ -41,10 +41,7 @@ namespace ayr
 		def parse(JsonType::JsonStr&& json_str) { return parse(json_str); }
 
 		// 解析 str
-		def _parse_str(JsonType::JsonStr& json_str) -> Json
-		{
-			return Json(json_str.slice(1, -1));
-		}
+		def _parse_str(JsonType::JsonStr& json_str) -> Json { return json_str.slice(1, -1); }
 
 
 		// 返回解析为num对象的字符串
@@ -68,21 +65,21 @@ namespace ayr
 
 		def _parse_bool(JsonType::JsonStr& json_str) -> Json
 		{
-			if (json_str == "true"as)
-				return Json(true);
-			else if (json_str == "false"as)
-				return Json(false);
-			else
-				ValueError(std::format("invalid bool parse: {}", json_str));
+			if (json_str == "true"as) return true;
+			if (json_str == "false"as) return false;
+
+			ValueError(std::format("invalid bool parse: {}", json_str));
+			return None<Json>;
 		}
 
 
 		def _parse_null(JsonType::JsonStr& json_str) -> Json
 		{
 			if (json_str == JsonType::JsonStr("null", 4))
-				return Json(JsonType::JsonNull());
-			else
-				ValueError(std::format("invalid null parse: {}", json_str));
+				return JsonType::JsonNull();
+
+			ValueError(std::format("invalid null parse: {}", json_str));
+			return None<Json>;
 		}
 
 
@@ -94,8 +91,9 @@ namespace ayr
 				return _parse_null(json_str);
 			else if (json_str[0] == "t" || json_str[0] == "f") // bool类型
 				return _parse_bool(json_str);
-			else
-				ValueError(std::format("invalid simple parse: {}", json_str));
+
+			ValueError(std::format("invalid simple parse: {}", json_str));
+			return None<Json>;
 		}
 
 
