@@ -80,7 +80,7 @@ namespace ayr
 			FD_SET(super::socket_, error_set);
 			max_fd = super::socket_;
 			super2::set_accept_callback([](self*, const Socket&) {});
-			super2::set_recv_callback([](self*, const Socket&, const CString&) {});
+			super2::set_recv_callback([](self*, const Socket&) {});
 			super2::set_error_callback([](self*, const Socket&, const CString&) {});
 			super2::set_timeout_callback([](self*) {});
 		}
@@ -184,7 +184,7 @@ namespace ayr
 			if (socket == super::socket_)
 				super2::accept_callback_(this, accept());
 			else
-				super2::recv_callback_(this, socket, socket.recvmsg());
+				super2::recv_callback_(this, socket);
 
 			return socket_.valid();
 		}
@@ -292,6 +292,6 @@ private:
 
 	DynArray<View> disconnected_queue_;
 #endif
-};
-	}
+	};
+}
 #endif // AYR_SOCKET_TCP_HPP

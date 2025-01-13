@@ -15,7 +15,7 @@ namespace ayr
 			accept_callback_ = accept_callback;
 		}
 
-		void set_recv_callback(const std::function<void(Server*, const Socket&, const CString&)>& recv_callback)
+		void set_recv_callback(const std::function<void(Server*, const Socket&)>& recv_callback)
 		{
 			recv_callback_ = recv_callback;
 		}
@@ -35,8 +35,8 @@ namespace ayr
 		std::function<void(Server*, const Socket&)> accept_callback_;
 
 		// 接收到数据后的回调函数
-		// 第一个参数为当前对象，第二个参数为发送数据的Socket对象，第三个参数为接收到的数据
-		std::function<void(Server*, const Socket&, const CString&)> recv_callback_;
+		// 第一个参数为当前对象，第二个参数为发送数据的Socket对象
+		std::function<void(Server*, const Socket&)> recv_callback_;
 
 		// 发生错误后的回调函数
 		// 第一个参数为当前对象，第二个参数为发生错误的Socket对象, 第三参数为错误信息

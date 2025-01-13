@@ -85,7 +85,6 @@ namespace ayr
 		// 接受一个连接
 		Socket accept() const
 		{
-			tlog(socket_);
 			int accsock = ::accept(socket_, nullptr, nullptr);
 			if (accsock == INVALID_SOCKET)
 				RuntimeError(get_error_msg());
