@@ -43,10 +43,7 @@ namespace ayr
 
 		const Socket& client(int index) const { return clients_[index]; }
 
-		auto clients() const -> std::ranges::subrange<DynArray<Socket>::ConstIterator>
-		{
-			return std::ranges::subrange(clients_.begin(), clients_.end());
-		}
+		const DynArray<Socket>& clients() const { return clients_; }
 
 		// 断开指定客户端的连接
 		void disconnect(const Socket& client)
@@ -124,20 +121,6 @@ namespace ayr
 
 		void push_disconnected(const Socket& client) { disconnected_queue_.append(client); }
 
-		void disconnect(const Socket& client)
-		{
-			int client_fd = client;
-			FD_CLR(client_fd, read_set);
-			FD_CLR(client_fd, error_set);
-			if (client_fd == max_fd)
-			{
-				max_fd = 0;
-				for (int client : super::clients())
-					max_fd = std::max(max_fd, client);
-			}
-			super::disconnect(client);
-		}
-
 		// 阻塞运行服务器，直到服务器停止
 		void run(long tv_sec = 2, long tv_usec = 0)
 		{
@@ -173,6 +156,23 @@ namespace ayr
 			}
 		}
 	private:
+		void disconnect(const Socket& client)
+		{
+			disconnect_callback_(this, client);
+
+			int client_fd = client;
+			FD_CLR(client_fd, read_set);
+			FD_CLR(client_fd, error_set);
+			super::disconnect(client);
+
+			if (client_fd == max_fd)
+			{
+				max_fd = 0;
+				for (int client : super::clients())
+					max_fd = std::max(max_fd, client);
+			}
+		}
+
 		// 检查是否有可读事件发生
 		// 如果有，则调用相应的回调函数
 		// 如果有新连接，则调用accept_callback_
