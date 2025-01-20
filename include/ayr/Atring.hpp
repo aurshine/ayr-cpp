@@ -184,7 +184,7 @@ namespace ayr
 		c_size find(const self& pattern, c_size pos = 0) const
 		{
 			c_size m_size = size(), pattern_size = pattern.size();
-			for (c_size i = pos; i + pattern_size < m_size; ++i)
+			for (c_size i = pos; i + pattern_size <= m_size; ++i)
 				if (slice(i, i + pattern_size) == pattern)
 					return i;
 
@@ -439,7 +439,7 @@ namespace ayr
 			if (l + l_size > size_) return "";
 
 			c_size match_cnt = 1;
-			for (c_size r = l + l_size; r + l_size < size_ && r + r_size < size_; ++r)
+			for (c_size r = l + l_size; r + l_size <= size_ && r + r_size <= size_; ++r)
 			{
 				if (slice(r, r + r_size) == rmatch)
 					--match_cnt;

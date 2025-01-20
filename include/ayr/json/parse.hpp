@@ -27,7 +27,7 @@ namespace ayr
 				JsonType::JsonStr match = json_str.match("{", "}");
 				return _parse_dict(match);
 			}
-			else if (json_str[0] == "{")  // array类型
+			else if (json_str[0] == "[")  // array类型
 			{
 				JsonType::JsonStr match = json_str.match("[", "]");
 				return _parse_array(match);
@@ -114,7 +114,7 @@ namespace ayr
 			}
 			else if (json_str[0] == "\"")
 			{
-				match = json_str.slice(0, json_str.slice(1).find("\"") + 1);
+				match = json_str.slice(0, json_str.find("\"", 1) + 1);
 			}
 			else
 			{
@@ -125,17 +125,16 @@ namespace ayr
 					match = json_str.slice(0, stop_sign_idx);
 			}
 
-			JsonType::JsonStr ret_str = json_str.slice(match.size()).strip();
+			JsonType::JsonStr other_str = json_str.slice(match.size()).strip();
 
-			if (ret_str.size())
-			{
-				if (ret_str[0] != stop_sign)
-					ValueError(std::format("stop_sign '{}' not found", stop_sign));
+			// 还有剩余
+			if (other_str.size())
+				if (!other_str.startswith(stop_sign))
+					ValueError(std::format("stop_sign '{}' not found, other_str: {}", stop_sign, other_str));
+				else
+					other_str = other_str.slice(stop_sign.size()).strip();
 
-				ret_str = ret_str.slice(1).strip();
-			}
-
-			return { parse(match), ret_str };
+			return { parse(match), other_str };
 		}
 
 
