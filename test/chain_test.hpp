@@ -36,7 +36,7 @@ inline void bichain_test()
 	BiChain<int> bichain;
 	for (int i = 0; i < 10; i++)
 		bichain.append(i);
-	auto node = bichain.at_node(2);
+	auto& node = bichain.at_node(2);
 
 	tlog(bichain.size());
 	for (auto& i : bichain)

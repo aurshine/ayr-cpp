@@ -7,17 +7,20 @@
 
 using namespace std::chrono_literals;
 
+constexpr const char* IP = "192.168.8.195";
+
 constexpr int PORT = 14514;
 
 void tcp_echo_server_test()
 {
-	ayr::MiniTcpServer server("10.120.35.126", PORT);
+	ayr::MiniTcpServer server(IP, PORT);
 	print("tcp server start at port:", PORT);
 	server.set_accept_callback([](MiniTcpServer* server, const Socket& client) {
 		print("new client:", client);
 		});
 
-	server.set_recv_callback([](MiniTcpServer* server, const Socket& client, const CString& data) {
+	server.set_recv_callback([](MiniTcpServer* server, const Socket& client) {
+		CString data = client.recvmsg();
 		if (!data)
 		{
 			print("client disconnect:", client);
@@ -27,7 +30,7 @@ void tcp_echo_server_test()
 		else
 		{
 			print("recv from client:", client, "data:", data, "size:", data.size());
-			client.send(data, data.size());
+			client.sendmsg(data, data.size());
 		}
 		});
 
@@ -40,7 +43,7 @@ void tcp_echo_server_test()
 void tcp_echo_client_test()
 {
 	ayr::Socket client(AF_INET, SOCK_STREAM);
-	client.connect("127.0.0.1", PORT);
+	client.connect(IP, PORT);
 
 	while (true)
 	{
@@ -52,8 +55,8 @@ void tcp_echo_client_test()
 		if (data[0] == 'q' || data[0] == 'Q')
 			break;
 
-		client.send(data, strlen(data));
-		print("server response:", client.recv());
+		client.sendmsg(data, strlen(data));
+		print("server response:", client.recvmsg());
 	}
 	print("tcp client exit");
 }
@@ -61,7 +64,7 @@ void tcp_echo_client_test()
 void tcp_echo_test()
 {
 	std::thread server(tcp_echo_server_test);
-	std::this_thread::sleep_for(1s); // 等待服务端启动
+	std::this_thread::sleep_for(100ms); // 等待服务端启动
 	std::thread client(tcp_echo_client_test);
 
 	server.join();
@@ -70,7 +73,7 @@ void tcp_echo_test()
 
 void udp_echo_server_test()
 {
-	ayr::UdpServer server("127.0.0.1", PORT);
+	ayr::UdpServer server(IP, PORT);
 	while (true)
 	{
 		auto [data, client_addr] = server.recv();
@@ -83,7 +86,7 @@ void udp_echo_server_test()
 
 void udp_echo_client_test()
 {
-	ayr::UdpClient client("127.0.0.1", PORT);
+	ayr::UdpClient client(IP, PORT);
 
 	while (true)
 	{
