@@ -30,7 +30,7 @@ void tcp_echo_server_test()
 		else
 		{
 			print("recv from client:", client, "data:", data, "size:", data.size());
-			client.sendmsg(data, data.size());
+			client.sendmsg(data);
 		}
 		});
 

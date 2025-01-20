@@ -10,7 +10,7 @@ void json_test()
 	tlog(json::parse("null"));
 	tlog(json::parse(R"("abc")"));
 	tlog(json::parse("[]"));
-	tlog(json::parse("[1, 2, 3]"));
+	tlog(json::parse(R"(["1", "2", "3"])"));
 	tlog(json::parse("{}"));
 	tlog(json::parse(R"({"a": 1})"));
 	tlog(json::parse(R"({"a": 1, "b": 2})"));

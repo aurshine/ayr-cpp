@@ -11,25 +11,6 @@ using namespace ayr;
 
 int main()
 {
-	MiniTcpServer server("127.0.0.1", 11451);
-	server.set_recv_callback([](MiniTcpServer* server, const Socket& client) {
-		CString data = client.recvmsg();
-
-		if (!data[0])
-			server->push_disconnected(client);
-		else
-			client.sendmsg(data);
-		});
-
-	server.set_accept_callback([](MiniTcpServer* server, const Socket& client) {
-		print("client connect", client);
-		});
-
-	server.set_disconnect_callback([](MiniTcpServer* server, const Socket& client) {
-		print("client disconnect", client);
-		});
-
-	server.run();
-
+	json_test();
 	return 0;
 }
