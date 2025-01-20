@@ -2,7 +2,7 @@
 #define AYR_FS_WIN_PATH_HPP
 
 #include "../../base/raise_error.hpp"
-
+#include "../../DynArray.hpp"
 #include "winlib.hpp"
 
 namespace ayr
