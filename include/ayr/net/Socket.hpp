@@ -14,6 +14,7 @@ namespace ayr
 
 #elif defined(AYR_LINUX)
 #include <cerrno>
+#include <fcntl.h>
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR 0
@@ -48,14 +49,12 @@ namespace ayr
 
 		Socket(int socket) : socket_(socket) {}
 
-		Socket(self&& other) noexcept : socket_(std::exchange(other.socket_, INVALID_SOCKET)) {}
+		Socket(const self& other) : socket_(other.socket_) {}
 
-		~Socket() { close(); }
-
-		self& operator=(self&& other) noexcept
+		self& operator=(const self& other)
 		{
 			close();
-			socket_ = std::exchange(other.socket_, INVALID_SOCKET);
+			socket_ = other.socket_;
 			return *this;
 		}
 
