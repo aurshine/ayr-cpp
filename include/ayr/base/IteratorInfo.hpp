@@ -1,8 +1,6 @@
 #ifndef AYR_BASE_ITERATORINFO_HPP
 #define AYR_BASE_ITERATORINFO_HPP
 
-#include <xutility>
-
 #include "Object.hpp"
 
 namespace ayr

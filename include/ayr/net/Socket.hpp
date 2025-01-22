@@ -227,7 +227,7 @@ namespace ayr
 #endif
 		}
 
-		int setsockopt(int level, int optname, const void* optval, int optlen) const
+		int setsockopt(int level, int optname, const void* optval, socklen_t optlen) const
 		{
 #if defined(AYR_WIN)
 			return ::setsockopt(socket_, level, optname, static_cast<const char*>(optval), optlen);
@@ -236,7 +236,7 @@ namespace ayr
 #endif
 		}
 
-		int getsockopt(int level, int optname, void* optval, int* optlen) const
+		int getsockopt(int level, int optname, void* optval, socklen_t* optlen) const
 		{
 #if defined(AYR_WIN)
 			return ::getsockopt(socket_, level, optname, static_cast<char*>(optval), optlen);

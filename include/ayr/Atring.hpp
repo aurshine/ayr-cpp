@@ -1,6 +1,8 @@
 ﻿#ifndef AYR_STRING_HPP
 #define AYR_STRING_HPP
 
+#include <utility>
+
 #include "base/CodePoint.hpp"
 
 namespace ayr
@@ -343,7 +345,7 @@ namespace ayr
 			c_size new_length = 0, pos = 0, m_size = size();
 			for (const self& elem : elems)
 				new_length += elem.size() + m_size;
-			new_length = std::max(0ll, new_length - m_size);
+			new_length = std::max<c_size>(0, new_length - m_size);
 
 			auto put_back = [&pos](self& str, const self& other) {
 				for (auto&& c : std::ranges::subrange(other.codepoints_, other.codepoints_ + other.size()))

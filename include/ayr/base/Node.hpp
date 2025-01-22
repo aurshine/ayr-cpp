@@ -17,7 +17,7 @@ namespace ayr
 		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, T>;
 
 		// 默认构造函数会构造一个空节点，通常不使用
-		constexpr SimpleNode() : value_(nullptr), next_(nullptr) {}
+		SimpleNode() : value_(nullptr), next_(nullptr) {}
 
 		SimpleNode(typename ItInfo::const_reference value) : value_(ayr_cove_make(value)), next_(none_node()) {}
 
@@ -44,10 +44,10 @@ namespace ayr
 		bool __equals__(const self& other) const { return value_ == other.value_ && next_ == other.next_; }
 
 		// 空节点
-		constexpr static self* none_node()
+		static self* none_node()
 		{
-			static self* none_node_ = ayr_make<self>();
-			return none_node_;
+			static self none_node_;
+			return &none_node_;
 		}
 
 		// 释放分配的内存
@@ -92,7 +92,7 @@ namespace ayr
 		using ItInfo = IteratorInfo<self, NonContainer, std::bidirectional_iterator_tag, T>;
 
 		// 默认构造函数会构造一个空节点，通常不使用
-		constexpr BiSimpleNode() : value_(nullptr), prev_(nullptr), next_(nullptr) {}
+		BiSimpleNode() : value_(nullptr), prev_(nullptr), next_(nullptr) {}
 
 		BiSimpleNode(typename ItInfo::const_reference value) : value_(ayr_cove_make(value)), prev_(none_node()), next_(none_node()) {}
 
@@ -136,10 +136,10 @@ namespace ayr
 		bool __equals__(const self& other) const { return value_ == other.value_ && prev_ == other.prev_ && next_ == other.next_; }
 
 		// 空节点
-		constexpr static self* none_node()
+		static self* none_node()
 		{
-			static self* none_node_ = ayr_make<self>();
-			return none_node_;
+			static self none_node_;
+			return &none_node_;
 		}
 
 		// 释放分配的内存

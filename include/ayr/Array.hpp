@@ -82,12 +82,12 @@ namespace ayr
 
 		ItInfo::value_type operator*() const
 		{
-			return std::apply([](auto&&... its) { return ItInfo::value_type(*its...); }, its_);
+			return std::apply([](auto&&... its) { return typename ItInfo::value_type(*its...); }, its_);
 		}
 
 		self& operator++()
 		{
-			std::apply([&](auto&&... its) { ((++its), ...); }, its_);
+			std::apply([](auto&&... its) { ((++its), ...); }, its_);
 			return *this;
 		}
 
