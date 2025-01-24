@@ -64,7 +64,7 @@ namespace ayr
 
 		bool valid() const { return socket_ != INVALID_SOCKET; }
 
-		void close() const { closesocket(socket_); }
+		void close() { closesocket(socket_); socket_ = INVALID_SOCKET; }
 
 		// 绑定ip:port
 		void bind(const char* ip, int port) const
