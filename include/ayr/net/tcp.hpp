@@ -12,32 +12,22 @@ namespace ayr
 	{
 		using self = TcpServer;
 	public:
-		TcpServer(const char* ip, int port, int family = AF_INET) : socket_(family, SOCK_STREAM)
+		TcpServer(const char* ip, int port, int family = AF_INET) : server_socket_(family, SOCK_STREAM)
 		{
-			socket_.bind(ip, port);
-			socket_.listen();
-		}
-
-		TcpServer(self&& other) noexcept : socket_(std::move(other.socket_)), clients_(std::move(other.clients_)) {}
-
-		TcpServer& operator=(self&& other) noexcept
-		{
-			if (this == &other) return *this;
-			close();
-			return *ayr_construct(this, std::move(other));
+			server_socket_.bind(ip, port);
+			server_socket_.listen();
 		}
 
 		~TcpServer() { close(); };
 
-		void close() { socket_.close(); clients_.clear(); }
-
-		Socket& accept() { return clients_.append(socket_.accept()); }
-
-		void sendall(const char* data, int size, int flags = 0) const
+		void close()
 		{
-			for (auto& client : clients())
-				client.sendmsg(data, size, flags);
+			server_socket_.close();
+			clients_.each([](Socket& client) { client.close(); });
+			clients_.clear();
 		}
+
+		Socket& accept() { return clients_.append(server_socket_.accept()); }
 
 		c_size num_clients() const { return clients_.size(); }
 
@@ -46,72 +36,58 @@ namespace ayr
 		const DynArray<Socket>& clients() const { return clients_; }
 
 		// 断开指定客户端的连接
-		void disconnect(const Socket& client)
+		void disconnect(Socket& client)
 		{
 			c_size index = clients_.index(client);
 			if (index == -1)
 				RuntimeError("Client not found.");
+			client.close();
 			clients_.pop(index);
 		}
 	protected:
-		Socket socket_;
+		Socket server_socket_;
 
 		DynArray<Socket> clients_;
 	};
 
-
+	// select模型的TCP服务器
 	class MiniTcpServer : public TcpServer, public ServerCallback<MiniTcpServer>
 	{
 		using self = MiniTcpServer;
 
 		using super = TcpServer;
 
-		using super2 = ServerCallback<MiniTcpServer>;
+		using CallBack = ServerCallback<MiniTcpServer>;
 	public:
 		MiniTcpServer(const char* ip, int port, int family = AF_INET)
-			: super(ip, port, family), read_set(new fd_set), error_set(new fd_set)
+			: super(ip, port, family), read_set(ayr_make<fd_set>()), error_set(ayr_make<fd_set>())
 		{
 			FD_ZERO(read_set);
 			FD_ZERO(error_set);
-			FD_SET(super::socket_, read_set);
-			FD_SET(super::socket_, error_set);
-			max_fd = super::socket_;
-			super2::set_accept_callback([](self*, const Socket&) {});
-			super2::set_recv_callback([](self*, const Socket&) {});
-			super2::set_error_callback([](self*, const Socket&, const CString&) {});
-			super2::set_timeout_callback([](self*) {});
-		}
-
-		MiniTcpServer(self&& other) noexcept :
-			super(std::move(other)),
-			read_set(other.read_set),
-			error_set(other.error_set),
-			disconnected_queue_(std::move(other.disconnected_queue_)),
-			max_fd(other.max_fd)
-		{
-			other.read_set = nullptr;
-			other.error_set = nullptr;
-		}
-
-		MiniTcpServer& operator=(self&& other) noexcept
-		{
-			if (this == &other) return *this;
-			close();
-			return *ayr_construct(this, std::move(other));
+			FD_SET(super::server_socket_, read_set);
+			FD_SET(super::server_socket_, error_set);
+			max_fd = super::server_socket_;
+			CallBack::set_accept_callback([](self*, const Socket&) {});
+			CallBack::set_recv_callback([](self*, const Socket&) {});
+			CallBack::set_error_callback([](self*, const Socket&, const CString&) {});
+			CallBack::set_timeout_callback([](self*) {});
 		}
 
 		~MiniTcpServer() { close(); }
 
 		void close()
 		{
-			delete read_set;
-			delete error_set;
+			ayr_desloc(read_set, 1);
+			ayr_desloc(error_set, 1);
+			FD_ZERO(read_set);
+			FD_ZERO(error_set);
+			super::close();
 		}
 
 		Socket& accept()
 		{
 			Socket& client = super::accept();
-			int client_fd = client;
+			int client_fd = client.get_socket();
 			FD_SET(client_fd, read_set);
 			FD_SET(client_fd, error_set);
 			max_fd = std::max(max_fd, client_fd);
@@ -119,12 +95,13 @@ namespace ayr
 			return client;
 		}
 
+		// 等待删除的客户端队列
 		void push_disconnected(const Socket& client) { disconnected_queue_.append(client); }
 
 		// 阻塞运行服务器，直到服务器停止
 		void run(long tv_sec = 2, long tv_usec = 0)
 		{
-			while (socket_.valid())
+			while (server_socket_.valid())
 			{
 				fd_set read_set_copy = *read_set;
 				fd_set error_set_copy = *error_set;
@@ -137,16 +114,17 @@ namespace ayr
 				if (num_ready == -1)
 					RuntimeError(get_error_msg());
 				else if (num_ready == 0)
-					super2::timeout_callback_(this);
+					CallBack::timeout_callback_(this);
 				else
 				{
-					if (!check_readset(super::socket_, &read_set_copy) || !check_errorset(super::socket_, &error_set_copy))
+					if (!check_readset(super::server_socket_, &read_set_copy) || !check_errorset(super::server_socket_, &error_set_copy))
 						return;
 
 					for (auto& client : super::clients())
 						if (!check_readset(client, &read_set_copy) || !check_errorset(client, &error_set_copy))
 							return;
 				}
+
 				if (disconnected_queue_.size())
 				{
 					for (auto& client : disconnected_queue_)
@@ -156,7 +134,7 @@ namespace ayr
 			}
 		}
 	private:
-		void disconnect(const Socket& client)
+		void disconnect(Socket& client)
 		{
 			disconnect_callback_(this, client);
 
@@ -181,12 +159,12 @@ namespace ayr
 		bool check_readset(const Socket& socket, fd_set* read_set)
 		{
 			if (!FD_ISSET(socket, read_set)) return true;
-			if (socket == super::socket_)
-				super2::accept_callback_(this, accept());
+			if (socket == super::server_socket_)
+				CallBack::accept_callback_(this, accept());
 			else
-				super2::recv_callback_(this, socket);
+				CallBack::recv_callback_(this, socket);
 
-			return socket_.valid();
+			return server_socket_.valid();
 		}
 
 		// 检查是否有异常事件发生
@@ -201,15 +179,15 @@ namespace ayr
 			if (fd.getsockopt(SOL_SOCKET, SO_ERROR, &errorno, &len) == -1)
 				RuntimeError(get_error_msg());
 
-			super2::error_callback_(this, fd, errorno2str(errorno));
-			return socket_.valid();
+			CallBack::error_callback_(this, fd, errorno2str(errorno));
+			return server_socket_.valid();
 		}
 	private:
 		fd_set* read_set, * error_set;
 
 		// 连接断开的队列
 		// 用于在每轮select询问结束后统一断开连接
-		DynArray<View> disconnected_queue_;
+		DynArray<Socket> disconnected_queue_;
 
 		// 最大的文件描述符
 		int max_fd = 0;
