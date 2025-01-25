@@ -100,17 +100,16 @@ namespace ayr
 	class Timer : public Object<Timer<Duration>>
 	{
 	public:
-		void into() { start_time = std::chrono::high_resolution_clock::now(); }
+		void into() { start_time = std::chrono::steady_clock::now(); }
 
-		long long escape()
+		typename Duration::rep escape()
 		{
-			auto end_time = std::chrono::high_resolution_clock::now();
-			auto duration = std::chrono::duration_cast<Duration>(end_time - start_time).count();
-			return duration;
+			auto end_time = std::chrono::steady_clock::now();
+			return std::chrono::duration_cast<Duration>(end_time - start_time).count();;
 		}
 
 		template<typename F, typename ...Args>
-		long long operator()(F&& call_, Args&&... args)
+		typename Duration::rep operator()(F&& call_, Args&&... args)
 		{
 			into();
 			call_(std::forward<Args>(args)...);
