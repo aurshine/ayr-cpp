@@ -54,7 +54,7 @@ namespace ayr
 		void destroy()
 		{
 			ayr_desloc(value_, 1);
-			std::memset(this, 0, sizeof self);
+			std::memset(this, 0, sizeof(self));
 		}
 
 		// 判断是否是空节点
@@ -146,7 +146,7 @@ namespace ayr
 		void destroy()
 		{
 			ayr_desloc(value_, 1);
-			std::memset(this, 0, sizeof self);
+			std::memset(this, 0, sizeof(self));
 		}
 
 		// 判断是否是空节点

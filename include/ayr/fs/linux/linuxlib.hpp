@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 
 #include "../../base/CString.hpp"
+#include "../../base/raise_error.hpp"
 
 namespace ayr
 {
