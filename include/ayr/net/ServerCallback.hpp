@@ -10,6 +10,13 @@ namespace ayr
 	template<typename Server>
 	struct ServerCallback : public Object<ServerCallback<Server>>
 	{
+		ServerCallback() :
+			accept_callback_([](Server* server, const Socket& socket) {}),
+			recv_callback_([](Server* server, const Socket& socket) {}),
+			disconnect_callback_([](Server* server, const Socket& socket) {}),
+			error_callback_([](Server* server, const Socket& socket, const CString& error) {}),
+			timeout_callback_([](Server* server) {}) {}
+
 		void set_accept_callback(const std::function<void(Server*, const Socket&)>& accept_callback)
 		{
 			accept_callback_ = accept_callback;
