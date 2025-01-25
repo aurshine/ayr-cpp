@@ -229,13 +229,12 @@ namespace ayr
 
 			self& operator++()
 			{
-				if (dynarray_->blocks_.at(block_index_).size() == inblock_index_ + 1)
+				if (dynarray_->blocks_.at(block_index_).size() == ++ inblock_index_)
 				{
 					++block_index_;
 					inblock_index_ = 0;
 				}
-				else
-					++inblock_index_;
+
 				return *this;
 			}
 
@@ -243,13 +242,12 @@ namespace ayr
 
 			self& operator--()
 			{
-				if (inblock_index_ == 0)
+				if (inblock_index_ -- == 0)
 				{
 					--block_index_;
 					inblock_index_ = dynarray_->blocks_.at(block_index_).size() - 1;
 				}
-				else
-					--inblock_index_;
+
 				return *this;
 			}
 
@@ -271,8 +269,8 @@ namespace ayr
 					}
 					else
 					{
-						inblock_index_ = 0;
 						n -= cur_size - inblock_index_;
+						inblock_index_ = 0;
 						block_index_ += 1;
 					}
 				}
@@ -284,10 +282,13 @@ namespace ayr
 				while (n)
 				{
 					if (inblock_index_ >= n)
+					{
 						inblock_index_ -= n;
+						n = 0;
+					}
 					else
 					{
-						n -= inblock_index_;
+						n -= inblock_index_ + 1;
 						--block_index_;
 						inblock_index_ = dynarray_->blocks_.at(block_index_).size() - 1;
 					}
@@ -304,12 +305,12 @@ namespace ayr
 				if (block_index_ == other.block_index_)
 					return inblock_index_ - other.inblock_index_;
 
-				c_size res = dynarray_->blocks_.at(other.block_index_).size() - other.inblock_index_;
+				c_size res = dynarray_->blocks_.at(other.block_index_).size() - other.inblock_index_ - 1;
 
 				for (c_size i = other.block_index_ + 1; i < block_index_; ++i)
 					res += dynarray_->blocks_.at(i).size();
 
-				return res + inblock_index_;
+				return res + inblock_index_ + 1;
 			}
 
 			bool __equals__(const self& other) const
