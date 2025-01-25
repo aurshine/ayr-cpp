@@ -60,11 +60,9 @@ namespace ayr
 
 		operator int() const { return socket_; }
 
-		int get_socket() const { return socket_; }
+		int fd() const { return socket_; }
 
-		bool valid() const { return socket_ != INVALID_SOCKET; }
-
-		void close() { closesocket(socket_); socket_ = INVALID_SOCKET; }
+		void close() const { closesocket(socket_); }
 
 		// 绑定ip:port
 		void bind(const char* ip, int port) const
