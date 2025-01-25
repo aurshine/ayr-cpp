@@ -58,6 +58,8 @@ namespace ayr
 
 		c_size size() const { return std::strlen(data()); }
 
+		bool empty() const { return str == nullptr || str[0] == '\0'; }
+
 		char* data() { return str; }
 
 		const char* data() const { return str; }
