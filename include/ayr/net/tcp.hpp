@@ -18,12 +18,11 @@ namespace ayr
 			server_socket_.listen();
 		}
 
-		~TcpServer() { close(); };
-
+		// 关闭服务器并断开所有客户端的连接
 		void close()
 		{
 			server_socket_.close();
-			clients_.each([](Socket& client) { client.close(); });
+			clients_.each([](const Socket& client) { client.close(); });
 			clients_.clear();
 		}
 
@@ -36,7 +35,7 @@ namespace ayr
 		const DynArray<Socket>& clients() const { return clients_; }
 
 		// 断开指定客户端的连接
-		void disconnect(Socket& client)
+		void disconnect(const Socket& client)
 		{
 			c_size index = clients_.index(client);
 			if (index == -1)
@@ -60,34 +59,24 @@ namespace ayr
 		using CallBack = ServerCallback<MiniTcpServer>;
 	public:
 		MiniTcpServer(const char* ip, int port, int family = AF_INET)
-			: super(ip, port, family), read_set(ayr_make<fd_set>()), error_set(ayr_make<fd_set>())
+			: super(ip, port, family),
+			CallBack(),
+			read_set(ayr_make<fd_set>()),
+			error_set(ayr_make<fd_set>())
 		{
 			FD_ZERO(read_set);
 			FD_ZERO(error_set);
 			FD_SET(super::server_socket_, read_set);
 			FD_SET(super::server_socket_, error_set);
 			max_fd = super::server_socket_;
-			CallBack::set_accept_callback([](self*, const Socket&) {});
-			CallBack::set_recv_callback([](self*, const Socket&) {});
-			CallBack::set_error_callback([](self*, const Socket&, const CString&) {});
-			CallBack::set_timeout_callback([](self*) {});
 		}
 
 		~MiniTcpServer() { close(); }
 
-		void close()
-		{
-			ayr_desloc(read_set, 1);
-			ayr_desloc(error_set, 1);
-			FD_ZERO(read_set);
-			FD_ZERO(error_set);
-			super::close();
-		}
-
 		Socket& accept()
 		{
 			Socket& client = super::accept();
-			int client_fd = client.get_socket();
+			int client_fd = client.fd();
 			FD_SET(client_fd, read_set);
 			FD_SET(client_fd, error_set);
 			max_fd = std::max(max_fd, client_fd);
@@ -101,7 +90,7 @@ namespace ayr
 		// 阻塞运行服务器，直到服务器停止
 		void run(long tv_sec = 2, long tv_usec = 0)
 		{
-			while (server_socket_.valid())
+			while (valid_)
 			{
 				fd_set read_set_copy = *read_set;
 				fd_set error_set_copy = *error_set;
@@ -134,11 +123,19 @@ namespace ayr
 			}
 		}
 	private:
-		void disconnect(Socket& client)
+		void close()
 		{
-			disconnect_callback_(this, client);
+			ayr_desloc(read_set, 1);
+			ayr_desloc(error_set, 1);
+			super::close();
+			valid_ = false;
+		}
 
-			int client_fd = client;
+		void disconnect(const Socket& client)
+		{
+			CallBack::disconnect_callback_(this, client);
+
+			int client_fd = client.fd();
 			FD_CLR(client_fd, read_set);
 			FD_CLR(client_fd, error_set);
 			super::disconnect(client);
@@ -164,7 +161,7 @@ namespace ayr
 			else
 				CallBack::recv_callback_(this, socket);
 
-			return server_socket_.valid();
+			return valid_;
 		}
 
 		// 检查是否有异常事件发生
@@ -180,7 +177,7 @@ namespace ayr
 				RuntimeError(get_error_msg());
 
 			CallBack::error_callback_(this, fd, errorno2str(errorno));
-			return server_socket_.valid();
+			return valid_;
 		}
 	private:
 		fd_set* read_set, * error_set;
@@ -191,6 +188,9 @@ namespace ayr
 
 		// 最大的文件描述符
 		int max_fd = 0;
+
+		// 服务器是否有效
+		bool valid_ = true;
 	};
 }
 #endif // AYR_SOCKET_TCP_HPP
