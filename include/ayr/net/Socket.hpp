@@ -257,6 +257,8 @@ namespace ayr
 		cmp_t __cmp__(const self& other) const { return socket_ - other.socket_; }
 
 		cmp_t __cmp__(const int& fd) const { return socket_ - fd; }
+
+		hash_t __hash__() const { return socket_; }
 	private:
 		int socket_;
 	};
