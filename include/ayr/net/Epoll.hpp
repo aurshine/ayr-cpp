@@ -4,6 +4,7 @@
 #include "Socket.hpp"
 #include "../Array.hpp"
 #include "../filesystem.hpp"
+#include "../Set.hpp"
 
 namespace ayr
 {
@@ -19,47 +20,48 @@ namespace ayr
 
 		Epoll() : epoll_fd_(epoll_create1(0)) {}
 
-		Epoll(self&& other) : epoll_fd_(std::move(other.epoll_fd_)) {}
-
-		self& operator=(Epoll&& other)
-		{
-			epoll_fd_ = std::move(other.epoll_fd_);
-			return *this;
-		}
+		~Epoll() { epoll_fd_.close(); }
 
 		// epoll连接数
-		c_size size() const { return nfds_; }
+		c_size size() const { return epoll_sockets_.size(); }
 
-		// 添加一个socket到epoll中
-		void add(const Socket& socketfd, int events)
+		// 是否包含某个socket
+		bool contains(const Socket& socketfd) const { return epoll_sockets_.contains(socketfd); }
+
+		// 设置某个socket的事件
+		const Socket& set(const Socket& socketfd, int events)
 		{
-			struct epoll_event event;
-			event.data.fd = socketfd;
-			event.events = events;
-			_epoll_ctl(EPOLL_CTL_ADD, socketfd, &event);
-			++nfds_;
+			struct epoll_event ev;
+			ev.data.fd = socketfd.fd();
+			ev.events = events;
+
+			return set_impl(socketfd, &ev);
 		}
 
-		// 从epoll中修改一个socket的事件
-		void mod(const Socket& socketfd, int events)
+		// 设置某个socket的事件，绑定指针
+		const Socket& set(const Socket& socketfd, void* ptr, int events)
 		{
-			struct epoll_event event;
-			event.data.fd = socketfd;
-			event.events = events;
-			_epoll_ctl(EPOLL_CTL_MOD, socketfd, &event);
+			struct epoll_event ev;
+			ev.data.ptr = ptr;
+			ev.events = events;
+
+			set_impl(socketfd, &ev);
 		}
 
 		// 从epoll中删除一个socket
-		void del(const Socket& socketfd)
+		const Socket& del(const Socket& socketfd)
 		{
 			_epoll_ctl(EPOLL_CTL_DEL, socketfd, nullptr);
-			--nfds_;
+			epoll_sockets_.pop(socketfd);
+			return socketfd;
 		}
 
+		// 等待事件发生，返回发生的事件数组
 		Array<epoll_event> wait(int timeout)
 		{
-			Array<epoll_event> events(nfds_);
-			int n = epoll_wait(epoll_fd_, events.data(), nfds_, timeout);
+			int nfds = size();
+			Array<epoll_event> events(nfds);
+			int n = epoll_wait(epoll_fd_, events.data(), nfds, timeout);
 			if (n == -1) RuntimeError(get_error_msg());
 
 			Array<epoll_event> result(n);
@@ -67,17 +69,31 @@ namespace ayr
 				result[i] = events[i];
 			return result;
 		}
-
 	private:
+		const Socket& set_impl(const Socket& socketfd, epoll_event* ep_ev)
+		{
+			if (!contains(socketfd))
+			{
+				epoll_sockets_.insert(socketfd);
+				_epoll_ctl(EPOLL_CTL_ADD, socketfd, ep_ev);
+			}
+			else
+			{
+				_epoll_ctl(EPOLL_CTL_MOD, socketfd, ep_ev);
+			}
+
+			return socketfd;
+		}
+
 		void _epoll_ctl(int op, const Socket& socketfd, epoll_event* ep_ev)
 		{
-			if (epoll_ctl(epoll_fd_, op, socketfd, ep_ev) == -1)
+			if (epoll_ctl(epoll_fd_.fd(), op, socketfd.fd(), ep_ev) == -1)
 				RuntimeError(get_error_msg());
 		}
 
-		Socket epoll_fd_;
+		Set<Socket> epoll_sockets_;
 
-		c_size nfds_;
+		Socket epoll_fd_;
 	};
 
 #endif // AYR_LINUX
