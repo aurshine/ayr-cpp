@@ -10,6 +10,7 @@ namespace ayr
 {
 #if defined(AYR_LINUX)
 #include <sys/epoll.h>
+	class Channel;
 
 	class Epoll : public Object<Epoll>
 	{
@@ -29,7 +30,7 @@ namespace ayr
 		bool contains(const Socket& socketfd) const { return epoll_sockets_.contains(socketfd); }
 
 		// 设置某个socket的事件
-		const Socket& set(const Socket& socketfd, int events)
+		const Socket& set(const Socket& socketfd, uint32_t events)
 		{
 			struct epoll_event ev;
 			ev.data.fd = socketfd.fd();
@@ -39,7 +40,7 @@ namespace ayr
 		}
 
 		// 设置某个socket的事件，绑定指针
-		const Socket& set(const Socket& socketfd, void* ptr, int events)
+		const Socket& set(const Socket& socketfd, void* ptr, uint32_t events)
 		{
 			struct epoll_event ev;
 			ev.data.ptr = ptr;
@@ -96,6 +97,10 @@ namespace ayr
 		Socket epoll_fd_;
 	};
 
+	class ChannelEpoll : public Epoll
+	{
+
+	};
 #endif // AYR_LINUX
 }
 #endif
