@@ -9,12 +9,12 @@
 
 namespace ayr
 {
-	template<Hashable T, typename Bucket = RobinHashBucket<T>>
-	class Set : public Object<Set<T, Bucket>>
+	template<Hashable T>
+	class Set : public Object<Set<T>>
 	{
 		using self = Set<T>;
 
-		using Bucket_t = Bucket;
+		using Bucket_t = RobinHashBucket<T>;
 
 	public:
 		using Value_t = T;
