@@ -60,7 +60,7 @@ namespace ayr
 		template<typename _V>
 		void insert(_V&& value)
 		{
-			hash_t hashv = ayrhash(value);
+			hash_t hashv = ayrhash(static_cast<const Value_t&>(value));
 			if (!contains_hashv(hashv))
 				insert_impl(std::forward<_V>(value), hashv);
 		}
