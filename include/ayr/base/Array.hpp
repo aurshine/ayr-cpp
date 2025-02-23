@@ -39,7 +39,7 @@ namespace ayr
 				ayr_construct(data() + i, other.data()[i]);
 		}
 
-		Array(self&& other) noexcept : size_(other.size_), arr_(std::move(other.arr_)) { other.size_ = 0; other.arr_ = 0; }
+		Array(self&& other) noexcept : size_(other.size_), arr_(other.arr_) { other.size_ = 0; other.arr_ = nullptr; }
 
 		~Array()
 		{
