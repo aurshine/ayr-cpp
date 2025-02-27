@@ -84,14 +84,10 @@ namespace ayr
 					{
 						auto& first_timer = sleep_coroutines.top();
 
-						if (first_timer.abs_time_ <= std::chrono::steady_clock::now())
-							resume(first_timer.coro_);
-						else
-						{
+						if (first_timer.abs_time_ > std::chrono::steady_clock::now())
 							std::this_thread::sleep_until(first_timer.abs_time_);
-							resume(first_timer.coro_);
-						}
 
+						resume(first_timer.coro_);
 						sleep_coroutines.pop();
 					}
 				}
