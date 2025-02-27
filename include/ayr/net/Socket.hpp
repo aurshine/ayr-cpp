@@ -27,6 +27,8 @@ namespace ayr
 	public:
 		using self = Socket;
 
+		Socket() : socket_(INVALID_SOCKET) {}
+
 		Socket(int family, int type)
 		{
 			int protocol = 0;
@@ -222,7 +224,7 @@ namespace ayr
 			if (fcntl(socket_, F_SETFL, flags) != 0)
 				RuntimeError(get_error_msg());
 #endif
-		}
+	}
 
 		int setsockopt(int level, int optname, const void* optval, socklen_t optlen) const
 		{
@@ -231,7 +233,7 @@ namespace ayr
 #elif defined(AYR_LINUX)
 			return ::setsockopt(socket_, level, optname, optval, optlen);
 #endif
-		}
+}
 
 		int getsockopt(int level, int optname, void* optval, socklen_t* optlen) const
 		{
