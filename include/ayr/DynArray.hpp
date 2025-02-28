@@ -98,6 +98,14 @@ namespace ayr
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
+		T& front() { return blocks_.front().front(); }
+
+		const T& front() const { return blocks_.front().front(); }
+
+		T& back() { return _back_block().back(); }
+
+		const T& back() const { return _back_block().back(); }
+
 		// 追加元素
 		template<typename U>
 		T& append(U&& item)
@@ -229,7 +237,7 @@ namespace ayr
 
 			self& operator++()
 			{
-				if (dynarray_->blocks_.at(block_index_).size() == ++ inblock_index_)
+				if (dynarray_->blocks_.at(block_index_).size() == ++inblock_index_)
 				{
 					++block_index_;
 					inblock_index_ = 0;
@@ -242,7 +250,7 @@ namespace ayr
 
 			self& operator--()
 			{
-				if (inblock_index_ -- == 0)
+				if (inblock_index_-- == 0)
 				{
 					--block_index_;
 					inblock_index_ = dynarray_->blocks_.at(block_index_).size() - 1;

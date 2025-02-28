@@ -28,7 +28,7 @@ namespace ayr
 				append(item);
 		}
 
-		Appender(Appender&& other) : size_(other.size_), capacity_(other.capacity_), buffer_(other.buffer_)
+		Appender(Appender&& other) noexcept : size_(other.size_), capacity_(other.capacity_), buffer_(other.buffer_)
 		{
 			other.buffer_ = nullptr;
 			other.size_ = 0;
@@ -67,6 +67,14 @@ namespace ayr
 		Value_t* data() { return buffer_; }
 
 		const Value_t* data() const { return buffer_; }
+
+		Value_t& front() { return *buffer_; }
+
+		const Value_t& front() const { return *buffer_; }
+
+		Value_t& back() { return buffer_[size_ - 1]; }
+
+		const Value_t& back() const { return buffer_[size_ - 1]; }
 
 		// 在buffer末尾追加元素
 		template<typename... Args>
