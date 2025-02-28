@@ -4,6 +4,8 @@
 #include "../base/ayr_memory.hpp"
 #include "../base/View.hpp"
 
+#include "Channel.hpp"
+#include "EventLoop.hpp"
 #include "ServerCallback.hpp"
 
 namespace ayr
@@ -192,5 +194,79 @@ namespace ayr
 		// 服务器是否有效
 		bool valid_ = true;
 	};
+
+#if defined(AYR_LINUX)
+	template<typename DeriverdServer>
+	class UltraTcpServer
+	{
+		using self = UltraTcpServer<DeriverdServer>;
+
+		/ loop_;
+
+		Socket server_socket_;
+	public:
+		UltraTcpServer(int port, int family = AF_INET) :
+			loop_(),
+			server_socket_(family, SOCK_STREAM)
+		{
+			server_socket_.bind("127.0.0.1", port);
+			server_socket_.listen();
+		}
+
+		~UltraTcpServer() { server_socket_.close(); }
+
+		// 客户端连接到服务器后调用的回调函数
+		void on_connected(const Socket& client) {}
+
+		// 客户端断开连接时调用的回调函数
+		void on_disconnected(const Socket& client) {}
+
+		// 读事件产生时的回调函数, 返回读取的数据
+		CString on_reading(const Socket& client) {}
+
+		// 写事件产生时的回调函数, 用于发送数据
+		void on_writing(const Socket& client, const CString& message) {}
+
+		// 得到读数据的回调函数, 用于处理读到的数据
+		void on_message(const Socket& client, const CString& message) {}
+
+		// 运行
+		void run()
+		{
+			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
+			channel->enable_read();
+			channel->when_handle([&](Channel* channel){ server().on_accept(); });
+
+			loop_.run();
+		}
+
+		// 接受一个socket连接
+		void on_accept()
+		{
+			Socket client_socket = server_socket_.accept();
+			on_connected(client_socket);
+
+			Channel* channel = ayr_make<Channel>(&loop, client_socket);
+			channel->enable_read();
+			channel->when_handle([&](Channel* channel){ server().execute_read(channel); });
+		}
+
+		// 执行读事件
+		void execute_read(Channel* channel)
+		{
+			Socket& client = channel->fd();
+			CString message = server().on_reading(client);
+			if (message.empty())
+			{
+				server().on_disconnected(client);
+				delete channel;
+			}
+			else
+				server().on_message(client, message);
+		}
+
+		DeriverdServer& server() { return static_cast<DeriverdServer&>(*this); }
+	};
+#endif // AYR_LINUX
 }
 #endif // AYR_SOCKET_TCP_HPP

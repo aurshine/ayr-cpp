@@ -10,8 +10,6 @@ namespace ayr
 {
 #if defined(AYR_LINUX)
 #include <sys/epoll.h>
-	class Channel;
-
 	class Epoll : public Object<Epoll>
 	{
 	public:
@@ -28,6 +26,9 @@ namespace ayr
 
 		// 是否包含某个socket
 		bool contains(const Socket& socketfd) const { return epoll_sockets_.contains(socketfd); }
+
+		// 获取epoll的文件描述符
+		const Socket& epoll_fd() const { return epoll_fd_; }
 
 		// 设置某个socket的事件
 		const Socket& set(const Socket& socketfd, uint32_t events)
@@ -95,11 +96,6 @@ namespace ayr
 		Set<Socket> epoll_sockets_;
 
 		Socket epoll_fd_;
-	};
-
-	class ChannelEpoll : public Epoll
-	{
-
 	};
 #endif // AYR_LINUX
 }
