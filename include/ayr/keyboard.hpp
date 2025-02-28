@@ -5,12 +5,13 @@
 
 #include "filesystem.hpp"
 
-#pragma comment(lib, "User32.lib")
-
 namespace ayr
 {
 	namespace keyboard
 	{
+#if defined(AYR_WINDOWS)
+#pragma comment(lib, "User32.lib")
+
 		static std::function<void(int /* keycode*/)> _ON_KEYDOWN, _ON_KEYUP;
 		static std::function<bool(int /* keycode*/)> _ON_EXIT;
 		static HHOOK _KEYBOARD_HOOK = nullptr;
@@ -69,6 +70,7 @@ namespace ayr
 			}
 			UnhookWindowsHookEx(hook);
 		}
+#endif // AYR_WINDOS
 	}
 }
 #endif
