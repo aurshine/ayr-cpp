@@ -226,17 +226,26 @@ namespace ayr
 		// 写事件产生时的回调函数, 用于发送数据
 		void on_writing(const Socket& client) {}
 
-		// 得到读数据的回调函数, 用于处理读到的数据
-		void on_message(const Socket& client, const CString& message) {}
-
 		// 错误事件产生时的回调函数
 		void on_error(const Socket& client, const CString& error) { ayr_error(client, error); }
 
 		// 超时的回调函数
 		void on_timeout() {}
 
+		// 运行
+		void run(int timeout_ms = -1)
+		{
+			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
+			channel->when_handle([&](Channel* channel) { accept(); });
+			loop_.add_channel(channel);
+
+			while (true)
+				if (!loop_.run_once(timeout_ms))
+					server().on_timeout();
+		}
+	private:
 		// 接受一个socket连接
-		void on_accept()
+		void accept()
 		{
 			Socket client_socket = server_socket_.accept();
 			server().on_connected(client_socket);
@@ -246,18 +255,7 @@ namespace ayr
 			loop_.add_channel(channel);
 		}
 
-		// 运行
-		void run(int timeout_ms = -1)
-		{
-			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
-			channel->when_handle([&](Channel* channel) { server().on_accept(); });
-			loop_.add_channel(channel);
-
-			while (true)
-				if (!loop_.run_once(timeout_ms))
-					server().on_timeout();
-		}
-	private:
+		// 客户端断开连接
 		void disconnected(Channel* channel)
 		{
 			server().on_disconnected(channel->fd());
