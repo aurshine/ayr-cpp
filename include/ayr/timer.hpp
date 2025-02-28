@@ -100,12 +100,23 @@ namespace ayr
 	class Timer : public Object<Timer<Duration>>
 	{
 	public:
-		void into() { start_time = std::chrono::steady_clock::now(); }
+		Timer() : is_into(false), start_time() {}
+
+		void into()
+		{
+			is_into = true;
+			start_time = std::chrono::steady_clock::now();
+		}
 
 		typename Duration::rep escape()
 		{
+			if (!is_into)
+				RuntimeError("Timer not call into()");
+
 			auto end_time = std::chrono::steady_clock::now();
-			return std::chrono::duration_cast<Duration>(end_time - start_time).count();;
+			auto duration = std::chrono::duration_cast<Duration>(end_time - start_time).count();
+			is_into = false;
+			return duration;
 		}
 
 		template<typename F, typename ...Args>
@@ -116,6 +127,7 @@ namespace ayr
 			return escape();
 		}
 	private:
+		bool is_into;
 		std::chrono::steady_clock::time_point start_time;
 	};
 
