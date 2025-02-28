@@ -179,19 +179,20 @@ namespace ayr
 		}
 
 		// 接收最多bufsize个字节的数据
-		CString recv(int bufsize, int flags) const
+		CString recv(int bufsize, int* length = nullptr, int flags = 0) const
 		{
 			CString data{ bufsize };
 			int recvd = ::recv(socket_, data.data(), bufsize, flags);
+			if (length) *length = recvd;
 			return data;
 		}
 
 		// 将普通数据和辅助数据一起接收，并返回普通数据
 		CString recvmsg(int flags = 0) const
 		{
-			CString msg_size = recv(sizeof(u_long), flags);
+			CString msg_size = recv(sizeof(u_long), nullptr, flags);
 			u_long* msg_size_l = reinterpret_cast<u_long*>(msg_size.data());
-			return recv(ntohl(*msg_size_l), flags);
+			return recv(ntohl(*msg_size_l), nullptr, flags);
 		}
 
 		// 接收sendto发送的数据，如果断开连接，返回空字符串
@@ -224,7 +225,7 @@ namespace ayr
 			if (fcntl(socket_, F_SETFL, flags) != 0)
 				RuntimeError(get_error_msg());
 #endif
-	}
+		}
 
 		int setsockopt(int level, int optname, const void* optval, socklen_t optlen) const
 		{
@@ -233,7 +234,7 @@ namespace ayr
 #elif defined(AYR_LINUX)
 			return ::setsockopt(socket_, level, optname, optval, optlen);
 #endif
-}
+		}
 
 		int getsockopt(int level, int optname, void* optval, socklen_t* optlen) const
 		{
