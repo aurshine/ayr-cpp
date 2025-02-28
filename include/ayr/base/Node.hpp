@@ -19,9 +19,9 @@ namespace ayr
 		// 默认构造函数会构造一个空节点，通常不使用
 		SimpleNode() : value_(nullptr), next_(nullptr) {}
 
-		SimpleNode(typename ItInfo::const_reference value) : value_(ayr_cove_make(value)), next_(none_node()) {}
+		SimpleNode(typename ItInfo::const_reference value) : value_(ayr_make<typename ItInfo::value_type>(value)), next_(none_node()) {}
 
-		SimpleNode(typename ItInfo::rvalue_reference value) : value_(ayr_cove_make(std::move(value))), next_(none_node()) {}
+		SimpleNode(typename ItInfo::rvalue_reference value) : value_(ayr_make<typename ItInfo::value_type>(std::move(value))), next_(none_node()) {}
 
 		SimpleNode(const self& other) : value_(other.value_), next_(other.next_) {}
 
@@ -94,9 +94,9 @@ namespace ayr
 		// 默认构造函数会构造一个空节点，通常不使用
 		BiSimpleNode() : value_(nullptr), prev_(nullptr), next_(nullptr) {}
 
-		BiSimpleNode(typename ItInfo::const_reference value) : value_(ayr_cove_make(value)), prev_(none_node()), next_(none_node()) {}
+		BiSimpleNode(typename ItInfo::const_reference value) : value_(ayr_make<typename ItInfo::value_type>(value)), prev_(none_node()), next_(none_node()) {}
 
-		BiSimpleNode(typename ItInfo::rvalue_reference value) : value_(ayr_cove_make(std::move(value))), prev_(none_node()), next_(none_node()) {}
+		BiSimpleNode(typename ItInfo::rvalue_reference value) : value_(ayr_make<typename ItInfo::value_type>(std::move(value))), prev_(none_node()), next_(none_node()) {}
 
 		BiSimpleNode(const self& other) :
 			value_(other.value_),
