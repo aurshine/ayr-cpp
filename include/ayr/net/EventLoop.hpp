@@ -22,10 +22,7 @@ namespace ayr
 		void add_channel(Channel* channel) { chapoll_.add_channel(channel); }
 
 		// 从EventLoop中移除一个Channel
-		void remove_channel(Channel* channel) 
-		{
-			chapoll_.remove_channel(channel);
-		}
+		void remove_channel(Channel* channel) { chapoll_.remove_channel(channel); }
 
 		// 停止EventLoop
 		void quit_loop() { quit = true; }

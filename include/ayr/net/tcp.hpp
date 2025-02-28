@@ -201,7 +201,7 @@ namespace ayr
 	{
 		using self = UltraTcpServer<DeriverdServer>;
 
-		/ loop_;
+		UltraEventLoop loop_;
 
 		Socket server_socket_;
 	public:
@@ -235,9 +235,9 @@ namespace ayr
 		{
 			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
 			channel->enable_read();
-			channel->when_handle([&](Channel* channel){ server().on_accept(); });
-
-			loop_.run();
+			channel->when_handle([&](Channel* channel) { server().on_accept(); });
+			loop_.add_channel(channel);
+			loop_.run(100);
 		}
 
 		// 接受一个socket连接
@@ -246,9 +246,9 @@ namespace ayr
 			Socket client_socket = server_socket_.accept();
 			on_connected(client_socket);
 
-			Channel* channel = ayr_make<Channel>(&loop, client_socket);
+			Channel* channel = ayr_make<Channel>(&loop_, client_socket);
 			channel->enable_read();
-			channel->when_handle([&](Channel* channel){ server().execute_read(channel); });
+			channel->when_handle([&](Channel* channel) { server().execute_read(channel); });
 		}
 
 		// 执行读事件
@@ -259,7 +259,7 @@ namespace ayr
 			if (message.empty())
 			{
 				server().on_disconnected(client);
-				delete channel;
+				loop_.remove_channel(channel);
 			}
 			else
 				server().on_message(client, message);

@@ -6,7 +6,6 @@
 namespace ayr
 {
 #if defined(AYR_LINUX)
-	class Chapoll;
 	class UltraEventLoop;
 
 	class Channel : public Object<Channel>
@@ -29,11 +28,7 @@ namespace ayr
 			events_(0),
 			revents_(0) {}
 
-		~Channel()
-		{
-			loop_->remove_channel(this);
-			socket_.close();
-		}
+		~Channel() { socket_.close(); }
 
 		const Socket& fd() const { return socket_; }
 
@@ -47,7 +42,6 @@ namespace ayr
 		{
 			events_ |= EPOLLIN | EPOLLET;
 			socket_.setblocking(false);
-			loop_->add_channel(this);
 		}
 
 		void set_revents(uint32_t revents) { revents_ = revents; }
@@ -74,7 +68,11 @@ namespace ayr
 			return super::set(channel->fd(), channel, channel->events());
 		}
 
-		void remove_channel(Channel* channel) { super::del(channel->fd()); }
+		void remove_channel(Channel* channel)
+		{
+			super::del(channel->fd());
+			delete channel;
+		}
 
 		Array<Channel*> wait(int timeout)
 		{
