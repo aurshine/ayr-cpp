@@ -25,8 +25,11 @@ namespace ayr
 		Channel(UltraEventLoop* loop, const Socket& socket) :
 			loop_(loop),
 			socket_(socket),
-			events_(0),
-			revents_(0) {}
+			events_(EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP),
+			revents_(0)
+		{
+			socket_.setblocking(false);
+		}
 
 		~Channel() { socket_.close(); }
 
@@ -37,12 +40,6 @@ namespace ayr
 		uint32_t revents() const { return revents_; }
 
 		void handle() { handle_(this); }
-
-		void enable_read()
-		{
-			events_ |= EPOLLIN | EPOLLET;
-			socket_.setblocking(false);
-		}
 
 		void set_revents(uint32_t revents) { revents_ = revents; }
 
@@ -74,11 +71,11 @@ namespace ayr
 			delete channel;
 		}
 
-		Array<Channel*> wait(int timeout)
+		Array<Channel*> wait(int timeout_ms)
 		{
 			int nfds = size();
 			Array<epoll_event> events(nfds);
-			int n = epoll_wait(epoll_fd(), events.data(), nfds, timeout);
+			int n = epoll_wait(epoll_fd(), events.data(), nfds, timeout_ms);
 			if (n == -1) RuntimeError(get_error_msg());
 
 			Array<Channel*> channels(n);

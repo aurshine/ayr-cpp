@@ -27,12 +27,13 @@ namespace ayr
 		// 停止EventLoop
 		void quit_loop() { quit = true; }
 
-		// 运行EventLoop
-		void run(int timeout)
+		// 运行EventLoop，返回执行的handle数量
+		c_size run_once(int timeout_ms)
 		{
-			while (!quit)
-				for (auto& channel : chapoll_.wait(timeout))
-					channel->handle();
+			Array<Channel*> channels = chapoll_.wait(timeout_ms);
+			for (auto& channel : channels)
+				channel->handle();
+			return channels.size();
 		}
 	};
 #endif // AYR_LINUX

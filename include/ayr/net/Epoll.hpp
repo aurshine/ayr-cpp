@@ -47,7 +47,7 @@ namespace ayr
 			ev.data.ptr = ptr;
 			ev.events = events;
 
-			set_impl(socketfd, &ev);
+			return set_impl(socketfd, &ev);
 		}
 
 		// 从epoll中删除一个socket
@@ -59,11 +59,11 @@ namespace ayr
 		}
 
 		// 等待事件发生，返回发生的事件数组
-		Array<epoll_event> wait(int timeout)
+		Array<epoll_event> wait(int timeout_ms)
 		{
 			int nfds = size();
 			Array<epoll_event> events(nfds);
-			int n = epoll_wait(epoll_fd_, events.data(), nfds, timeout);
+			int n = epoll_wait(epoll_fd_, events.data(), nfds, timeout_ms);
 			if (n == -1) RuntimeError(get_error_msg());
 
 			Array<epoll_event> result(n);

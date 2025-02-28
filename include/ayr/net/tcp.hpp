@@ -1,12 +1,11 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
-#include "../base/ayr_memory.hpp"
-#include "../base/View.hpp"
-
 #include "Channel.hpp"
 #include "EventLoop.hpp"
 #include "ServerCallback.hpp"
+#include "../base/ayr_memory.hpp"
+#include "../base/View.hpp"
 
 namespace ayr
 {
@@ -197,7 +196,7 @@ namespace ayr
 
 #if defined(AYR_LINUX)
 	template<typename DeriverdServer>
-	class UltraTcpServer
+	class UltraTcpServer : public Object<UltraTcpServer<DeriverdServer>>
 	{
 		using self = UltraTcpServer<DeriverdServer>;
 
@@ -221,51 +220,79 @@ namespace ayr
 		// 客户端断开连接时调用的回调函数
 		void on_disconnected(const Socket& client) {}
 
-		// 读事件产生时的回调函数, 返回读取的数据
-		CString on_reading(const Socket& client) {}
+		// 读事件产生时的回调函数, 用于读取数据
+		void on_reading(const Socket& client) {}
 
 		// 写事件产生时的回调函数, 用于发送数据
-		void on_writing(const Socket& client, const CString& message) {}
+		void on_writing(const Socket& client) {}
 
 		// 得到读数据的回调函数, 用于处理读到的数据
 		void on_message(const Socket& client, const CString& message) {}
 
-		// 运行
-		void run()
-		{
-			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
-			channel->enable_read();
-			channel->when_handle([&](Channel* channel) { server().on_accept(); });
-			loop_.add_channel(channel);
-			loop_.run(100);
-		}
+		// 错误事件产生时的回调函数
+		void on_error(const Socket& client, const CString& error) { ayr_error(client, error); }
+
+		// 超时的回调函数
+		void on_timeout() {}
 
 		// 接受一个socket连接
 		void on_accept()
 		{
 			Socket client_socket = server_socket_.accept();
-			on_connected(client_socket);
+			server().on_connected(client_socket);
 
 			Channel* channel = ayr_make<Channel>(&loop_, client_socket);
-			channel->enable_read();
-			channel->when_handle([&](Channel* channel) { server().execute_read(channel); });
+			channel->when_handle([&](Channel* channel) { execute_event(channel); });
+			loop_.add_channel(channel);
+		}
+
+		// 运行
+		void run(int timeout_ms = -1)
+		{
+			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
+			channel->when_handle([&](Channel* channel) { server().on_accept(); });
+			loop_.add_channel(channel);
+
+			while (true)
+				if (!loop_.run_once(timeout_ms))
+					server().on_timeout();
+		}
+	private:
+		void disconnected(Channel* channel)
+		{
+			server().on_disconnected(channel->fd());
+			loop_.remove_channel(channel);
 		}
 
 		// 执行读事件
-		void execute_read(Channel* channel)
+		void execute_event(Channel* channel)
 		{
-			Socket& client = channel->fd();
-			CString message = server().on_reading(client);
-			if (message.empty())
+			uint32_t events = channel->revents();
+			const Socket& client = channel->fd();
+
+			// 错误事件处理
+			if (events & EPOLLERR)
+				server().on_error(client, get_error_msg());
+
+			// 断开连接事件处理
+			if (events & EPOLLEND)
 			{
-				server().on_disconnected(client);
-				loop_.remove_channel(channel);
+				disconnected(channel);
+				return;
 			}
-			else
-				server().on_message(client, message);
+
+			// 读事件处理
+			if (events & EPOLLIN)
+				server().on_reading(client);
+
+			// 写事件处理
+			if (events & EPOLLOUT)
+				server().on_writing(client);
 		}
 
 		DeriverdServer& server() { return static_cast<DeriverdServer&>(*this); }
+
+		constexpr static uint32_t EPOLLEND = EPOLLHUP | EPOLLRDHUP | EPOLLERR;
 	};
 #endif // AYR_LINUX
 }
