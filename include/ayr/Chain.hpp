@@ -60,6 +60,14 @@ namespace ayr
 
 		const Value_t& at(c_size index) const { return *at_node(index); }
 
+		Node_t& front() { return *head_; }
+
+		const Node_t& front() const { return *head_; }
+
+		Node_t& back() { return *tail_; }
+
+		const Node_t& back() const { return *tail_; }
+
 		template<typename... Args>
 		Node_t& append(Args&& ...args)
 		{
