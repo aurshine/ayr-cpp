@@ -106,6 +106,7 @@ namespace ayr
 	private:
 		std::tuple<Its...> its_;
 	};
+
 	template<std::input_or_output_iterator... Its>
 	def zip_it(Its... its) -> ZipIterator<Its...>
 	{
@@ -120,8 +121,6 @@ namespace ayr
 			zip_it(itables.end()...)
 		);
 	}
-
-
 
 	template<Iteratable T, typename Init>
 	def sum(T&& obj, Init init = Init()) -> Init
