@@ -6,36 +6,33 @@
 namespace ayr
 {
 #if defined(AYR_LINUX)
-	class UltraEventLoop : public Object<UltraEventLoop>
+	UltraEventLoop::UltraEventLoop() : epoll_(), quit(false) {}
+
+	void UltraEventLoop::add_channel(Channel* channel) 
+	{ 
+		epoll_.set(channel->fd(), channel, channel->events()); 
+	}
+
+	void UltraEventLoop::remove_channel(Channel* channel) 
+	{ 
+		epoll_.del(channel->fd()); 
+		ayr_desloc(channel, 1);
+	}
+
+	void UltraEventLoop::quit_loop() { quit = true; }
+
+	c_size UltraEventLoop::run_once(int timeout_ms)
 	{
-		using self = UltraEventLoop;
-
-		using super = Object<UltraEventLoop>;
-
-		Chapoll chapoll_;
-
-		bool quit;
-	public:
-		UltraEventLoop() : chapoll_(), quit(false) {}
-
-		// 添加一个Channel到EventLoop中
-		void add_channel(Channel* channel) { chapoll_.add_channel(channel); }
-
-		// 从EventLoop中移除一个Channel
-		void remove_channel(Channel* channel) { chapoll_.remove_channel(channel); }
-
-		// 停止EventLoop
-		void quit_loop() { quit = true; }
-
-		// 运行EventLoop，返回执行的handle数量
-		c_size run_once(int timeout_ms)
+		Array<epoll_event> ep_evs = epoll_.wait(timeout_ms);
+		for (auto& ep_ev : ep_evs)
 		{
-			Array<Channel*> channels = chapoll_.wait(timeout_ms);
-			for (auto& channel : channels)
-				channel->handle();
-			return channels.size();
+			Channel* channel = static_cast<Channel*>(ep_ev.data.ptr);
+			channel->set_revents(ep_ev.events);
+			channel->handle();
 		}
-	};
+			
+		return ep_evs.size();
+	}
 #endif // AYR_LINUX
 }
 #endif // AYR_NET_EVENTLOOP_HPP

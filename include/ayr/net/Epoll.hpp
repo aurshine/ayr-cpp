@@ -4,7 +4,7 @@
 #include "Socket.hpp"
 #include "../Array.hpp"
 #include "../filesystem.hpp"
-#include "../Set.hpp"
+#include "../Dict.hpp"
 
 namespace ayr
 {
@@ -22,10 +22,10 @@ namespace ayr
 		~Epoll() { epoll_fd_.close(); }
 
 		// epoll连接数
-		c_size size() const { return epoll_sockets_.size(); }
+		c_size size() const { return epoll_events_.size(); }
 
 		// 是否包含某个socket
-		bool contains(const Socket& socketfd) const { return epoll_sockets_.contains(socketfd); }
+		bool contains(const Socket& socketfd) const { return epoll_events_.contains(socketfd); }
 
 		// 获取epoll的文件描述符
 		const Socket& epoll_fd() const { return epoll_fd_; }
@@ -54,7 +54,7 @@ namespace ayr
 		const Socket& del(const Socket& socketfd)
 		{
 			_epoll_ctl(EPOLL_CTL_DEL, socketfd, nullptr);
-			epoll_sockets_.pop(socketfd);
+			epoll_events_.pop(socketfd);
 			return socketfd;
 		}
 
@@ -75,15 +75,10 @@ namespace ayr
 		const Socket& set_impl(const Socket& socketfd, epoll_event* ep_ev)
 		{
 			if (!contains(socketfd))
-			{
-				epoll_sockets_.insert(socketfd);
 				_epoll_ctl(EPOLL_CTL_ADD, socketfd, ep_ev);
-			}
 			else
-			{
 				_epoll_ctl(EPOLL_CTL_MOD, socketfd, ep_ev);
-			}
-
+			epoll_events_[socketfd] = *ep_ev;
 			return socketfd;
 		}
 
@@ -93,7 +88,7 @@ namespace ayr
 				RuntimeError(get_error_msg());
 		}
 
-		Set<Socket> epoll_sockets_;
+		Dict<Socket, epoll_event> epoll_events_;
 
 		Socket epoll_fd_;
 	};
