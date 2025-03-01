@@ -1,9 +1,10 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
-#include "Channel.hpp"
 #include "EventLoop.hpp"
 #include "ServerCallback.hpp"
+#include "Select.hpp"
+#include "../async/ThreadPool.hpp"
 #include "../base/ayr_memory.hpp"
 #include "../base/View.hpp"
 
@@ -195,17 +196,33 @@ namespace ayr
 	};
 
 #if defined(AYR_LINUX)
+	struct UltraTcpServerOptions
+	{
+
+	};
+
 	template<typename DeriverdServer>
 	class UltraTcpServer : public Object<UltraTcpServer<DeriverdServer>>
 	{
 		using self = UltraTcpServer<DeriverdServer>;
 
-		UltraEventLoop loop_;
+		using ReactorLoop = UltraEventLoop;
+
+		ReactorLoop main_reactor_;
+
+		Array<ReactorLoop> sub_reactors_;
+
+		thread::ThreadPool thread_pool_;
 
 		Socket server_socket_;
+
+		int timeout_ms_;
 	public:
-		UltraTcpServer(int port, int family = AF_INET) :
-			loop_(),
+		UltraTcpServer(int port, int num_thread = 1, int timeout_ms = -1, int family = AF_INET) :
+			main_reactor_(),
+			sub_reactors_(num_thread),
+			thread_pool_(num_thread),
+			timeout_ms_(timeout_ms),
 			server_socket_(family, SOCK_STREAM)
 		{
 			server_socket_.bind("127.0.0.1", port);
@@ -233,36 +250,47 @@ namespace ayr
 		void on_timeout() {}
 
 		// 运行
-		void run(int timeout_ms = -1)
+		void run()
 		{
-			Channel* channel = ayr_make<Channel>(&loop_, server_socket_);
+			Channel* channel = ayr_make<Channel>(&main_reactor_, server_socket_);
 			channel->when_handle([&](Channel* channel) { accept(); });
-			loop_.add_channel(channel);
+			channel->add_channel();
 
-			while (true)
-				if (!loop_.run_once(timeout_ms))
-					server().on_timeout();
+			for (auto& sub_reactor : sub_reactors_)
+				thread_pool_.push([&] { run_reactor(sub_reactor); });
+			run_reactor(main_reactor_);
 		}
 	private:
+		void run_reactor(ReactorLoop& reactor)
+		{
+			while (true)
+				if (reactor.run_once(timeout_ms_) == 0)
+					server().on_timeout();
+		}
+
 		// 接受一个socket连接
 		void accept()
 		{
 			Socket client_socket = server_socket_.accept();
 			server().on_connected(client_socket);
 
-			Channel* channel = ayr_make<Channel>(&loop_, client_socket);
+			ReactorLoop* sub_reactor = &main_reactor_;
+			if (sub_reactors_.size())
+				sub_reactor = &sub_reactors_[client_socket.fd() % sub_reactors_.size()];
+
+			Channel* channel = ayr_make<Channel>(sub_reactor, client_socket);
 			channel->when_handle([&](Channel* channel) { execute_event(channel); });
-			loop_.add_channel(channel);
+			channel->add_channel();
 		}
 
 		// 客户端断开连接
 		void disconnected(Channel* channel)
 		{
 			server().on_disconnected(channel->fd());
-			loop_.remove_channel(channel);
+			channel->remove_channel();
 		}
 
-		// 执行读事件
+		// 执行事件
 		void execute_event(Channel* channel)
 		{
 			uint32_t events = channel->revents();
