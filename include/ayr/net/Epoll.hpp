@@ -13,6 +13,8 @@ namespace ayr
 	class Epoll : public Object<Epoll>
 	{
 	public:
+		friend class UltraEventLoop;
+
 		using self = Epoll;
 
 		using super = Object<Epoll>;
@@ -61,7 +63,8 @@ namespace ayr
 		// 等待事件发生，返回发生的事件数组
 		Array<epoll_event> wait(int timeout_ms)
 		{
-			int nfds = size();
+			// 避免epoll 上没有socket
+			int nfds = size() + 1;
 			Array<epoll_event> events(nfds);
 			int n = epoll_wait(epoll_fd_, events.data(), nfds, timeout_ms);
 			if (n == -1) RuntimeError(get_error_msg());
