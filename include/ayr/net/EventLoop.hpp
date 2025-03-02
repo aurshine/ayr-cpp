@@ -8,6 +8,12 @@ namespace ayr
 #if defined(AYR_LINUX)
 	UltraEventLoop::UltraEventLoop() : epoll_(), quit(false) {}
 
+	UltraEventLoop::~UltraEventLoop() 
+	{
+		for (auto&& [fd, ep_ev] : epoll_.epoll_events_.items())
+			ayr_desloc(static_cast<Channel*>(ep_ev.data.ptr), 1);
+	}
+
 	void UltraEventLoop::add_channel(Channel* channel) 
 	{ 
 		epoll_.set(channel->fd(), channel, channel->events()); 
