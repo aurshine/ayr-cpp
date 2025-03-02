@@ -20,6 +20,8 @@ namespace ayr
 	public:
 		UltraEventLoop();
 
+		~UltraEventLoop();
+
 		// 添加一个Channel到EventLoop中
 		void add_channel(Channel* channel);
 
@@ -73,6 +75,10 @@ namespace ayr
 		void add_channel() { loop_->add_channel(this); }
 
 		void remove_channel() { loop_->remove_channel(this); }
+
+		void modeET() { events_ |= EPOLLET; }
+
+		void modeLT() { events_ &= ~EPOLLET; }
 	};
 #endif // AYR_LINUX
 }
