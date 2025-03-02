@@ -76,7 +76,7 @@ namespace ayr
 		}
 
 		// 监听端口
-		void listen(int backlog = 8) const
+		void listen(int backlog = 1024) const
 		{
 			if (::listen(socket_, backlog) != 0)
 				RuntimeError(get_error_msg());
