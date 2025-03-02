@@ -196,11 +196,6 @@ namespace ayr
 	};
 
 #if defined(AYR_LINUX)
-	struct UltraTcpServerOptions
-	{
-
-	};
-
 	template<typename DeriverdServer>
 	class UltraTcpServer : public Object<UltraTcpServer<DeriverdServer>>
 	{
@@ -253,6 +248,7 @@ namespace ayr
 		void run()
 		{
 			Channel* channel = ayr_make<Channel>(&main_reactor_, server_socket_);
+			channel->modeLT();
 			channel->when_handle([&](Channel* channel) { accept(); });
 			channel->add_channel();
 
