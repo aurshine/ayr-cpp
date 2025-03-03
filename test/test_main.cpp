@@ -1,16 +1,30 @@
-#include "dynarray_test.hpp"
-#include "socket_test.hpp"
-#include "atring_test.hpp"
-#include "json_test.hpp"
-#include "dict_test.hpp"
-#include "generator_test.hpp"
-#include "when_all_test.hpp"
-#include "chain_test.hpp"
+#include <ayr/net.hpp>
 
 using namespace ayr;
 
 int main()
 {
-	json_test();
+	Socket server_fd(AF_INET, SOCK_STREAM);
+	server_fd.bind("127.0.0.1", 8080);
+	server_fd.listen();
+
+	print("HTTP server listen on 127.0.0.1:8080");
+
+	for (int i = 0; i < 2; ++ i)
+	{
+		Socket client = server_fd.accept();
+		print("receive request: ", client.recv(1024));
+
+		CString response = "HTTP/1.1 200 OK\n"
+			"Content-Type: text/html; charset=UTF-8\n"
+			"Content-Length: 128\n"
+			"\n"
+			"<h1>Hello, world!</h1>";
+
+		client.send(response);
+		client.close();
+	}
+
+	server_fd.close();
 	return 0;
 }

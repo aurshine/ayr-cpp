@@ -30,6 +30,17 @@ void when_all_test()
 	asyncio.run();
 }
 
+coro::Task<void> when_any_hello_world()
+{
+	auto a = co_await coro::when_any(hello(), world());
+}
+
+void when_any_test()
+{
+	asyncio.add(when_any_hello_world());
+	asyncio.run();
+}
+
 void sleep_sort_test()
 {
 	auto async_num = [](int num) -> Task<void>

@@ -7,7 +7,7 @@
 
 using namespace std::chrono_literals;
 
-constexpr const char* IP = "192.168.8.195";
+constexpr const char* IP = "127.0.0.1";
 
 constexpr int PORT = 14514;
 
@@ -21,7 +21,7 @@ void tcp_echo_server_test()
 
 	server.set_recv_callback([](MiniTcpServer* server, const Socket& client) {
 		CString data = client.recvmsg();
-		if (!data)
+		if (data.empty())
 		{
 			print("client disconnect:", client);
 			server->push_disconnected(client);
@@ -58,6 +58,7 @@ void tcp_echo_client_test()
 		client.sendmsg(data, strlen(data));
 		print("server response:", client.recvmsg());
 	}
+	client.close();
 	print("tcp client exit");
 }
 
@@ -78,7 +79,7 @@ void udp_echo_server_test()
 	{
 		auto [data, client_addr] = server.recv();
 
-		if (!data) break;
+		if (data.empty()) break;
 		server.send(data, data.size(), client_addr);
 	}
 	print("udp server exit");

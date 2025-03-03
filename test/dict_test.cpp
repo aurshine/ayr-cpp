@@ -1,10 +1,9 @@
-#pragma once
 #include <ayr/Dict.hpp>
 #include <ayr/Set.hpp>
 #include <ayr/timer.hpp>
 
 #include <unordered_map>
-
+#include <unordered_set>
 
 using namespace ayr;
 
@@ -47,6 +46,43 @@ void dict_run_speed_test()
 	for (int i = 0; i < N; i++)
 		u.erase(vs[i]);
 	print("std::unordered_map pop time: ", t.escape(), "ms");
+}
+
+void set_run_speed_test()
+{
+	Timer_ms t;
+	std::vector<std::string> vs;
+	constexpr int N = 1e6;
+	for (int i = 0; i < N; i++)
+		vs.push_back(std::to_string(i));
+
+	Set<std::string> s;
+	t.into();
+	for (int i = 0; i < N; i++)
+		s.insert(vs[i]);
+	print("Set insert time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		assert(s.contains(vs[i]));
+	print("Set query time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		s.pop(vs[i]);
+	print("Set pop time: ", t.escape(), "ms");
+
+	std::unordered_set<std::string> u;
+	t.into();
+	for (int i = 0; i < N; i++)
+		u.insert(vs[i]);
+	print("std::unordered_set insert time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		assert(u.count(vs[i]));
+	print("std::unordered_set query time: ", t.escape(), "ms");
+	t.into();
+	for (int i = 0; i < N; i++)
+		u.erase(vs[i]);
+	print("std::unordered_set pop time: ", t.escape(), "ms");
 }
 
 void dict_and_or_xor_test()
@@ -149,4 +185,6 @@ void set_test()
 
 	Array<int> a{ 1, 2 ,3, 4 ,5 };
 	print(set<int>(a));
+
+	set_run_speed_test();
 }

@@ -1,4 +1,3 @@
-#pragma once
 #include <list>
 #include <forward_list>
 
