@@ -6,7 +6,7 @@
 
 using namespace ayr;
 
-inline void chain_test()
+void chain_test()
 {
 	Chain<int> chain;
 
@@ -30,7 +30,7 @@ inline void chain_test()
 	tlog(chain);
 }
 
-inline void bichain_test()
+void bichain_test()
 {
 	BiChain<int> bichain;
 	for (int i = 0; i < 10; i++)
@@ -75,7 +75,7 @@ inline void bichain_test()
 	tlog(bichain.size());
 }
 
-def chain_speed_test()
+int main()
 {
 	Timer_ms timer;
 	Chain<CString> chain;
@@ -126,5 +126,5 @@ def chain_speed_test()
 	}
 
 	print("std::list random pop time: ", timer.escape(), "ms");
-
+	return 0;
 }

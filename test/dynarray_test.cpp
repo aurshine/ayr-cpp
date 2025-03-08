@@ -91,7 +91,7 @@ void pop_odd_test()
 	tlog(da);
 }
 
-void dynarray_test()
+void main()
 {
 	runspeed_test();
 

@@ -17,7 +17,7 @@ public:
 	// 客户端断开连接时调用的回调函数
 	void on_disconnected(const Socket& client)
 	{
-		++ count_out;
+		++count_out;
 		ayr::print("disconnected: ", client);
 	}
 
@@ -39,10 +39,16 @@ public:
 	int count_in = 0, count_out = 0;
 };
 
-void ultra_server_test()
+void main()
 {
 	TServer server(5555);
 	print("server start");
 	server.run();
+}
+#else
+int main()
+{
+	ayr::print("not support this platform");
+	return 0;
 }
 #endif

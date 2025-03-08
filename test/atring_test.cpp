@@ -2,7 +2,7 @@
 
 using namespace ayr;
 
-void atring_test()
+void main()
 {
 	Atring str1 = "你好 世界";
 	tlog(str1);

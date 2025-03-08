@@ -6,6 +6,7 @@
 
 
 using namespace std::chrono_literals;
+using namespace ayr;
 
 constexpr const char* IP = "127.0.0.1";
 
@@ -62,7 +63,7 @@ void tcp_echo_client_test()
 	print("tcp client exit");
 }
 
-void tcp_echo_test()
+void main()
 {
 	std::thread server(tcp_echo_server_test);
 	std::this_thread::sleep_for(100ms); // 等待服务端启动

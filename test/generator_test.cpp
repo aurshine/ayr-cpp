@@ -9,7 +9,7 @@ coro::Generator<int> numbers(int n)
 	co_return n + 1;
 }
 
-void generator_test()
+void main()
 {
 	for (int i : numbers(10))
 		print(i);

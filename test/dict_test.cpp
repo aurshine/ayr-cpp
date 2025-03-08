@@ -188,3 +188,10 @@ void set_test()
 
 	set_run_speed_test();
 }
+
+int main()
+{
+	dict_test();
+	set_test();
+	return 0;
+}

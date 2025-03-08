@@ -3,6 +3,7 @@
 
 using namespace ayr;
 using namespace coro;
+using namespace std::chrono_literals;
 
 Task<void> hello()
 {
@@ -56,4 +57,11 @@ void sleep_sort_test()
 	asyncio.add(async_num(5));
 	asyncio.add(async_num(4));
 	asyncio.run();
+}
+
+int main()
+{
+	when_all_test();
+	when_any_test();
+	sleep_sort_test();
 }

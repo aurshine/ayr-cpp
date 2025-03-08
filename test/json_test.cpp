@@ -2,7 +2,7 @@
 
 using namespace ayr;
 
-void json_test()
+void main()
 {
 	tlog(json::parse("123"));
 	tlog(json::parse("true"));
