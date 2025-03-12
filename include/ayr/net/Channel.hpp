@@ -52,7 +52,7 @@ namespace ayr
 		Channel(UltraEventLoop* loop, const Socket& socket) :
 			loop_(loop),
 			socket_(socket),
-			events_(EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP),
+			events_(EPOLLIN | EPOLLET | EPOLLHUP | EPOLLRDHUP | EPOLLERR),
 			revents_(0)
 		{
 			socket_.setblocking(false);
