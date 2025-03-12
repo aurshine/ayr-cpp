@@ -25,10 +25,13 @@ namespace ayr
 		ayr_desloc(channel, 1);
 	}
 
-	void UltraEventLoop::quit_loop() { quit = true; }
+	void UltraEventLoop::stop() { quit = true; }
 
+	// 运行一次事件循环，返回处理的事件数量
+	// 返回为0表示超时，返回为-1表示无法运行
 	c_size UltraEventLoop::run_once(int timeout_ms)
 	{
+		if (quit) return -1;
 		Array<epoll_event> ep_evs = epoll_.wait(timeout_ms);
 		for (auto& ep_ev : ep_evs)
 		{

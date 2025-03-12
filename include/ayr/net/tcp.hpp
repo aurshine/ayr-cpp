@@ -224,7 +224,14 @@ namespace ayr
 			server_socket_.listen();
 		}
 
-		~UltraTcpServer() { server_socket_.close(); }
+		~UltraTcpServer() 
+		{
+			for (auto& sub_reactor : sub_reactors_)
+				sub_reactor.stop();
+			main_reactor_.stop();
+			thread_pool_.stop();
+			server_socket_.close(); 
+		}
 
 		// 客户端连接到服务器后调用的回调函数
 		void on_connected(const Socket& client) {}
@@ -260,8 +267,16 @@ namespace ayr
 		void run_reactor(ReactorLoop& reactor)
 		{
 			while (true)
-				if (reactor.run_once(timeout_ms_) == 0)
+			{
+				c_size num_events = reactor.run_once(timeout_ms_);
+				switch (num_events)
+				{
+				case -1:
+					return;
+				case 0:
 					server().on_timeout();
+				}
+			}
 		}
 
 		// 接受一个socket连接

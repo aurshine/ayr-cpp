@@ -29,7 +29,7 @@ namespace ayr
 		void remove_channel(Channel* channel);
 
 		// 停止EventLoop
-		void quit_loop();
+		void stop();
 
 		// 运行EventLoop，返回执行的handle数量
 		c_size run_once(int timeout_ms); 
