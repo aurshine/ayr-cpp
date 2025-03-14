@@ -47,7 +47,7 @@ namespace ayr
 		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None<hash_t>; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
-		cmp_t __cmp__(const Derived& other) const { return static_cast<cmp_t>(this) - static_cast<cmp_t>(&other); }
+		cmp_t __cmp__(const Derived& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
 
 		// 返回true或false表示是否相等
 		bool __equals__(const Derived& other) const { return derived().__cmp__(other) == 0; }
