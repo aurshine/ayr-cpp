@@ -45,7 +45,7 @@ namespace ayr
 
 	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
-	def ayr_desloc(T* ptr, size_t size)
+	def ayr_desloc(T* ptr, size_t size = 1)
 	{
 		ayr_destroy(ptr, size);
 		ayr_delloc(ptr);
