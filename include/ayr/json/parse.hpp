@@ -1,35 +1,34 @@
 ﻿#ifndef AYR_JSON_PARSE_HPP
 #define AYR_JSON_PARSE_HPP
 
-#include "json_obj.hpp"
-
+#include "JsonValue.h"
 
 namespace ayr
 {
 	namespace json
 	{
 		// 解析字符串
-		def _parse_str(JsonType::JsonStr& json_str)->Json;
-		def _parse_num(JsonType::JsonStr& json_str)->Json;
-		def _parse_bool(JsonType::JsonStr& json_str)->Json;
-		def _parse_null(JsonType::JsonStr& json_str)->Json;
-		def _parse_simple(JsonType::JsonStr& json_str)->Json;
-		def _parse_array(JsonType::JsonStr& json_str)->Json;
-		def _parse_dict(JsonType::JsonStr& json_str)->Json;
+		def _parse_str(JsonStr& json_str) -> Json;
+		def _parse_num(JsonStr& json_str) -> Json;
+		def _parse_bool(JsonStr& json_str) -> Json;
+		def _parse_null(JsonStr& json_str) -> Json;
+		def _parse_simple(JsonStr& json_str) -> Json;
+		def _parse_array(JsonStr& json_str) -> Json;
+		def _parse_dict(JsonStr& json_str) -> Json;
 
 		// 返回一个可以被实际解析为Json对象的字符串
-		def parse(JsonType::JsonStr& json_str) -> Json
+		def parse(JsonStr& json_str) -> Json
 		{
 			json_str = json_str.strip();
 
 			if (json_str[0] == "{")  // dict类型
 			{
-				JsonType::JsonStr match = json_str.match("{", "}");
+				JsonStr match = json_str.match("{", "}");
 				return _parse_dict(match);
 			}
 			else if (json_str[0] == "[")  // array类型
 			{
-				JsonType::JsonStr match = json_str.match("[", "]");
+				JsonStr match = json_str.match("[", "]");
 				return _parse_array(match);
 			}
 			else if (json_str[0] == "\"")  // str类型
@@ -38,14 +37,14 @@ namespace ayr
 				return _parse_simple(json_str);
 		}
 
-		def parse(JsonType::JsonStr&& json_str) { return parse(json_str); }
+		def parse(JsonStr&& json_str) { return parse(json_str); }
 
 		// 解析 str
-		def _parse_str(JsonType::JsonStr& json_str) -> Json { return json_str.slice(1, -1); }
+		def _parse_str(JsonStr& json_str) -> Json { return Json(json_str.slice(1, -1)); }
 
 
 		// 返回解析为num对象的字符串
-		def _parse_num(JsonType::JsonStr& json_str) -> Json
+		def _parse_num(JsonStr& json_str) -> Json
 		{
 			bool float_flag = false;
 			for (auto&& c : json_str)
@@ -63,27 +62,27 @@ namespace ayr
 		}
 
 
-		def _parse_bool(JsonType::JsonStr& json_str) -> Json
+		def _parse_bool(JsonStr& json_str) -> Json
 		{
-			if (json_str == "true"as) return true;
-			if (json_str == "false"as) return false;
+			if (json_str == "true"as) return Json(true);
+			if (json_str == "false"as) return Json(false);
 
 			ValueError(std::format("invalid bool parse: {}", json_str));
 			return None<Json>;
 		}
 
 
-		def _parse_null(JsonType::JsonStr& json_str) -> Json
+		def _parse_null(JsonStr& json_str) -> Json
 		{
-			if (json_str == JsonType::JsonStr("null", 4))
-				return JsonType::JsonNull();
+			if (json_str == JsonStr("null", 4))
+				return Json();
 
 			ValueError(std::format("invalid null parse: {}", json_str));
 			return None<Json>;
 		}
 
 
-		def _parse_simple(JsonType::JsonStr& json_str) -> Json
+		def _parse_simple(JsonStr& json_str) -> Json
 		{
 			if (json_str[0].isdigit())  // number类型
 				return _parse_num(json_str);
@@ -97,13 +96,13 @@ namespace ayr
 		}
 
 
-		def parse_first_object(JsonType::JsonStr& json_str, const JsonType::JsonStr& stop_sign) -> std::pair<Json, JsonType::JsonStr>
+		def parse_first_object(JsonStr& json_str, const JsonStr& stop_sign) -> std::pair<Json, JsonStr>
 		{
 			json_str = json_str.strip();
 			if (json_str.size() == 0)
 				ValueError("json_str is empty");
 
-			JsonType::JsonStr match;
+			JsonStr match;
 			if (json_str[0] == "[")
 			{
 				match = json_str.match("[", "]");
@@ -125,7 +124,7 @@ namespace ayr
 					match = json_str.slice(0, stop_sign_idx);
 			}
 
-			JsonType::JsonStr other_str = json_str.slice(match.size()).strip();
+			JsonStr other_str = json_str.slice(match.size()).strip();
 
 			// 还有剩余
 			if (other_str.size())
@@ -139,9 +138,9 @@ namespace ayr
 
 
 		// 解析array
-		def _parse_array(JsonType::JsonStr& json_str) -> Json
+		def _parse_array(JsonStr& json_str) -> Json
 		{
-			JsonType::JsonArray arr;
+			JsonArray arr;
 			// 去掉 []
 			json_str = json_str.slice(1, -1).strip();
 			while (json_str.size())
@@ -156,9 +155,9 @@ namespace ayr
 
 
 		// 解析dict
-		def _parse_dict(JsonType::JsonStr& json_str) -> Json
+		def _parse_dict(JsonStr& json_str) -> Json
 		{
-			JsonType::JsonDict dict;
+			JsonDict dict;
 			json_str = json_str.slice(1, -1).strip();
 
 			while (json_str.size())
@@ -169,7 +168,7 @@ namespace ayr
 				auto [value, _json_str2] = parse_first_object(json_str, ",");
 				json_str = _json_str2;
 
-				dict[key] = std::move(value);
+				dict[key.as_str()] = std::move(value);
 			}
 
 			return Json(std::move(dict));
