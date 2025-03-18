@@ -212,6 +212,8 @@ namespace ayr
 		Socket server_socket_;
 
 		int timeout_ms_;
+
+		bool is_running_ = true;
 	public:
 		UltraTcpServer(int port, int num_thread = 1, int timeout_ms = -1, int family = AF_INET) :
 			main_reactor_(),
@@ -226,10 +228,7 @@ namespace ayr
 
 		~UltraTcpServer() 
 		{
-			for (auto& sub_reactor : sub_reactors_)
-				sub_reactor.stop();
-			main_reactor_.stop();
-			thread_pool_.stop();
+			stop();
 			server_socket_.close(); 
 		}
 
@@ -263,10 +262,20 @@ namespace ayr
 				thread_pool_.push([&] { run_reactor(sub_reactor); });
 			run_reactor(main_reactor_);
 		}
+
+		// 停止服务器
+		void stop()
+		{
+			is_running_ = false;
+			main_reactor_.stop();
+			for (auto& sub_reactor : sub_reactors_)
+				sub_reactor.stop();
+			thread_pool_.stop();
+		}
 	private:
 		void run_reactor(ReactorLoop& reactor)
 		{
-			while (true)
+			while (is_running_)
 			{
 				c_size num_events = reactor.run_once(timeout_ms_);
 				switch (num_events)
