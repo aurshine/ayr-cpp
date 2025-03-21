@@ -56,9 +56,9 @@ namespace ayr
 			codepoints_ = manager_->shared_head();
 		}
 	public:
-		Atring(const CString& encoding = UTF8) : Atring(0, encoding_map(encoding)) {}
+		Atring(Encoding* encoding = UTF8) : Atring(0, encoding) {}
 
-		Atring(const char* str, c_size len = -1, const CString& encoding = UTF8) : Atring(0, encoding_map(encoding))
+		Atring(const char* str, c_size len = -1, Encoding* encoding = UTF8) : Atring(0, encoding)
 		{
 			len = ifelse(len > 0, len, std::strlen(str));
 			auto cps_info = get_cps(str, len, manager_->encoding()).move_array().separate();
@@ -68,7 +68,7 @@ namespace ayr
 			manager_->reset(codepoints_, length_);
 		}
 
-		Atring(const CString& other, const CString& encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
+		Atring(const CString& other, Encoding* encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
 
 		Atring(const self& other) : Atring(other.size(), other.encoding())
 		{

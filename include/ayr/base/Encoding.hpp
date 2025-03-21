@@ -6,13 +6,6 @@
 
 namespace ayr
 {
-	static const CString ASCII = "ascii";
-	static const CString UTF8 = "utf-8";
-	static const CString UTF16 = "utf-16";
-	static const CString UTF32 = "utf-32";
-	static const CString GB2312 = "gb2312";
-
-
 	class Encoding : public Object<Encoding>
 	{
 		using self = Encoding;
@@ -210,17 +203,8 @@ namespace ayr
 		}
 	};
 
-	Encoding* encoding_map(const CString& encoding_name)
-	{
-		static Dict<CString, Encoding*> encodingMap_{
-			{ASCII, ayr_make<ASCIIEncoding>()},
-			{UTF8, ayr_make<UTF8Encoding>()},
-			{UTF16, ayr_make<UTF16Encoding>()},
-			{UTF32, ayr_make<UTF32Encoding>()},
-			{GB2312, ayr_make<GB2312Encoding>()}
-		};
+	std::unique_ptr<Encoding> u_ascii, u_utf8, u_utf16, u_utf32, u_gb2312;
 
-		return encodingMap_.get(encoding_name);
-	}
+	Encoding* ASCII = u_ascii.get(), * UTF8 = u_utf8.get(), * UTF16 = u_utf16.get(), * UTF32 = u_utf32.get(), * GB2312 = u_gb2312.get();
 } // namespace ayr
 #endif
