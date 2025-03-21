@@ -265,5 +265,13 @@ namespace ayr
 	private:
 		int socket_;
 	};
+
+	def tcpv4() { return Socket(AF_INET, SOCK_STREAM); }
+
+	def tcpv6() { return Socket(AF_INET6, SOCK_STREAM); }
+
+	def udpv4() { return Socket(AF_INET, SOCK_DGRAM); }
+
+	def udpv6() { return Socket(AF_INET6, SOCK_DGRAM); }
 }
 #endif
