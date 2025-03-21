@@ -6,15 +6,6 @@
 
 namespace ayr
 {
-	template<AyrLikeHashable K>
-	inline hash_t ayr_hash_impl(const K& key) { return key.__hash__(); }
-
-	template<StdHashable K>
-	inline hash_t ayr_hash_impl(const K& key) { return std::hash<std::decay_t<K>>{}(key); }
-
-	template<Hashable K>
-	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key); }
-
 	inline uint32_t decode_fixed32(const char* ptr)
 	{
 		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(ptr);
@@ -51,5 +42,19 @@ namespace ayr
 		h ^= (h >> r);
 		return h;
 	}
+
+	template<AyrLikeHashable K>
+	inline hash_t ayr_hash_impl(const K& key) { return key.__hash__(); }
+
+	template<StdHashable K>
+	inline hash_t ayr_hash_impl(const K& key) { return std::hash<std::decay_t<K>>{}(key); }
+
+	template<Hashable K>
+	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key); }
+
+	inline hash_t ayrhash(const char* key) { return bytes_hash(key, strlen(key)); }
+
+	template<size_t N>
+	inline hash_t ayrhash(const char(&key)[N]) { return bytes_hash(key, N - 1); }
 }
 #endif
