@@ -302,7 +302,12 @@ namespace ayr
 			}
 		}
 
-		void clear() { bucket_.clear(); keys_.clear(); }
+		void clear()
+		{
+			bucket_.clear();
+			bucket_.expand(MIN_BUCKET_SIZE);
+			keys_.clear();
+		}
 
 		self operator&(const self& other) const
 		{
