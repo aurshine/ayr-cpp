@@ -50,7 +50,7 @@ namespace ayr
 	template<typename T>
 	concept StdHashable = requires(const T & one, const T & other)
 	{
-		{ std::hash<T>()(one) } -> std::convertible_to<hash_t>;
+		{ std::hash<std::decay_t<T>>()(one) } -> std::convertible_to<hash_t>;
 		{ one == other } -> std::convertible_to<bool>;
 	};
 
@@ -58,7 +58,7 @@ namespace ayr
 	concept HashableImpl = AyrLikeHashable<T> || StdHashable<T>;
 
 	template<typename T>
-	concept Hashable = HashableImpl<std::remove_cvref_t<T>>;
+	concept Hashable = HashableImpl<std::decay_t<T>>;
 
 	// 迭代器约束, 迭代器的解引用是T
 	template<typename It, typename V>
