@@ -8,44 +8,44 @@
 namespace ayr
 {
 	// 码点
-	class CodePoint : public Object<CodePoint>
+	class AChar : public Object<AChar>
 	{
-		using self = CodePoint;
+		using self = AChar;
 
 		using super = Object<self>;
 
 	public:
-		static const Array<CodePoint> SPACE;
+		static const Array<AChar> SPACE;
 
-		static const Array<CodePoint> DIGIT;
+		static const Array<AChar> DIGIT;
 
-		static const Array<CodePoint> LOWER_CASE_LETTER;
+		static const Array<AChar> LOWER_CASE_LETTER;
 
-		static const Array<CodePoint> UPPER_CASE_LETTER;
+		static const Array<AChar> UPPER_CASE_LETTER;
 
-		CodePoint() : byte_code_(nullptr), code_size_(0) {}
+		AChar() : byte_code_(nullptr), code_size_(0) {}
 
-		CodePoint(char c) : byte_code_(ayr_alloc<char>(1)), code_size_(1) { byte_code_[0] = c; }
+		AChar(char c) : byte_code_(ayr_alloc<char>(1)), code_size_(1) { byte_code_[0] = c; }
 
-		CodePoint(const char* data_, Encoding* encoding)
+		AChar(const char* data_, Encoding* encoding)
 		{
 			code_size_ = encoding->byte_size(data_);
 			byte_code_ = ayr_alloc<char>(code_size_);
 			std::memcpy(data(), data_, code_size_);
 		}
 
-		CodePoint(int code, Encoding* encoding) : CodePoint(encoding->from_int(code).data(), encoding) {}
+		AChar(int code, Encoding* encoding) : AChar(encoding->from_int(code).data(), encoding) {}
 
-		CodePoint(const self& other)
+		AChar(const self& other)
 		{
 			code_size_ = other.size();
 			byte_code_ = ayr_alloc<char>(code_size_);
 			std::memcpy(data(), other.data(), code_size_);
 		}
 
-		CodePoint(self&& other) noexcept : byte_code_(std::exchange(other.byte_code_, nullptr)), code_size_(std::exchange(other.code_size_, 0)) {}
+		AChar(self&& other) noexcept : byte_code_(std::exchange(other.byte_code_, nullptr)), code_size_(std::exchange(other.code_size_, 0)) {}
 
-		~CodePoint() { ayr_delloc(byte_code_); code_size_ = 0; };
+		~AChar() { ayr_delloc(byte_code_); code_size_ = 0; };
 
 		self& operator=(const self& other)
 		{
@@ -98,7 +98,7 @@ namespace ayr
 		operator char() const
 		{
 			if (!isasciii())
-				EncodingError("CodePoint is not a single character");
+				EncodingError("AChar is not a single character");
 
 			return byte_code_[0];
 		}
@@ -143,23 +143,23 @@ namespace ayr
 		int8_t code_size_;
 	};
 
-	const Array<CodePoint> CodePoint::SPACE = { '\0', '\t', '\n', '\r', '\v', '\f', ' ' };
+	const Array<AChar> AChar::SPACE = { '\0', '\t', '\n', '\r', '\v', '\f', ' ' };
 
-	const Array<CodePoint> CodePoint::DIGIT = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
+	const Array<AChar> AChar::DIGIT = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9' };
 
-	const Array<CodePoint> CodePoint::LOWER_CASE_LETTER = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l','m', 'n', 'o', 'p', 'q', 'r','s', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
+	const Array<AChar> AChar::LOWER_CASE_LETTER = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l','m', 'n', 'o', 'p', 'q', 'r','s', 't', 'u', 'v', 'w', 'x', 'y', 'z' };
 
-	const Array<CodePoint> CodePoint::UPPER_CASE_LETTER = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+	const Array<AChar> AChar::UPPER_CASE_LETTER = { 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 
 	// 获取字符串的所有码点
 	def get_cps(const char* data, c_size len, Encoding* encoding)
 	{
-		DynArray<CodePoint> cps;
+		DynArray<AChar> cps;
 		int i = 0;
 
 		while (i < len)
 		{
-			cps.append(CodePoint(data + i, encoding));
+			cps.append(AChar(data + i, encoding));
 			i += cps[-1].size();
 			if (i > len) EncodingError("Invalid encoding, code point out of range");
 		}

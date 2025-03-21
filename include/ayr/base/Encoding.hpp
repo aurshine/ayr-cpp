@@ -37,7 +37,7 @@ namespace ayr
 	public:
 		constexpr ASCIIEncoding() = default;
 
-		CString __str__() const override { return ASCII; }
+		CString __str__() const override { return "ASCII"; }
 
 		constexpr int byte_size(const char* data) const override { return 1; }
 
@@ -56,7 +56,7 @@ namespace ayr
 	public:
 		constexpr UTF8Encoding() = default;
 
-		CString __str__() const override { return UTF8; }
+		CString __str__() const override { return "UTF8"; }
 
 		constexpr int byte_size(const char* data) const override
 		{
@@ -69,7 +69,7 @@ namespace ayr
 			else if ((data[0] & 0xF8) == 0xF0) // 以11110开头 4字节编码 (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx),
 				return 4;
 			else
-				ValueError("Invalid CodePoint");
+				ValueError("Invalid AChar");
 			return 0;
 		}
 
@@ -84,7 +84,7 @@ namespace ayr
 			case 2: return ((data[0] & 0x1F) << 6) | (data[1] & 0x3F);
 			case 3: return ((data[0] & 0x0F) << 12) | ((data[1] & 0x3F) << 6) | (data[2] & 0x3F);
 			case 4: return ((data[0] & 0x07) << 18) | ((data[1] & 0x3F) << 12) | ((data[2] & 0x3F) << 6) | (data[3] & 0x3F);
-			default: ValueError("Invalid CodePoint");
+			default: ValueError("Invalid AChar");
 			}
 			return None<int>;
 		}
@@ -106,7 +106,7 @@ namespace ayr
 	public:
 		constexpr UTF16Encoding() = default;
 
-		CString __str__() const  override { return UTF16; }
+		CString __str__() const  override { return "UTF16"; }
 
 		constexpr int byte_size(const char* data) const override
 		{
@@ -134,7 +134,7 @@ namespace ayr
 			case 4:
 				// 处理代理对
 				return 0x10000 + (((data[0] << 8 | data[1]) - 0xD800) << 10) + (data[2] << 8 | data[3]) - 0xDC00;
-			default: ValueError("Invalid CodePoint");
+			default: ValueError("Invalid AChar");
 			}
 			return None<int>;
 		}
@@ -156,7 +156,7 @@ namespace ayr
 	public:
 		constexpr UTF32Encoding() = default;
 
-		CString __str__() const  override { return UTF32; }
+		CString __str__() const  override { return "UTF32"; }
 
 		constexpr int byte_size(const char* data) const override { return 4; }
 
@@ -182,7 +182,7 @@ namespace ayr
 	public:
 		constexpr GB2312Encoding() = default;
 
-		CString __str__() const  override { return GB2312; }
+		CString __str__() const  override { return "GB2312"; }
 
 		int byte_size(const char* data) const override
 		{
@@ -203,8 +203,16 @@ namespace ayr
 		}
 	};
 
-	std::unique_ptr<Encoding> u_ascii, u_utf8, u_utf16, u_utf32, u_gb2312;
+	static std::unique_ptr<Encoding> _u_ascii = std::make_unique<ASCIIEncoding>();
+	static std::unique_ptr<Encoding> _u_utf8 = std::make_unique<UTF8Encoding>();
+	static std::unique_ptr<Encoding> _u_utf16 = std::make_unique<UTF16Encoding>();
+	static std::unique_ptr<Encoding> _u_utf32 = std::make_unique<UTF32Encoding>();
+	static std::unique_ptr<Encoding> _u_gb2312 = std::make_unique<GB2312Encoding>();
 
-	Encoding* ASCII = u_ascii.get(), * UTF8 = u_utf8.get(), * UTF16 = u_utf16.get(), * UTF32 = u_utf32.get(), * GB2312 = u_gb2312.get();
+	static Encoding* ASCII = _u_ascii.get();
+	static Encoding* UTF8 = _u_utf8.get();
+	static Encoding* UTF16 = _u_utf16.get();
+	static Encoding* UTF32 = _u_utf32.get();
+	static Encoding* GB2312 = _u_gb2312.get();
 } // namespace ayr
 #endif

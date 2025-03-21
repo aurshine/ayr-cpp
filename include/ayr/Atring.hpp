@@ -3,39 +3,34 @@
 
 #include <utility>
 
-#include "base/CodePoint.hpp"
+#include "base/AChar.hpp"
 
 namespace ayr
 {
-	class AtringManager : public Object<AtringManager>
+	class AtringOrigin : public Object<AtringOrigin>
 	{
-		using self = AtringManager;
+		using self = AtringOrigin;
 
-		CodePoint* shared_head_;
+		AChar* shared_head_;
 
 		c_size length_;
 
 		Encoding* encoding_;
 	public:
-		AtringManager(CodePoint* shared_head, c_size length, Encoding* encoding) :
+		AtringOrigin(Encoding* encoding) : AtringOrigin(nullptr, 0, encoding) {}
+
+		AtringOrigin(AChar* shared_head, c_size length, Encoding* encoding) :
 			shared_head_(shared_head), length_(length), encoding_(encoding) {}
 
-		~AtringManager()
-		{
-			ayr_destroy(shared_head_, length_);
-			ayr_delloc(shared_head_);
-			shared_head_ = nullptr;
-			length_ = 0;
-		}
+		~AtringOrigin() { reset(nullptr, 0); }
 
 		Encoding* const encoding() const { return encoding_; }
 
-		CodePoint* const shared_head() const { return shared_head_; }
+		AChar* const shared_head() const { return shared_head_; }
 
-		void reset(CodePoint* shared_head, c_size length)
+		void reset(AChar* shared_head, c_size length)
 		{
-			ayr_destroy(shared_head_, length_);
-			ayr_delloc(shared_head_);
+			ayr_desloc(shared_head_, length_);
 			shared_head_ = shared_head;
 			length_ = length;
 		}
@@ -45,15 +40,15 @@ namespace ayr
 	{
 		using self = Atring;
 
-		Atring(CodePoint* codepoints, c_size length, std::shared_ptr<AtringManager> manager) :
-			codepoints_(codepoints), length_(length), manager_(manager) {}
+		Atring(AChar* achars, c_size length, const std::shared_ptr<AtringOrigin>& origin) :
+			achars_(achars), length_(length), origin_(origin) {}
 
 		Atring(size_t n, Encoding* encoding) :
-			Atring(nullptr, n, std::make_shared<AtringManager>(ayr_alloc<CodePoint>(n), n, encoding))
+			Atring(ayr_alloc<AChar>(n), n, std::make_shared<AtringOrigin>(encoding))
 		{
 			for (int i = 0; i < n; ++i)
-				ayr_construct(manager_->shared_head() + i);
-			codepoints_ = manager_->shared_head();
+				ayr_construct(achars_ + i);
+			origin_->reset(achars_, n);
 		}
 	public:
 		Atring(Encoding* encoding = UTF8) : Atring(0, encoding) {}
@@ -61,37 +56,24 @@ namespace ayr
 		Atring(const char* str, c_size len = -1, Encoding* encoding = UTF8) : Atring(0, encoding)
 		{
 			len = ifelse(len > 0, len, std::strlen(str));
-			auto cps_info = get_cps(str, len, manager_->encoding()).move_array().separate();
+			auto cps_info = get_cps(str, len, origin_->encoding()).move_array().separate();
 
-			codepoints_ = cps_info.first;
+			achars_ = cps_info.first;
 			length_ = cps_info.second;
-			manager_->reset(codepoints_, length_);
+			origin_->reset(achars_, length_);
 		}
 
 		Atring(const CString& other, Encoding* encoding = UTF8) : Atring(other.data(), other.size(), encoding) {}
 
-		Atring(const self& other) : Atring(other.size(), other.encoding())
-		{
-			for (int i = 0, size_ = size(); i < size_; ++i)
-				codepoints_[i] = other.atchar(i);
-		}
-
-		Atring(self&& other) noexcept : Atring(other.codepoints_, other.length_, other.manager_) {}
+		Atring(const self& other) : Atring(other.achars_, other.length_, other.origin_) {}
 
 		self& operator= (const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_destroy(&manager_);
-
-			return *ayr_construct(this, other);
-		}
-
-		self& operator= (self&& other) noexcept
-		{
-			if (this == &other) return *this;
-			ayr_destroy(&manager_);
-
-			return *ayr_construct(this, std::move(other));
+			achars_ = other.achars_;
+			length_ = other.length_;
+			origin_ = other.origin_;
+			return *this;
 		}
 
 		self operator+ (const self& other) const
@@ -99,17 +81,18 @@ namespace ayr
 			self result(size() + other.size(), encoding());
 			size_t m_size = size(), o_size = other.size();
 			for (size_t i = 0; i < m_size; ++i)
-				result.codepoints_[i] = atchar(i);
+				result.achars_[i] = atchar(i);
 
 			for (size_t i = 0; i < o_size; ++i)
-				result.codepoints_[m_size + i] = other.atchar(i);
+				result.achars_[m_size + i] = other.atchar(i);
 			return result;
 		}
 
-		self& operator+= (const self& othre)
+		self& operator+= (const self& other)
 		{
-			self result = *this + othre;
-			return *this = std::move(result);
+			self result = *this + other;
+			*this = *this + other;
+			return *this;
 		}
 
 		self operator* (size_t n) const
@@ -119,20 +102,20 @@ namespace ayr
 			size_t pos = 0, m_size = size();
 			while (n--)
 				for (size_t i = 0; i < m_size; ++i)
-					result.codepoints_[pos++] = atchar(i);
+					result.achars_[pos++] = atchar(i);
 
 			return result;
 		}
 
 		self at(c_size index) const { return slice(index, index + 1); }
 
-		const CodePoint& atchar(c_size index) const { return codepoints_[index]; }
+		const AChar& atchar(c_size index) const { return achars_[index]; }
 
 		self operator[] (c_size index) const { return at(neg_index(index, size())); }
 
 		c_size size() const { return length_; }
 
-		Encoding* const encoding() const { return manager_->encoding(); }
+		Encoding* const encoding() const { return origin_->encoding(); }
 
 		// 字符串的字节长度
 		c_size byte_size() const
@@ -216,7 +199,7 @@ namespace ayr
 			c_size size_ = size();
 			start = neg_index(start, size_);
 			end = neg_index(end, size_);
-			return self(codepoints_ + start, end - start, manager_);
+			return self(achars_ + start, end - start, origin_);
 		}
 
 		// 切片[start, size())，内容浅拷贝
@@ -299,7 +282,7 @@ namespace ayr
 		{
 			self result = *this;
 			for (c_size i = 0; i < size(); ++i)
-				result.codepoints_[i] = result.atchar(i).upper();
+				result.achars_[i] = result.atchar(i).upper();
 			return result;
 		}
 
@@ -308,7 +291,7 @@ namespace ayr
 		{
 			self result = *this;
 			for (c_size i = 0; i < size(); ++i)
-				result.codepoints_[i] = result.atchar(i).lower();
+				result.achars_[i] = result.atchar(i).lower();
 			return result;
 		}
 
@@ -348,8 +331,8 @@ namespace ayr
 			new_length = std::max<c_size>(0, new_length - m_size);
 
 			auto put_back = [&pos](self& str, const self& other) {
-				for (auto&& c : std::ranges::subrange(other.codepoints_, other.codepoints_ + other.size()))
-					str.codepoints_[pos++] = c;
+				for (auto&& c : std::ranges::subrange(other.achars_, other.achars_ + other.size()))
+					str.achars_[pos++] = c;
 				};
 
 			self result(new_length, encoding());
@@ -380,13 +363,13 @@ namespace ayr
 			{
 				if (j < indices.size() && i == indices[j])
 				{
-					for (auto&& c : std::ranges::subrange(new_.codepoints_, new_.codepoints_ + new_.size()))
-						result.codepoints_[k++] = c;
+					for (auto&& c : std::ranges::subrange(new_.achars_, new_.achars_ + new_.size()))
+						result.achars_[k++] = c;
 					i += old_.size() - 1;
 					j++;
 				}
 				else
-					result.codepoints_[k++] = atchar(i);
+					result.achars_[k++] = atchar(i);
 			}
 
 			return result;
@@ -555,14 +538,12 @@ namespace ayr
 			return r;
 		}
 	private:
-		CodePoint* codepoints_;
+		AChar* achars_;
 
 		c_size length_;
 
-		std::shared_ptr<AtringManager> manager_;
+		std::shared_ptr<AtringOrigin> origin_;
 	};
-
-
 
 	inline Atring operator ""as(const char* str, size_t len) { return Atring(str, len); }
 }
