@@ -60,7 +60,7 @@ void json_test()
 	tlog(json_str);
 	json::Json json_obj = json::parse(json_str);
 	tlog(json_obj);
-	for (auto& item : json_obj["array"as].transform<json::JsonType::JsonArray>())
+	for (auto& item : json_obj["array"as].as<json::JsonArray>())
 		tlog(item);
 }
 ```
