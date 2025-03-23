@@ -6,34 +6,7 @@
 namespace ayr
 {
 #if defined(AYR_LINUX)
-	class Channel;
-
-	class UltraEventLoop : public Object<UltraEventLoop>
-	{
-		using self = UltraEventLoop;
-
-		using super = Object<UltraEventLoop>;
-
-		Epoll epoll_;
-
-		bool quit;
-	public:
-		UltraEventLoop();
-
-		~UltraEventLoop();
-
-		// 添加一个Channel到EventLoop中
-		void add_channel(Channel* channel);
-
-		// 从EventLoop中移除一个Channel
-		void remove_channel(Channel* channel);
-
-		// 停止EventLoop
-		void stop();
-
-		// 运行EventLoop，返回执行的handle数量
-		c_size run_once(int timeout_ms); 
-	};
+	class UltraEventLoop;
 
 	class Channel : public Object<Channel>
 	{
@@ -72,9 +45,7 @@ namespace ayr
 
 		void when_handle(const std::function<void(self*)>& handle) { handle_ = handle; }
 		
-		void add_channel() { loop_->add_channel(this); }
-
-		void remove_channel() { loop_->remove_channel(this); }
+		UltraEventLoop* loop() const { return loop_; }
 
 		void modeET() { events_ |= EPOLLET; }
 
