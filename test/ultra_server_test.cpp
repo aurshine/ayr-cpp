@@ -1,11 +1,14 @@
 #include "ayr/net.hpp"
+#include <atomic>
+
+using namespace ayr;
 
 #if defined(AYR_LINUX)
 class TServer : public ayr::UltraTcpServer<TServer>
 {
 	using super = ayr::UltraTcpServer<TServer>;
 public:
-	TServer(int port) : super(port, 0, 10000) {}
+	TServer(int port, int num_thread, int timeout_s) : super(port, num_thread, timeout_s) {}
 
 	// 客户端连接到服务器后调用的回调函数
 	void on_connected(const Socket& client)
@@ -25,6 +28,7 @@ public:
 	void on_reading(const Socket& client)
 	{
 		print("from: ", client, "recv: ", client.recv(1024));
+		client.send("hello, world!");
 	}
 
 	// 写事件产生时的回调函数, 用于发送数据
@@ -32,16 +36,17 @@ public:
 
 	void on_timeout()
 	{
-		print("count_in: ", count_in, "count_out: ", count_out);
-		throw std::runtime_error("timeout");
+		print("count_in: ", count_in.load(), "count_out: ", count_out.load());
+		stop();
+		print("server stop");
 	}
 
-	int count_in = 0, count_out = 0;
+	std::atomic<int> count_in = 0, count_out = 0;
 };
 
-void main()
+int main()
 {
-	TServer server(5555);
+	TServer server(5555, 2, 5000);
 	print("server start");
 	server.run();
 }

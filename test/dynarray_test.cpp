@@ -14,46 +14,52 @@ std::vector<int> vi;
 
 constexpr int N = 1e6;
 
-void test_das()
+void test_das_add()
 {
 	for (int i = 0; i < N; ++i)
-	{
 		das.append("hello");
-	}
 }
 
-void test_vs()
+void test_vs_add()
 {
 	for (int i = 0; i < N; ++i)
-	{
 		vs.push_back("hello");
-	}
 }
 
-void test_dai()
+void test_dai_add()
 {
 	for (int i = 0; i < N; ++i)
-	{
 		dai.append(i);
-	}
 }
 
-void test_vi()
+void test_vi_add()
 {
 	for (int i = 0; i < N; ++i)
-	{
 		vi.push_back(i);
-	}
+}
+
+void test_dai_query()
+{
+	for (int i = 0; i < N; ++i)
+		assert(dai[i] == i);
+}
+
+void test_vi_query()
+{
+	for (int i = 0; i < N; ++i)
+		assert(vi[i] == i);
 }
 
 void runspeed_test()
 {
 	Timer_ms tm;
 
-	print("dynarray append str time:", tm(test_das), "ms");
-	print("vector push_back str time:", tm(test_vs), "ms");
-	print("dayarray append int time:", tm(test_dai), "ms");
-	print("vector push_back int time:", tm(test_vi), "ms");
+	print("dynarray append str time:", tm(test_das_add), "ms");
+	print("vector push_back str time:", tm(test_vs_add), "ms");
+	print("dayarray append int time:", tm(test_dai_add), "ms");
+	print("vector push_back int time:", tm(test_vi_add), "ms");
+	print("dayarray query int time:", tm(test_dai_query), "ms");
+	print("vector query str time:", tm(test_vi_query), "ms");
 }
 
 void iterate_test()
@@ -91,7 +97,7 @@ void pop_odd_test()
 	tlog(da);
 }
 
-void main()
+int main()
 {
 	runspeed_test();
 

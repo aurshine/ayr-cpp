@@ -2,7 +2,7 @@
 
 using namespace ayr;
 
-void main()
+int main()
 {
 	tlog(json::parse("123"));
 	tlog(json::parse("true"));
@@ -22,6 +22,8 @@ void main()
 	tlog(json_str);
 	json::Json json_obj = json::parse(json_str);
 	tlog(json_obj);
-	for (auto& item : json_obj["array"as].transform<json::JsonType::JsonArray>())
+	for (auto& item : json_obj["array"as].as_array())
 		tlog(item);
+
+	return 0;
 }

@@ -63,7 +63,7 @@ void tcp_echo_client_test()
 	print("tcp client exit");
 }
 
-void main()
+int main()
 {
 	std::thread server(tcp_echo_server_test);
 	std::this_thread::sleep_for(100ms); // 等待服务端启动

@@ -1,6 +1,7 @@
 #include <ayr/Dict.hpp>
 #include <ayr/Set.hpp>
 #include <ayr/timer.hpp>
+#include <ayr/Atring.hpp>
 
 #include <unordered_map>
 #include <unordered_set>
