@@ -84,14 +84,6 @@ namespace ayr
 
 		const T& at(c_size index) const { return arr_[index]; }
 
-		T& front() { return *arr_; }
-
-		const T& front() const { return *arr_; }
-
-		T& back() { return arr_[size_ - 1]; }
-
-		const T& back() const { return arr_[size_ - 1]; }
-
 		c_size size() const { return size_; }
 
 		CString __str__() const
