@@ -355,7 +355,7 @@ namespace ayr
 		int _get_block_index(c_size index) const
 		{
 			++index;
-			int i = 0, j = DYNARRAY_BLOCK_SIZE, mid;
+			int i = 0, j = back_block_index_, mid;
 			while (i < j)
 			{
 				mid = i + j >> 1;
