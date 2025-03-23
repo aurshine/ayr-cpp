@@ -85,16 +85,16 @@ namespace ayr
 		// 对index范围不做检查
 		T& at(c_size index)
 		{
-			int block_index = _get_block_index(index + 1);
-			c_size inblock_index = _get_inblock_index(index + 1, block_index);
+			int block_index = _get_block_index(index);
+			c_size inblock_index = _get_inblock_index(index, block_index);
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
 		// 对index范围不做检查
 		const T& at(c_size index) const
 		{
-			int block_index = _get_block_index(index + 1);
-			c_size inblock_index = _get_inblock_index(index + 1, block_index);
+			int block_index = _get_block_index(index);
+			c_size inblock_index = _get_inblock_index(index, block_index);
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
@@ -351,14 +351,15 @@ namespace ayr
 
 		ConstIterator end() const { return ConstIterator(this, _back_block_index() + 1, 0); }
 	private:
-		// 得到第ith个元素的块索引
-		int _get_block_index(c_size ith) const
+		// 得到下标为index元素的块索引
+		int _get_block_index(c_size index) const
 		{
+			++index;
 			int i = 0, j = DYNARRAY_BLOCK_SIZE, mid;
 			while (i < j)
 			{
 				mid = i + j >> 1;
-				if (ith <= (exp2[mid + 1] - 1) * BASE_SIZE)
+				if (index <= (exp2[mid + 1] - 1) * BASE_SIZE)
 					j = mid;
 				else
 					i = mid + 1;
@@ -366,10 +367,10 @@ namespace ayr
 			return i;
 		}
 
-		// 得到第ith个元素的块内索引
-		c_size _get_inblock_index(c_size ith, int block_index) const
+		// 得到下标为index元素的块内索引
+		c_size _get_inblock_index(c_size index, int block_index) const
 		{
-			return ith - BASE_SIZE * (exp2[block_index] - 1) - 1;
+			return index - BASE_SIZE * (exp2[block_index] - 1);
 		}
 
 		// 最后一个块的索引
