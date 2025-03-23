@@ -24,13 +24,18 @@ namespace ayr
 				ayr_desloc(static_cast<Channel*>(ep_ev.data.ptr));
 		}
 
-		void add_channel(Channel* channel) 
-		{ 
-			epoll_.set(channel->fd(), channel, channel->events()); 
+		Channel* add_channel(const Socket& socket)
+		{
+			Channel* channel = ayr_make<Channel>(this, socket);
+			epoll_.set(channel->fd(), channel, channel->events());
+			return channel;
 		}
 
 		void remove_channel(Channel* channel) 
 		{ 
+			if (channel->loop() != this)
+				RuntimeError("Channel is not created by this loop");
+
 			epoll_.del(channel->fd()); 
 			ayr_desloc(channel);
 		}
