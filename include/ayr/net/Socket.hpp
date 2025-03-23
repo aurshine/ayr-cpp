@@ -101,8 +101,9 @@ namespace ayr
 		}
 
 		// 发送data，返回已经发送的字节数
-		int send(const char* data, int size, int flags) const
+		int send(const char* data, int size=-1, int flags=0) const
 		{
+			if (size == -1) size = strlen(data);
 			int num_send = ::send(socket_, data, size, flags);
 			if (num_send == SOCKET_ERROR)
 				RuntimeError(get_error_msg());
