@@ -212,8 +212,6 @@ namespace ayr
 		Socket server_socket_;
 
 		int timeout_ms_;
-
-		std::atomic<bool> is_running_ = true;
 	public:
 		UltraTcpServer(int port, int num_thread = 1, int timeout_ms = -1, int family = AF_INET) :
 			main_reactor_(),
@@ -253,9 +251,9 @@ namespace ayr
 		// 运行
 		void run()
 		{
-			Channel* channel = main_reactor_.add_channel(server_socket_);
-			channel->modeLT();
-			channel->when_handle([&](Channel* channel) { accept(); });
+			auto acceptor = main_reactor_.add_channel(server_socket_);
+			acceptor->modeLT();
+			acceptor->when_handle([&](Channel* channel) { accept(); });
 
 			for (auto& sub_reactor : sub_reactors_)
 				thread_pool_.push([&] { run_reactor(sub_reactor); });
@@ -265,7 +263,6 @@ namespace ayr
 		// 停止服务器
 		void stop()
 		{
-			is_running_ = false;
 			main_reactor_.stop();
 			for (auto& sub_reactor : sub_reactors_)
 				sub_reactor.stop();
@@ -274,7 +271,7 @@ namespace ayr
 	private:
 		void run_reactor(ReactorLoop& reactor)
 		{
-			while (is_running_)
+			while (true)
 			{
 				c_size num_events = reactor.run_once(timeout_ms_);
 				switch (num_events)
@@ -298,8 +295,8 @@ namespace ayr
 			if (num_sub_reactors)
 				sub_reactor = &sub_reactors_[client_socket.fd() % num_sub_reactors];
 
-			Channel* channel = sub_reactor->add_channel(client_socket);
-			channel->when_handle([&](Channel* channel) { execute_event(channel); });
+			auto executor = sub_reactor->add_channel(client_socket);
+			executor->when_handle([&](Channel* channel) { execute_event(channel); });
 		}
 
 		// 客户端断开连接
