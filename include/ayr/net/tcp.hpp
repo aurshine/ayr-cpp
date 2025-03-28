@@ -207,18 +207,20 @@ namespace ayr
 
 		Array<ReactorLoop> sub_reactors_;
 
-		thread::ThreadPool thread_pool_;
+		thread::ThreadPool reactor_thread_pool_, acceptor_thread_pool_;
 
 		Socket server_socket_;
 
-		int timeout_ms_;
+		int timeout_ms_, next_sub_reactor_id_;
 	public:
 		UltraTcpServer(int port, int num_thread = 1, int timeout_ms = -1, int family = AF_INET) :
 			main_reactor_(),
 			sub_reactors_(num_thread),
-			thread_pool_(num_thread),
+			reactor_thread_pool_(num_thread),
+			acceptor_thread_pool_(1),
 			timeout_ms_(timeout_ms),
-			server_socket_(family, SOCK_STREAM)
+			server_socket_(family, SOCK_STREAM),
+			next_sub_reactor_id_(0)
 		{
 			server_socket_.bind("127.0.0.1", port);
 			server_socket_.listen();
@@ -230,7 +232,7 @@ namespace ayr
 			server_socket_.close(); 
 		}
 
-		// 客户端连接到服务器后调用的回调函数
+		// 客户端连接到服务器后调用的回调函数，线程安全
 		void on_connected(const Socket& client) {}
 
 		// 客户端断开连接时调用的回调函数
@@ -251,12 +253,11 @@ namespace ayr
 		// 运行
 		void run()
 		{
-			auto acceptor = main_reactor_.add_channel(server_socket_);
+			auto acceptor = main_reactor_.add_channel(server_socket_, [&](Channel* channel) { accept(); });
 			acceptor->modeLT();
-			acceptor->when_handle([&](Channel* channel) { accept(); });
 
 			for (auto& sub_reactor : sub_reactors_)
-				thread_pool_.push([&] { run_reactor(sub_reactor); });
+				reactor_thread_pool_.push([&] { run_reactor(sub_reactor); });
 			run_reactor(main_reactor_);
 		}
 
@@ -266,7 +267,8 @@ namespace ayr
 			main_reactor_.stop();
 			for (auto& sub_reactor : sub_reactors_)
 				sub_reactor.stop();
-			thread_pool_.stop();
+			reactor_thread_pool_.stop();
+			acceptor_thread_pool_.stop();
 		}
 	private:
 		void run_reactor(ReactorLoop& reactor)
@@ -287,16 +289,25 @@ namespace ayr
 		// 接受一个socket连接
 		void accept()
 		{
-			Socket client_socket = server_socket_.accept();
-			server().on_connected(client_socket);
+			Socket client = server_socket_.accept();
+			// after_accept进入单独的线程逐个执行
+			acceptor_thread_pool_.push(&self::after_accept, this, client);
+		}
+
+		// 连接后处理, 线程安全
+		void after_accept(const Socket& client)
+		{
+			server().on_connected(client);
 
 			ReactorLoop* sub_reactor = &main_reactor_;
 			c_size num_sub_reactors = sub_reactors_.size();
 			if (num_sub_reactors)
-				sub_reactor = &sub_reactors_[client_socket.fd() % num_sub_reactors];
-
-			auto executor = sub_reactor->add_channel(client_socket);
-			executor->when_handle([&](Channel* channel) { execute_event(channel); });
+			{
+				sub_reactor = &sub_reactors_[next_sub_reactor_id_];
+				next_sub_reactor_id_ = (next_sub_reactor_id_ + 1) % num_sub_reactors;
+			}
+				
+			auto executor = sub_reactor->add_channel(client, [&](Channel* channel) { execute_event(channel); });
 		}
 
 		// 客户端断开连接

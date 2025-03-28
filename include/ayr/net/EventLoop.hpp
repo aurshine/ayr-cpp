@@ -24,9 +24,10 @@ namespace ayr
 				ayr_desloc(static_cast<Channel*>(ep_ev.data.ptr));
 		}
 
-		Channel* add_channel(const Socket& socket)
+		Channel* add_channel(const Socket& socket, const std::function<void(Channel*)>& handle)
 		{
 			Channel* channel = ayr_make<Channel>(this, socket);
+			channel->when_handle(handle);
 			epoll_.set(channel->fd(), channel, channel->events());
 			return channel;
 		}
