@@ -1,277 +1,322 @@
-﻿#ifndef AYR_CHAIN_HPP
-#define AYR_CHAIN_HPP
+#ifndef AYR_CHAIN2_HPP
+#define AYR_CHAIN2_HPP
 
-#include "base/Node.hpp"
-#include "base/Sequence.hpp"
-#include "ayr_memory.hpp"
+#include "./base/ayr_traits.hpp"
+#include "./base/ayr_concepts.hpp"
+#include "./base/IteratorInfo.hpp"
+#include "./base/raise_error.hpp"
+#include "./base/Sequence.hpp"
 
 
 namespace ayr
 {
-	// 需要传入一个Node类型
-	template<typename ND>
-	class ChainImpl : public Sequence<ChainImpl<ND>, typename ND::value_type>
+	template<typename T>
+	class BidirectionalNode : public Object<BidirectionalNode<T>>
+	{
+		using Value_t = T;
+
+		using self = BidirectionalNode<Value_t>;
+
+		using super = Object<self>;
+
+		self* prev_ = nullptr, * next_ = nullptr;
+	public:
+		Value_t value;
+
+		BidirectionalNode(const Value_t& value) : value(value) {}
+
+		BidirectionalNode(Value_t&& value) : value(std::move(value)) {}
+
+		BidirectionalNode(self&& other) : value(std::move(other.value)), prev_(other.prev_), next_(other.next_)
+		{
+			other.prev_ = other.next_ = nullptr;
+		}
+
+		self& operator=(self&& other)
+		{
+			if (this == other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
+		}
+
+		// 得到当前节点的前一个节点
+		self* prev() const { return prev_; }
+
+		// 得到当前节点的下一个节点
+		self* next() const { return next_; }
+
+		// 将当前节点设置为前一个节点
+		self* prev(self* node)
+		{
+			prev_ = node;
+			if (node) node->next_ = this;
+			return node;
+		}
+
+		// 将当前节点设置为下一个节点
+		self* next(self* node)
+		{
+			next_ = node;
+			if (node) node->prev_ = this;
+			return node;
+		}
+	};
+
+	template<typename T>
+	class Chain : public Sequence<Chain<T>, T>
 	{
 	public:
-		using Value_t = typename ND::value_type;
+		using Value_t = T;
 
-		using Node_t = ND;
+		using Node_t = BidirectionalNode<Value_t>;
+	private:
+		using self = Chain<Value_t>;
 
-		using Iterator = Node_t;
+		using super = Sequence<self, Value_t>;
 
-		using ConstIterator = Node_t;
+		c_size size_;
 
-		ChainImpl() : head_(nullptr), tail_(nullptr), size_(0) {}
+		Node_t* head_, * tail_;
+	public:
+		Chain() : size_(0), head_(nullptr), tail_(nullptr) {}
 
-		ChainImpl(std::initializer_list<Value_t>&& il) : ChainImpl()
+		Chain(const self& other) : Chain()
 		{
-			for (auto& v : il)
-				append(v);
+			for (const Value_t& elem : other)
+				append(elem);
 		}
 
-		ChainImpl(const ChainImpl& other) : ChainImpl()
+		Chain(self&& other) : size_(other.size_), head_(other.head_), tail_(other.tail_)
 		{
-			for (auto& v : other)
-				append(v);
+			other.size_ = 0;
+			other.head_ = other.tail_ = nullptr;
 		}
 
-		ChainImpl(ChainImpl&& other) :head_(std::exchange(other.head_, nullptr)), tail_(std::exchange(other.tail_, nullptr)), size_(std::exchange(other.size_, 0)) {}
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
+		}
 
-		~ChainImpl() { clear(); }
+		self& operator=(self&& other)
+		{
+			if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
+		}
+
+		~Chain() { clear(); }
 
 		c_size size() const { return size_; }
 
-		Node_t& at_node_from(const Node_t& from_node, int n = 0)
+		Node_t* at_node(c_size index) const
 		{
-			return at_node_from_impl(from_node, n);
+			Node_t* res = head_;
+			while (index--) res = res->next();
+			return res;
 		}
 
-		const Node_t& at_node_from(const Node_t& from_node, int n = 0) const
+		Value_t& at(c_size index) { return at_node(index)->value; }
+
+		const Value_t& at(c_size index) const { return at_node(index)->value; }
+
+		Value_t& front() { return head_->value; }
+
+		const Value_t& front() const { return head_->value; }
+
+		Value_t& back() { return tail_->value; }
+
+		const Value_t& back() const { return tail_->value; }
+
+		// 尾部插入一个节点，该节点的生命周期由Chain管理
+		Node_t* append_node(Node_t* node)
 		{
-			return at_node_from_impl(from_node, n);
-		}
-
-		// 返回node的索引
-		Node_t& at_node(c_size index) { return at_node_from(*head_, index); }
-
-		const Node_t& at_node(c_size index) const { return at_node_from(*head_, index); }
-
-		Value_t& at(c_size index) { return *at_node(index); }
-
-		const Value_t& at(c_size index) const { return *at_node(index); }
-
-		Node_t& front() { return *head_; }
-
-		const Node_t& front() const { return *head_; }
-
-		Node_t& back() { return *tail_; }
-
-		const Node_t& back() const { return *tail_; }
-
-		template<typename... Args>
-		Node_t& append(Args&& ...args)
-		{
-			Node_t* new_node = ayr_make<Node_t>(std::forward<Args>(args)...);
-
 			if (size_ == 0)
-				head_ = new_node;
+				head_ = node;
 			else
-				tail_->next_node(new_node);
-
-			tail_ = new_node;
-			size_++;
-			return *tail_;
+				tail_->next(node);
+			tail_ = node;
+			++size_;
+			return node;
 		}
 
-		// 删除前n个节点
-		void pop_front(int n = 1)
-		{
-			size_ -= n;
-			Node_t* del_node = head_;
-			while (n--)
-			{
-				head_ = head_->next_node();
-				del_node->destroy();
-				del_node = head_;
-			}
-		}
-
-		// 从node节点开始删除，可提供node的前驱节点，若不提供则自行寻找
-		void pop_from(const Node_t& from_node, int n = 1, Node_t* prev_node_addr = nullptr)
-		{
-			if (from_node == *head_)
-			{
-				pop_front(n);
-				return;
-			}
-
-			if (prev_node_addr == nullptr)
-			{
-				prev_node_addr = head_;
-				while (*prev_node_addr->next_node() != from_node)
-					prev_node_addr = prev_node_addr->next_node();
-			}
-
-			size_ -= n;
-			Node_t* from_node_addr = prev_node_addr->next_node();
-			while (n--)
-			{
-				Node_t* next_node = from_node_addr->next_node();
-				from_node_addr->destroy();
-				from_node_addr = next_node;
-			}
-
-			if (from_node_addr->is_none_node())
-				tail_ = prev_node_addr;
-
-			prev_node_addr->next_node(from_node_addr);
-		}
-
-		// 删除最后n个节点
-		void pop_back(int n = 1)
-		{
-			c_size server_size = size() - n;
-			if (server_size <= 0)
-				clear();
-			else
-				pop_from(at_node(server_size), n);
-		}
-
-		// 清空链表
-		void clear() { pop_front(size()); }
-
-		Array<Value_t> to_array() const
-		{
-			Array<Value_t> ret(size());
-
-			c_size pos = 0;
-			for (auto& current : *this)
-				ret[pos++] = current;
-
-			return ret;
-		}
-
-		Iterator begin() { return ifelse(head_ != nullptr, *head_, *Node_t::none_node()); }
-
-		Iterator end() { return *Node_t::none_node(); }
-
-		ConstIterator begin() const { return ifelse(head_ != nullptr, *head_, *Node_t::none_node()); }
-
-		ConstIterator end() const { return *Node_t::none_node(); }
-	private:
-		// 获取from_node开始第n个节点在当前链表里的地址
-		Node_t& at_node_from_impl(const Node_t& from_node, int n = 0) const
-		{
-			Node_t* cur_node = nullptr;
-			if (n == 0)
-			{
-				cur_node = head_;
-				while (cur_node != nullptr && *cur_node != from_node)
-					cur_node = cur_node->next_node();
-			}
-			else
-			{
-				cur_node = from_node.next_node();
-				while (--n)
-					cur_node = cur_node->next_node();
-			}
-
-			return *cur_node;
-		}
-	protected:
-		Node_t* head_, * tail_;
-
-		c_size size_;
-	};
-
-	template<typename T>
-	using Chain = ChainImpl<SimpleNode<T>>;
-
-
-	template<typename T>
-	class BiChain : public ChainImpl<BiSimpleNode<T>>
-	{
-	public:
-		using Node_t = BiSimpleNode<T>;
-
-		using self = BiChain<T>;
-
-		using super = ChainImpl<Node_t>;
-
-		BiChain() : super() {}
-
-		BiChain(std::initializer_list<T>&& il) : super(std::move(il)) {}
-
-		BiChain(const self& other) : super(other) {}
-
-		BiChain(self&& other) : super(std::move(other)) {}
-
+		// 尾部插入一个元素
 		template<typename... Args>
-		void prepend(Args&& ...args)
+		Node_t* append(Args&& ...args)
 		{
-			Node_t* new_node = ayr_make<Node_t>(std::forward<Args>(args)...);
-			if (super::size_ == 0)
-				super::tail_ = new_node;
-			else
-				super::head_->prev_node(new_node);
-
-			super::head_ = new_node;
-			++super::size_;
+			return append_node(ayr_make<Node_t>(Value_t{ std::forward<Args>(args)... }));
 		}
 
-		void pop_front(int n = 1)
+		// 头部插入一个节点，该节点的生命周期由Chain管理
+		Node_t* prepend_node(Node_t* node)
 		{
-			super::size_ -= n;
-			Node_t* del_node = super::head_;
-			while (n--)
+			if (size_ == 0)
+				tail_ = node;
+			else
+				node->next(head_);
+			head_ = node;
+			++size_;
+			return node->value;
+		}
+
+		// 头部插入一个元素
+		template<typename... Args>
+		Node_t* prepend(Args&& ...args)
+		{
+			return prepend_node(ayr_make<Node_t>(Value_t{ std::forward<Args>(args)... }));
+		}
+
+		// 删除所有元素
+		void clear() { if (size_) pop_range(head_, tail_); }
+
+		// 删除node
+		void pop(Node_t* node) { pop_range(node, node); }
+
+		// 删除尾部n个元素
+		void pop_back(c_size n = 1)
+		{
+			Node_t* pos = head_;
+			if (n < size_)
+				for (c_size i = 0; i < size_ - n; ++i)
+					pos = pos->next();
+
+			pop_range(pos, tail_);
+		}
+
+		// 删除头部n个元素
+		void pop_front(c_size n = 1)
+		{
+			Node_t* pos = head_;
+			if (n < size_)
+				for (c_size i = 0; i < n - 1; ++i)
+					pos = pos->next();
+
+			pop_range(head_, pos);
+		}
+
+		// 删除区间[l, r]内的所有节点
+		void pop_range(Node_t* l, Node_t* r)
+		{
+			if (l == head_)
 			{
-				super::head_ = super::head_->next_node();
-				del_node->destroy();
-				del_node = super::head_;
+				if (r == tail_)
+					head_ = tail_ = nullptr;
+				else
+				{
+					head_ = r->next();
+					head_->prev(nullptr);
+				}
+			}
+			else
+			{
+				Node_t* l_prev = l->prev();
+				l_prev->next(r->next());
+				if (r == tail_) tail_ = l_prev;
 			}
 
-			if (super::size_ != 0)
-				super::head_->prev_node(Node_t::none_node());
+			Node_t* cur = l;
+			while (true)
+			{
+				--size_;
+				Node_t* nxt = cur->next();
+				ayr_desloc(cur);
+
+				if (cur == r)
+					break;
+				else
+					cur = nxt;
+			}
 		}
 
-		// 从node节点开始删除n个节点
-		void pop_from(const Node_t& from_node, int n = 1)
+		template<bool IsConst>
+		struct ChainIterator : public IteratorInfo<ChainIterator<IsConst>, NonContainer, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>
 		{
-			if (from_node == *super::head_)
+			using ItInfo = IteratorInfo<ChainIterator<IsConst>, NonContainer, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>;
+
+			Node_t* node_;
+		public:
+			ChainIterator() : node_(nullptr) {}
+
+			ChainIterator(Node_t* node) : node_(node) {}
+
+			ChainIterator(const typename ItInfo::iterator_type& other) : node_(other.node_) {}
+
+			ChainIterator& operator=(const typename ItInfo::iterator_type& other) { node_ = other.node_; return *this; }
+
+			ItInfo::reference operator*() const { return node_->value; }
+
+			ItInfo::pointer operator->() const { return &node_->value; };
+
+			typename ItInfo::iterator_type& operator++() { node_ = node_->next(); return *this; }
+
+			typename ItInfo::iterator_type operator++(int) { self res = *this; node_ = node_->next(); return res; }
+
+			typename ItInfo::iterator_type& operator--() { node_ = node_->prev(); return *this; }
+
+			typename ItInfo::iterator_type operator--(int) { self res = *this; node_ = node_->prev(); return res; }
+
+			typename ItInfo::iterator_type operator+(ItInfo::difference_type n) { self res = *this; return res += n; }
+
+			typename ItInfo::iterator_type operator-(ItInfo::difference_type n) { self res = *this; return res -= n; }
+
+			typename ItInfo::iterator_type& operator+=(ItInfo::difference_type n)
 			{
-				pop_front(n);
-				return;
+				while (n--)
+					node_ = node_->next();
+				return *this;
 			}
 
-			super::size_ -= n;
-			Node_t* prev_node_addr = from_node.prev_node();
-			Node_t* from_node_addr = prev_node_addr->next_node();
-			while (n--)
+			typename ItInfo::iterator_type& operator-= (ItInfo::difference_type n)
 			{
-				Node_t* next_node = from_node_addr->next_node();
-				from_node_addr->destroy();
-				from_node_addr = next_node;
+				while (n--)
+					node_ = node_->prev();
+				return *this;
 			}
 
-			prev_node_addr->next_node(from_node_addr);
-			if (from_node_addr->is_none_node())
-				super::tail_ = prev_node_addr;
-			else
-				from_node_addr->prev_node(prev_node_addr);
-		}
+			ItInfo::difference_type operator-(const self& other) const
+			{
+				c_size res = 0;
+				Node_t* cur = node_;
+				while (cur != other.node_)
+				{
+					cur = cur->next();
+					++res;
+				}
+				return res;
+			}
 
-		// 删除最后n个节点
-		void pop_back(int n = 1)
-		{
-			c_size server_size = super::size() - n;
-			if (server_size <= 0)
-				clear();
-			else
-				pop_from(super::at_node(server_size), n);
-		}
+			bool __equals__(const typename ItInfo::iterator_type& other) const { return node_ == other.node_; }
+		};
 
-		// 清空链表
-		void clear() { pop_front(super::size()); }
+		using Iterator = ChainIterator<false>;
+
+		using ConstIterator = ChainIterator<true>;
+
+		Iterator begin() { return Iterator(head_); }
+
+		Iterator end() { return Iterator(nullptr); }
+
+		ConstIterator begin() const { return ConstIterator(head_); }
+
+		ConstIterator end() const { return ConstIterator(nullptr); }
+
+		Iterator rbegin() { return Iterator(tail_); }
+
+		Iterator rend() { return Iterator(nullptr); }
+
+		ConstIterator rbegin() const { return ConstIterator(tail_); }
+
+		ConstIterator rend() const { return ConstIterator(nullptr); }
 	};
+
+	template<typename T, IteratableU<T> I>
+	def chain(I&& it_able)
+	{
+		Chain<T> res;
+		for (auto&& elem : it_able)
+			res.append(cond_forward<I>(elem));
+		return res;
+	}
 }
-#endif
+#endif // AYR_CHAIN2_HPP
