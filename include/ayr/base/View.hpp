@@ -15,6 +15,7 @@ namespace ayr
 
 		View(const self& other) : view_ptr_(other.view_ptr_) {}
 
+		// View的构造对象只能是self或左值引用
 		template<typename U>
 			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
 		View(U&& obj) : view_ptr_(nullptr)
