@@ -18,7 +18,7 @@ namespace ayr
 
 			int8_t json_type_id_;
 		public:
-			
+
 			template<typename R, bool IsConst = false>
 			class JsonMethodsImpl : public Object<JsonMethodsImpl<R, IsConst>>
 			{
@@ -102,10 +102,10 @@ namespace ayr
 			Json() : json_item_(ayr_make<JsonNull>()), json_type_id_(GetJsonTypeID<JsonNull>::ID) {}
 
 			template<JsonTypeConcept T>
-			explicit Json(const T& value): json_item_(ayr_make<T>(value)), json_type_id_(GetJsonTypeID<T>::ID) {}
+			explicit Json(const T& value) : json_item_(ayr_make<T>(value)), json_type_id_(GetJsonTypeID<T>::ID) {}
 
 			template<JsonTypeConcept T>
-			explicit Json(T&& value): json_item_(ayr_make<T>(std::forward<T>(value))), json_type_id_(GetJsonTypeID<T>::ID) {}
+			explicit Json(T&& value) : json_item_(ayr_make<T>(std::forward<T>(value))), json_type_id_(GetJsonTypeID<T>::ID) {}
 
 			Json(const Json& other) : json_item_(nullptr), json_type_id_(other.json_type_id_)
 			{
@@ -208,7 +208,7 @@ namespace ayr
 			JsonArray& as_array() { return *reinterpret_cast<JsonArray*>(json_item_); }
 
 			const JsonArray& as_array() const { return *reinterpret_cast<const JsonArray*>(json_item_); }
-			
+
 			JsonDict& as_dict() { return *reinterpret_cast<JsonDict*>(json_item_); }
 
 			const JsonDict& as_dict() const { return *reinterpret_cast<const JsonDict*>(json_item_); }
