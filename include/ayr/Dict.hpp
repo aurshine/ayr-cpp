@@ -7,51 +7,10 @@
 #include "Array.hpp"
 #include "Chain.hpp"
 #include "base/HashBucket.hpp"
-#include "base/View.hpp"
 
 namespace ayr
 {
 	class Atring;
-
-	// 键值对视图
-	template<Hashable K, typename V>
-	struct KeyValueView : public Object<KeyValueView<K, V>>
-	{
-		using self = KeyValueView<K, V>;
-
-		using Key_t = K;
-
-		using Value_t = V;
-
-		KeyValueView() : key_(), value_() {}
-
-		KeyValueView(Key_t& key, Value_t& value) : key_(key), value_(value) {}
-
-		KeyValueView(const self& other) : key_(other.key_), value_(other.value_) {};
-
-		self& operator=(const self& other)
-		{
-			if (this == &other) return *this;
-
-			key_ = other.key_;
-			value_ = other.value_;
-			return *this;
-		}
-
-		self& set_kv(Key_t& key, Value_t& value) { key_ = key; value_ = value; return *this; }
-
-		Key_t& key() { return key_; }
-
-		Value_t& value() { return value_; }
-
-		const Key_t& key() const { return key_; }
-
-		const Value_t& value() const { return value_; }
-
-		hash_t hashv() const { return ayrhash(key_.get<Key_t>()); }
-	private:
-		View key_, value_;
-	};
 
 	template<Hashable K, typename V>
 	class Dict : public Object<Dict<K, V>>
@@ -62,13 +21,13 @@ namespace ayr
 
 		using Value_t = V;
 
-		using Bucket_t = RobinHashBucket<std::pair<V, typename BiChain<Key_t>::Node_t*>>;
+		using Bucket_t = RobinHashBucket<std::pair<typename Chain<Key_t>::Node_t*, V>>;
 
 		using BucketValue_t = typename Bucket_t::Value_t;
 
-		using KeyIterator = BiChain<Key_t>::Iterator;
+		using KeyIterator = typename Chain<Key_t>::Iterator;
 
-		using ConstKeyIterator = BiChain<Key_t>::ConstIterator;
+		using ConstKeyIterator = typename Chain<Key_t>::ConstIterator;
 
 		using Iterator = KeyIterator;
 
@@ -86,7 +45,7 @@ namespace ayr
 
 			using ItInfo = IteratorInfo<self, add_const_t<IsConst, Dict>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>;
 
-			using KI = ConstKeyIterator;
+			using KI = std::conditional_t<IsConst, ConstKeyIterator, KeyIterator>;
 
 			_ValueIterator() : dict_(nullptr), it_() {}
 
@@ -153,14 +112,14 @@ namespace ayr
 		Dict& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-
+			ayr_destroy(this);
 			return *ayr_construct(this, other);
 		}
 
 		Dict& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-
+			ayr_destroy(this);
 			return *ayr_construct(this, std::move(other));
 		}
 
@@ -198,7 +157,7 @@ namespace ayr
 			if (!contains_hashv(hashv))
 				return insert_impl(key, V(), hashv);
 
-			return get_impl(hashv)->first;
+			return get_impl(hashv)->second;
 		}
 
 		// 获得key对应的value, 若key不存在, 则抛出KeyError
@@ -206,7 +165,7 @@ namespace ayr
 		{
 			BucketValue_t* value = get_impl(ayrhash(key));
 
-			if (value != nullptr) return value->first;
+			if (value != nullptr) return value->second;
 			KeyError(std::format("Key '{}' not found in dict", key));
 			return None<V>;
 		}
@@ -216,7 +175,7 @@ namespace ayr
 		{
 			const BucketValue_t* value = get_impl(ayrhash(key));
 
-			if (value != nullptr) return value->first;
+			if (value != nullptr) return value->second;
 			KeyError(std::format("Key '{}' not found in dict", key));
 			return None<V>;
 		}
@@ -225,7 +184,7 @@ namespace ayr
 		Value_t& get(const Key_t& key, Value_t& default_value)
 		{
 			BucketValue_t* value = get_impl(ayrhash(key));
-			if (value != nullptr) return value->first;
+			if (value != nullptr) return value->second;
 
 			return default_value;
 		}
@@ -234,7 +193,7 @@ namespace ayr
 		const Value_t& get(const Key_t& key, const Key_t& default_value) const
 		{
 			const BucketValue_t* value = get_impl(ayrhash(key));
-			if (value != nullptr) return value->first;
+			if (value != nullptr) return value->second;
 
 			return default_value;
 		}
@@ -282,7 +241,7 @@ namespace ayr
 		{
 			BucketValue_t* m_value = get_impl(hashv);
 			if (m_value != nullptr)
-				return m_value->first = std::forward<_V>(value);
+				return m_value->second = std::forward<_V>(value);
 
 			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), hashv);
 		}
@@ -293,7 +252,7 @@ namespace ayr
 			BucketValue_t* value = get_impl(hashv);
 			if (value != nullptr)
 			{
-				keys_.pop_from(*value->second);
+				keys_.pop(value->first);
 				bucket_.pop(hashv);
 			}
 			else
@@ -490,10 +449,10 @@ namespace ayr
 				expand();
 
 			BucketValue_t* v = bucket_.set_value(
-				std::make_pair(std::forward<_V>(value), &keys_.append(std::forward<_K>(key))),
+				std::make_pair(keys_.append(std::forward<_K>(key)), std::forward<_V>(value)),
 				hashv);
 
-			return v->first;
+			return v->second;
 		}
 
 		// 获得hash值对应的value指针
@@ -504,7 +463,7 @@ namespace ayr
 	private:
 		Bucket_t bucket_;
 
-		BiChain<Key_t> keys_;
+		Chain<Key_t> keys_;
 
 		static constexpr double MAX_LOAD_FACTOR = 0.75;
 
