@@ -188,6 +188,21 @@ namespace ayr
 			return data;
 		}
 
+		// 接收所有数据，直到接收完毕或出现错误
+		CString recvall(int bufsize = 1024, int flags = 0) const
+		{
+			int length = 0;
+			DynArray<CString> datas;
+			while (true)
+			{
+				CString data = recv(bufsize, &length, flags);
+				if (length == 0) break;
+				datas.append(data);
+			}
+
+			return cstr("").join(datas);
+		}
+
 		// 将普通数据和辅助数据一起接收，并返回普通数据
 		CString recvmsg(int flags = 0) const
 		{
