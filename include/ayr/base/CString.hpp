@@ -89,6 +89,47 @@ namespace ayr
 		bool operator== (const char* other) const { return __equals__(other); }
 
 		bool operator!= (const char* other) const { return __equals__(other); }
+
+		self operator+(const self& other)
+		{
+			c_size s_size = size(), o_size = other.size();
+			self ret(s_size + o_size);
+			std::memcpy(ret.data(), data(), s_size);
+			std::memcpy(ret.data() + s_size, other.data(), o_size);
+			return ret;
+		}
+
+		self& operator+=(const self& other)
+		{
+			self res = *this + other;
+			*this = std::move(res);
+			return *this;
+		}
+
+		template<IteratableV<self> I>
+		self join(const I& it_able) const
+		{
+			c_size len = 0, s_size = size();
+			
+			for (const self& str : it_able)
+				len += str.size() + s_size;
+			if (len) len -= s_size;
+
+			self ret(len);
+			char* ptr = ret.data();
+			for (auto it = it_able.begin(); it != it_able.end(); ++it)
+			{
+				c_size o_size = it->size();
+				if (it != it_able.begin())
+				{
+					std::memcpy(ptr, data(), s_size);
+					ptr += s_size;
+				}
+				std::memcpy(ptr, it->data(), o_size);
+				ptr += o_size;
+			}
+			return ret;
+		}
 	private:
 		char* str;
 	};
