@@ -213,7 +213,7 @@ namespace ayr
 
 		int timeout_ms_, next_sub_reactor_id_;
 	public:
-		UltraTcpServer(int port, int num_thread = 1, int timeout_ms = -1, int family = AF_INET) :
+		UltraTcpServer(const CString& ip, int port, int num_thread = 1, int timeout_ms = 1000, int family = AF_INET) :
 			main_reactor_(),
 			sub_reactors_(num_thread),
 			reactor_thread_pool_(num_thread),
@@ -222,14 +222,14 @@ namespace ayr
 			server_socket_(family, SOCK_STREAM),
 			next_sub_reactor_id_(0)
 		{
-			server_socket_.bind("127.0.0.1", port);
+			server_socket_.bind(ip, port);
 			server_socket_.listen();
 		}
 
-		~UltraTcpServer() 
+		~UltraTcpServer()
 		{
 			stop();
-			server_socket_.close(); 
+			server_socket_.close();
 		}
 
 		// 客户端连接到服务器后调用的回调函数，线程安全
@@ -250,7 +250,7 @@ namespace ayr
 		// 超时的回调函数
 		void on_timeout() {}
 
-		// 运行
+		// 运行，阻塞函数
 		void run()
 		{
 			auto acceptor = main_reactor_.add_channel(server_socket_, [&](Channel* channel) { accept(); });
@@ -265,10 +265,14 @@ namespace ayr
 		void stop()
 		{
 			main_reactor_.stop();
+			print("main reactor stopped");
 			for (auto& sub_reactor : sub_reactors_)
 				sub_reactor.stop();
+			print("sub reactors stopped");
 			reactor_thread_pool_.stop();
+			print("reactor thread pool stopped");
 			acceptor_thread_pool_.stop();
+			print("acceptor thread pool stopped");
 		}
 	private:
 		void run_reactor(ReactorLoop& reactor)
@@ -306,7 +310,7 @@ namespace ayr
 				sub_reactor = &sub_reactors_[next_sub_reactor_id_];
 				next_sub_reactor_id_ = (next_sub_reactor_id_ + 1) % num_sub_reactors;
 			}
-				
+
 			auto executor = sub_reactor->add_channel(client, [&](Channel* channel) { execute_event(channel); });
 		}
 
