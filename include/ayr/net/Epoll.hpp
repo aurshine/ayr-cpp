@@ -67,7 +67,7 @@ namespace ayr
 			int nfds = size() + 1;
 			Array<epoll_event> events(nfds);
 			int n = epoll_wait(epoll_fd_, events.data(), nfds, timeout_ms);
-			if (n == -1) RuntimeError(get_error_msg());
+			if (n == -1 && errno != EINTR) RuntimeError(get_error_msg());
 
 			Array<epoll_event> result(n);
 			for (int i = 0; i < n; ++i)
