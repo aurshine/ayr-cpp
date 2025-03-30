@@ -18,17 +18,19 @@ namespace ayr
 	// 错误码转化为字符串
 	CString errorno2str(int errorno)
 	{
-		CString error_msg{ 256 };
+		CString error_msg{ 216 }, res{ 256 };
 		FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM,
 			nullptr,
 			errorno,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
 			error_msg.data(),
-			256,
+			216,
 			nullptr
 		);
-		return error_msg;
+
+		std::snprintf(res.data(), 256, "errno %d: %s\n", errorno, error_msg.data());
+		return res;
 	}
 
 	CString get_error_msg() { return errorno2str(GetLastError()); }
