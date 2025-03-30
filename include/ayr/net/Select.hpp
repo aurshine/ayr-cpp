@@ -102,7 +102,12 @@ namespace ayr
 		{
 			timeval timeout{ time_ms / 1000, (time_ms % 1000) * 1000 };
 			timeout.tv_sec = time_ms / 1000;
-			int n = select(FD_SETSIZE, &read_set->fds, &write_set->fds, &except_set->fds, &timeout);
+			fd_set tmp_read_set, tmp_write_set, tmp_except_set;
+			if (read_set) tmp_read_set = read_set->fds;
+			if (write_set) tmp_write_set = write_set->fds;
+			if (except_set) tmp_except_set = except_set->fds;
+
+			int n = select(FD_SETSIZE, &tmp_read_set, &tmp_write_set, &tmp_except_set, &timeout);
 
 			Array<SelectEvent> events(n);
 			for (int i = 0, j = 0; j < FD_SETSIZE && i < n; ++j)
@@ -154,7 +159,8 @@ namespace ayr
 			if (st)
 			{
 				if (!fds) fds = ayr_make<FdSet>();
-				fds->add(socket, view);
+				fds->add(socket);
+				datas[socket.fd()] = view;
 			}
 			else
 			{
