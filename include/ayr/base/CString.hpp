@@ -110,7 +110,7 @@ namespace ayr
 		self join(const I& it_able) const
 		{
 			c_size len = 0, s_size = size();
-			
+
 			for (const self& str : it_able)
 				len += str.size() + s_size;
 			if (len) len -= s_size;
@@ -144,6 +144,8 @@ namespace ayr
 	}
 
 	der(CString) cstr(const char* value) { return value; }
+
+	der(CString) cstr(char* value) { return value; }
 
 	der(CString) cstr(nullptr_t) { return "nullptr"; }
 
