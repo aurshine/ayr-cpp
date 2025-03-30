@@ -184,7 +184,9 @@ namespace ayr
 		{
 			CString data{ bufsize };
 			int recvd = ::recv(socket_, data.data(), bufsize, flags);
-			if (recvd == -1) RuntimeError(get_error_msg());
+			if (recvd == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
+				RuntimeError(get_error_msg());
+		
 			if (length) *length = recvd;
 			return data;
 		}
