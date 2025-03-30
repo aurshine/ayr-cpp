@@ -15,9 +15,10 @@ namespace ayr
 {
 	CString errorno2str(int errorno)
 	{
-		CString error_msg{ 256 };
-		strerror_r(errorno, error_msg.data(), 256);
-		return error_msg;
+		CString error_msg{ 216 }, res{ 256 };
+		strerror_r(errorno, error_msg.data(), 216);
+		std::snprintf(res.data(), 256, "errno: %d, %s", errorno, error_msg.data());
+		return res;
 	}
 
 	CString get_error_msg() { return errorno2str(errno); }
