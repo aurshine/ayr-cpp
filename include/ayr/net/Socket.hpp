@@ -55,7 +55,6 @@ namespace ayr
 
 		self& operator=(const self& other)
 		{
-			close();
 			socket_ = other.socket_;
 			return *this;
 		}
@@ -70,7 +69,6 @@ namespace ayr
 		void bind(const char* ip, int port) const
 		{
 			SockAddrIn addr(ip, port);
-
 			if (::bind(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
 				RuntimeError(get_error_msg());
 		}
@@ -101,11 +99,11 @@ namespace ayr
 		}
 
 		// 发送data，返回已经发送的字节数
-		int send(const char* data, int size=-1, int flags=0) const
+		int send(const char* data, int size = -1, int flags = 0) const
 		{
 			if (size == -1) size = strlen(data);
 			int num_send = ::send(socket_, data, size, flags);
-			if (num_send == SOCKET_ERROR)
+			if (num_send == -1)
 				RuntimeError(get_error_msg());
 			return num_send;
 		}
@@ -165,7 +163,8 @@ namespace ayr
 		int sendto(const char* data, size_t size, const SockAddrIn& to, int flags = 0) const
 		{
 			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
-			if (num_send == SOCKET_ERROR) RuntimeError(get_error_msg());
+			if (num_send == -1) 
+				RuntimeError(get_error_msg());
 			return num_send;
 		}
 
@@ -186,7 +185,7 @@ namespace ayr
 			int recvd = ::recv(socket_, data.data(), bufsize, flags);
 			if (recvd == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
 				RuntimeError(get_error_msg());
-		
+
 			if (length) *length = recvd;
 			return data;
 		}
