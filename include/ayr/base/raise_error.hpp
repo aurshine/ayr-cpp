@@ -1,5 +1,5 @@
-#ifndef AYR_BASE_RAISE_ERROR_HPP_
-#define AYR_BASE_RAISE_ERROR_HPP_
+#ifndef AYR_BASE_RAISE_ERROR_HPP
+#define AYR_BASE_RAISE_ERROR_HPP
 
 #include "printer.hpp"
 
@@ -59,4 +59,4 @@ namespace ayr
 
 #define SystemError(msg) Error("SystemError", msg)
 }
-#endif // AYR_BASE_RAISE_ERROR_HPP_
+#endif // AYR_BASE_RAISE_ERROR_HPP

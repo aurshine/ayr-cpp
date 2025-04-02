@@ -39,7 +39,7 @@ namespace ayr
 #ifdef _MSC_VER
 			sprintf_s(s.data(), s_len, "<%s 0x%p>", type_name.c_str(), this);
 #else
-			std::sprintf(s.data(), "<%s %p>", type_name.c_str(), this);
+			std::sprintf(s.data(), "<%s 0x%p>", type_name.c_str(), this);
 #endif
 			return s;
 		}
