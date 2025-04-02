@@ -207,6 +207,13 @@ namespace ayr
 
 		self& operator+= (self&& other) { return extend(std::move(other)); }
 
+		void __swap__(self& other)
+		{
+			swap(blocks_, other.blocks_);
+			swap(size_, other.size_);
+			swap(back_block_index_, other.back_block_index_);
+		}
+
 		template<bool IsConst>
 		struct _Iterator : public IteratorInfo<_Iterator<IsConst>, add_const_t<IsConst, DynArray<Value_t>>, std::random_access_iterator_tag, add_const_t<IsConst, Value_t>>
 		{

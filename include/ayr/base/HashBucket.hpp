@@ -109,6 +109,13 @@ namespace ayr
 
 		// 重置移动距离
 		void reset_move_dist() { _move_dist = 0; }
+
+		void __swap__(self& other)
+		{
+			swap(_move_dist, other._move_dist);
+			swap(_hashv, other._hashv);
+			swap(_value, other._value);
+		}
 	private:
 		int _move_dist;
 
@@ -147,7 +154,7 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			ayr_destroy(this, 1);
+			ayr_destroy(this);
 			return *ayr_construct(this, other);
 		}
 
@@ -155,7 +162,7 @@ namespace ayr
 		{
 			if (this == &other) return *this;
 
-			ayr_destroy(this, 1);
+			ayr_destroy(this);
 			return *ayr_construct(this, std::move(other));
 		}
 
@@ -229,7 +236,7 @@ namespace ayr
 				}
 				else if (new_manager->move_more_than(*manager))
 				{
-					std::swap(manager, new_manager);
+					ayr::swap(manager, new_manager);
 				}
 				new_manager->add_move_dist();
 			}
@@ -289,6 +296,11 @@ namespace ayr
 				if (manager != nullptr)
 					ayr_desloc(manager, 1);
 			robin_managers_.resize(0);
+		}
+
+		void __swap__(self& other)
+		{
+			swap(robin_managers_, other.robin_managers_);
 		}
 
 		template<bool IsConst>

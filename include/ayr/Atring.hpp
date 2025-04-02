@@ -34,6 +34,13 @@ namespace ayr
 			shared_head_ = shared_head;
 			length_ = length;
 		}
+
+		void __swap__(self& other)
+		{
+			swap(shared_head_, other.shared_head_);
+			swap(length_, other.length_);
+			swap(encoding_, other.encoding_);
+		}
 	};
 
 	class Atring : public Object<Atring>
@@ -164,6 +171,13 @@ namespace ayr
 				if (atchar(i) != other.atchar(i))
 					return false;
 			return true;
+		}
+
+		void __swap__(self& other)
+		{
+			swap(achars_, other.achars_);
+			swap(length_, other.length_);
+			swap(origin_, other.origin_);
 		}
 
 		c_size find(const self& pattern, c_size pos = 0) const

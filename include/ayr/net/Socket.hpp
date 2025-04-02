@@ -163,7 +163,7 @@ namespace ayr
 		int sendto(const char* data, size_t size, const SockAddrIn& to, int flags = 0) const
 		{
 			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
-			if (num_send == -1) 
+			if (num_send == -1)
 				RuntimeError(get_error_msg());
 			return num_send;
 		}
@@ -280,6 +280,8 @@ namespace ayr
 		cmp_t __cmp__(const int& fd) const { return socket_ - fd; }
 
 		hash_t __hash__() const { return socket_; }
+
+		void __swap__(self& other) { swap(socket_, other.socket_); }
 	private:
 		int socket_;
 	};

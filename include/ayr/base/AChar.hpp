@@ -95,6 +95,12 @@ namespace ayr
 				return std::memcmp(data(), other.data(), m_size);
 		}
 
+		void __swap__(self& other)
+		{
+			swap(byte_code_, other.byte_code_);
+			swap(code_size_, other.code_size_);
+		}
+
 		operator char() const
 		{
 			if (!isasciii())

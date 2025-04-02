@@ -422,6 +422,12 @@ namespace ayr
 			return str;
 		}
 
+		void __swap__(self& other)
+		{
+			swap(bucket_, other.bucket_);
+			swap(keys_, other.keys_);
+		}
+
 		Iterator begin() { return keys_.begin(); }
 
 		Iterator end() { return keys_.end(); }

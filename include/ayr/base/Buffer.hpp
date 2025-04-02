@@ -3,7 +3,7 @@
 #ifndef AYR_BASE_BUFFER_HPP
 #define AYR_BASE_BUFFER_HPP
 
-#include "Appender.hpp"
+#include "Sequence.hpp"
 
 namespace ayr
 {
@@ -64,8 +64,6 @@ namespace ayr
 
 		bool full() const { return size_ == capacity_; }
 
-		Value_t* data() { return buffer_; }
-
 		const Value_t* data() const { return buffer_; }
 
 		const Value_t& at(c_size index) const { return buffer_[index]; }
@@ -78,6 +76,12 @@ namespace ayr
 
 		void append_bytes(const self& other) { append_bytes(other.data(), other.size()); }
 
+		void __swap__(self& other)
+		{
+			swap(size_, other.size_);
+			swap(capacity_, other.capacity_);
+			swap(buffer_, other.buffer_);
+		}
 	private:
 		c_size size_, capacity_;
 

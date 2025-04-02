@@ -165,12 +165,6 @@ namespace ayr
 				return *ayr_construct(this, std::move(other));
 			}
 
-			void swap(Json& json) noexcept
-			{
-				std::swap(json_item_, json.json_item_);
-				std::swap(json_type_id_, json.json_type_id_);
-			}
-
 			bool is_null() const { return json_type_id_ == GetJsonTypeID<JsonNull>::ID; }
 
 			bool is_int() const { return json_type_id_ == GetJsonTypeID<JsonInt>::ID; }
@@ -327,6 +321,12 @@ namespace ayr
 				jmc.for_array([&other](const JsonArray& obj) { return obj == other.as_array(); });
 				jmc.for_dict([&other](const JsonDict& obj) { return obj == other.as_dict(); });
 				return jmc(*this);
+			}
+
+			void __swap__(self& other)
+			{
+				swap(json_item_, other.json_item_);
+				swap(json_type_id_, other.json_type_id_);
 			}
 		};
 

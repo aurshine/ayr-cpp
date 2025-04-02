@@ -229,6 +229,13 @@ namespace ayr
 			}
 		}
 
+		void __swap__(self& other)
+		{
+			swap(size_, other.size_);
+			swap(head_, other.head_);
+			swap(tail_, other.tail_);
+		}
+
 		template<bool IsConst>
 		struct ChainIterator : public IteratorInfo<ChainIterator<IsConst>, NonContainer, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>
 		{

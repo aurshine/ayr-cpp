@@ -205,20 +205,23 @@ namespace ayr
 
 		CString __str__() const
 		{
-			std::stringstream stream;
-			stream << "{";
-			for (auto v : *this)
-				stream << v << ", ";
-
-			std::string str = stream.str();
-			if (str.size() > 2)
+			DynArray<CString> strs;
+			strs.append("{");
+			for (auto it = begin(); it != end(); ++it)
 			{
-				str.pop_back();
-				str.pop_back();
+				if (it != begin())
+					strs.append(", ");
+				strs.append(cstr(*it));
 			}
-			str.push_back('}');
+			strs.append("}");
 
-			return str;
+			return cstr("").join(strs);
+		}
+
+		void __swap__(self& other)
+		{
+			swap(size_, other.size_);
+			swap(bucket_, other.bucket_);
 		}
 	private:
 		bool contains_hashv(hash_t hashv) const { return bucket_.contains(hashv); }

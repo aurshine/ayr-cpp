@@ -109,6 +109,13 @@ namespace ayr
 			size_ = 0;
 			return arr;
 		}
+
+		void __swap__(self& other)
+		{
+			swap(size_, other.size_);
+			swap(capacity_, other.capacity_);
+			swap(buffer_, other.buffer_);
+		}
 	private:
 		c_size size_, capacity_;
 

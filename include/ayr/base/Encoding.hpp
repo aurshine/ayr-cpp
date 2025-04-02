@@ -1,7 +1,7 @@
 #ifndef AYR_BASE_ENCODING
 #define AYR_BASE_ENCODING
 
-#include "../Dict.hpp"
+#include "raise_error.hpp"
 
 
 namespace ayr

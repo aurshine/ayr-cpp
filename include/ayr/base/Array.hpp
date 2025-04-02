@@ -1,8 +1,6 @@
 ﻿#ifndef AYR_BASE_ARRAY_HPP
 #define AYR_BASE_ARRAY_HPP
 
-#include <algorithm>
-
 #include "raise_error.hpp"
 #include "ayr_memory.hpp"
 #include "Sequence.hpp"
@@ -53,10 +51,8 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			ayr_destroy(arr_, size_);
-			ayr_delloc(arr_);
-
-			return *ayr_construct(this, other);;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
 		}
 
 		self& operator=(self&& other) noexcept
@@ -64,16 +60,8 @@ namespace ayr
 			if (this == &other)
 				return *this;
 
-			ayr_destroy(arr_, size_);
-			ayr_delloc(arr_);
-
-			size_ = other.size_;
-			arr_ = std::move(other.arr_);
-
-			other.size_ = 0;
-			other.arr_ = 0;
-
-			return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
 		}
 
 		T* data() { return arr_; }
@@ -86,17 +74,10 @@ namespace ayr
 
 		c_size size() const { return size_; }
 
-		CString __str__() const
+		void __swap__(self& other)
 		{
-			std::stringstream stream;
-			stream << "[";
-			for (c_size i = 0; i < size(); ++i)
-			{
-				if (i != 0) stream << ", ";
-				stream << at(i);
-			}
-			stream << "]";
-			return stream.str();
+			swap(arr_, other.arr_);
+			swap(size_, other.size_);
 		}
 
 		// 重新分配内存，不保留原有数据
