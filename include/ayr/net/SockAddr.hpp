@@ -19,8 +19,19 @@ namespace ayr
 
 			if (ip == nullptr)
 				addr_.sin_addr.s_addr = INADDR_ANY;
-			else if (inet_pton(AF_INET, ip, &addr_.sin_addr) != 1)
-				RuntimeError(get_error_msg());
+			else
+			{
+				int ret = inet_pton(AF_INET, ip, &addr_.sin_addr);
+				switch (ret)
+				{
+				case 0:
+					RuntimeError(std::format("Invalid IP address: {}", ip));
+					break;
+				case -1:
+					RuntimeError(get_error_msg());
+					break;
+				}
+			}
 		}
 
 		SockAddrIn(const SockAddrIn& other) : addr_(other.addr_) {}
