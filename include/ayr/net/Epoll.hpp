@@ -6,10 +6,10 @@
 #include "../filesystem.hpp"
 #include "../Dict.hpp"
 
-namespace ayr
-{
 #if defined(AYR_LINUX)
 #include <sys/epoll.h>
+namespace ayr
+{
 	class Epoll : public Object<Epoll>
 	{
 	public:
