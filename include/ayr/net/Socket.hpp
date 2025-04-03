@@ -273,6 +273,26 @@ namespace ayr
 				ValueError(std::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
 		}
 
+		// 设置是否复用端口
+		void reuse_port(bool on) const
+		{
+#ifdef SO_REUSEPORT
+			int optval = ifelse(on, 1, 0);
+			int ret = setsockopt(SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
+			if (ret != 0)
+				RuntimeError(get_error_msg());
+#else
+			warn_assert(on, "SO_REUSEPORT not supported on this platform.");
+#endif
+		}
+
+		// 设置是否复用地址
+		void reuse_addr(bool on) const
+		{
+			int optval = ifelse(on, 1, 0);
+			setsockopt(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+		}
+
 		CString __str__() const { return std::format("Socket({})", socket_); }
 
 		cmp_t __cmp__(const self& other) const { return socket_ - other.socket_; }
