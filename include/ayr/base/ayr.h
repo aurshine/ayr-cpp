@@ -22,7 +22,7 @@ namespace ayr
 
 #define hasmember(T, member) requires(T t) { &T::member; }
 
-#define hasmethod(T, method, ...) requires(T t) { t.method( ##__VA_ARGS__);}
+#define hasmethod(T, method, ...) requires(T t) { t.method( __VA_OPT__( ) __VA_ARGS__); }
 
 #define hasattr(T, attr) hasmember(T, attr) || hastype(T, attr)
 
