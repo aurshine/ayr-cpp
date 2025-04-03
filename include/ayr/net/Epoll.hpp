@@ -19,45 +19,62 @@ namespace ayr
 
 		using super = Object<Epoll>;
 
-		Epoll() : epoll_fd_(epoll_create1(0)) {}
+		Epoll() : epoll_fd_(epoll_create1(0)), size_(0) {}
 
 		~Epoll() { epoll_fd_.close(); }
 
 		// epoll连接数
-		c_size size() const { return epoll_events_.size(); }
-
-		// 是否包含某个socket
-		bool contains(const Socket& socketfd) const { return epoll_events_.contains(socketfd); }
+		c_size size() const { return size_; }
 
 		// 获取epoll的文件描述符
 		const Socket& epoll_fd() const { return epoll_fd_; }
 
-		// 设置某个socket的事件
-		const Socket& set(const Socket& socketfd, uint32_t events)
+		void epoll_ctl(int op, const Socket& socketfd, uint32_t events)
 		{
-			struct epoll_event ev;
+			epoll_event ev;
 			ev.data.fd = socketfd.fd();
 			ev.events = events;
 
-			return set_impl(socketfd, &ev);
+			unix_epoll_ctl(op, socketfd, &ev);
 		}
 
-		// 设置某个socket的事件，绑定指针
-		const Socket& set(const Socket& socketfd, void* ptr, uint32_t events)
+		void epoll_ctl(int op, const Socket& socketfd, void* ptr, uint32_t events)
 		{
-			struct epoll_event ev;
+			epoll_event ev;
 			ev.data.ptr = ptr;
 			ev.events = events;
 
-			return set_impl(socketfd, &ev);
+			unix_epoll_ctl(op, socketfd, &ev);
+		}
+
+		// 添加一个socket到epoll中
+		void add(const Socket& socketfd, uint32_t events)
+		{
+			epoll_ctl(EPOLL_CTL_ADD, socketfd, events);
+		}
+
+		// 添加一个socket到epoll中
+		void add(const Socket& socketfd, void* ptr, uint32_t events)
+		{
+			epoll_ctl(EPOLL_CTL_ADD, socketfd, ptr, events);
 		}
 
 		// 从epoll中删除一个socket
-		const Socket& del(const Socket& socketfd)
+		void del(const Socket& socketfd)
 		{
-			_epoll_ctl(EPOLL_CTL_DEL, socketfd, nullptr);
-			epoll_events_.pop(socketfd);
-			return socketfd;
+			unix_epoll_ctl(EPOLL_CTL_DEL, socketfd, nullptr);
+		}
+
+		// 修改一个socket的事件
+		void mod(const Socket& socketfd, uint32_t events)
+		{
+			epoll_ctl(EPOLL_CTL_MOD, socketfd, events);
+		}
+
+		// 修改一个socket的事件
+		void mod(const Socket& socketfd, void* ptr, uint32_t events)
+		{
+			epoll_ctl(EPOLL_CTL_MOD, socketfd, ptr, events);
 		}
 
 		// 等待事件发生，返回发生的事件数组
@@ -75,25 +92,25 @@ namespace ayr
 			return result;
 		}
 	private:
-		const Socket& set_impl(const Socket& socketfd, epoll_event* ep_ev)
+		void unix_epoll_ctl(int op, const Socket& socketfd, epoll_event* ev)
 		{
-			if (!contains(socketfd))
-				_epoll_ctl(EPOLL_CTL_ADD, socketfd, ep_ev);
-			else
-				_epoll_ctl(EPOLL_CTL_MOD, socketfd, ep_ev);
-			epoll_events_[socketfd] = *ep_ev;
-			return socketfd;
-		}
-
-		void _epoll_ctl(int op, const Socket& socketfd, epoll_event* ep_ev)
-		{
-			if (epoll_ctl(epoll_fd_.fd(), op, socketfd.fd(), ep_ev) == -1)
+			if (::epoll_ctl(epoll_fd_.fd(), op, socketfd.fd(), ev) == -1)
 				RuntimeError(get_error_msg());
-		}
 
-		Dict<Socket, epoll_event> epoll_events_;
+			switch (op)
+			{
+			case EPOLL_CTL_ADD:
+				++size_;
+				break;
+			case EPOLL_CTL_DEL:
+				--size_;
+				break;
+			}
+		}
 
 		Socket epoll_fd_;
+
+		c_size size_;
 	};
 #endif // AYR_LINUX
 }
