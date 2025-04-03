@@ -1,7 +1,7 @@
 #ifndef AYR_NET_TCP_HPP
 #define AYR_NET_TCP_HPP
 
-#include "EventLoop.hpp"
+#include "EventLoopThread.hpp"
 #include "ServerCallback.hpp"
 #include "Select.hpp"
 #include "../async/ThreadPool.hpp"
@@ -203,23 +203,24 @@ namespace ayr
 
 		using ReactorLoop = UltraEventLoop;
 
-		ReactorLoop main_reactor_;
+		ReactorLoop* main_loop;
 
-		Array<ReactorLoop> sub_reactors_;
+		Array<UltraEventLoopThread> sub_reactor_threads_;
 
-		thread::ThreadPool reactor_thread_pool_, acceptor_thread_pool_;
+		thread::ThreadPool acceptor_thread_;
 
 		Socket server_socket_;
 
 		int timeout_ms_, next_sub_reactor_id_;
+
+		bool running_ = false;
 	public:
 		UltraTcpServer(const CString& ip, int port, int num_thread = 1, int timeout_ms = 1000, int family = AF_INET) :
-			main_reactor_(),
-			sub_reactors_(num_thread),
-			reactor_thread_pool_(num_thread),
-			acceptor_thread_pool_(1),
-			timeout_ms_(timeout_ms),
+			main_loop(ReactorLoop::loop()),
+			sub_reactor_threads_(num_thread),
+			acceptor_thread_(1),
 			server_socket_(family, SOCK_STREAM),
+			timeout_ms_(timeout_ms),
 			next_sub_reactor_id_(0)
 		{
 			server_socket_.bind(ip, port);
@@ -250,36 +251,46 @@ namespace ayr
 		// 超时的回调函数
 		void on_timeout() {}
 
-		// 运行，阻塞函数
+		// 运行，阻塞函数，只运行一次
 		void run()
 		{
-			auto acceptor = main_reactor_.add_channel(server_socket_, [&](Channel* channel) { accept(); });
-			acceptor->modeLT();
+			running_ = true;
 
-			for (auto& sub_reactor : sub_reactors_)
-				reactor_thread_pool_.push([&] { run_reactor(sub_reactor); });
-			run_reactor(main_reactor_);
+			Channel* acceptor = ayr_make<Channel>(main_loop, server_socket_);
+			acceptor->modeLT();
+			acceptor->when_handle([&](Channel* channel) { accept(); });
+			main_loop->add_channel(acceptor);
+
+			for (auto& sub_thread : sub_reactor_threads_)
+				sub_thread = UltraEventLoopThread([&] { run_reactor(); });
+			run_reactor();
 		}
 
-		// 停止服务器
+		// 客户端断开连接，主线程子线程共用函数
+		void disconnected(const Socket& client)
+		{
+			disconnected_by_channel(ReactorLoop::loop()->get_channel(client));
+		}
+
+		// 停止服务器，主线程子线程共用函数
 		void stop()
 		{
-			main_reactor_.stop();
-			print("main reactor stopped");
-			for (auto& sub_reactor : sub_reactors_)
+			if (!running_) return;
+
+			running_ = false;
+			main_loop->stop();
+			for (auto& sub_reactor : sub_reactor_threads_)
 				sub_reactor.stop();
-			print("sub reactors stopped");
-			reactor_thread_pool_.stop();
-			print("reactor thread pool stopped");
-			acceptor_thread_pool_.stop();
-			print("acceptor thread pool stopped");
+			acceptor_thread_.stop();
 		}
 	private:
-		void run_reactor(ReactorLoop& reactor)
+		// 主线程子线程共用函数
+		void run_reactor()
 		{
-			while (true)
+			ReactorLoop* reactor = ReactorLoop::loop();
+			while (!reactor->quit())
 			{
-				c_size num_events = reactor.run_once(timeout_ms_);
+				c_size num_events = reactor->run_once(timeout_ms_);
 				switch (num_events)
 				{
 				case -1:
@@ -290,38 +301,40 @@ namespace ayr
 			}
 		}
 
-		// 接受一个socket连接
+		// 接受一个socket连接，主线程函数
 		void accept()
 		{
 			Socket client = server_socket_.accept();
 			// after_accept进入单独的线程逐个执行
-			acceptor_thread_pool_.push(&self::after_accept, this, client);
+			acceptor_thread_.push(&self::after_accept, this, client);
 		}
 
-		// 连接后处理, 线程安全
+		// 连接后处理, 主线程函数
 		void after_accept(const Socket& client)
 		{
 			server().on_connected(client);
 
-			ReactorLoop* sub_reactor = &main_reactor_;
-			c_size num_sub_reactors = sub_reactors_.size();
+			ReactorLoop* sub_reactor = main_loop;
+			c_size num_sub_reactors = sub_reactor_threads_.size();
 			if (num_sub_reactors)
 			{
-				sub_reactor = &sub_reactors_[next_sub_reactor_id_];
+				sub_reactor = sub_reactor_threads_[next_sub_reactor_id_].loop();
 				next_sub_reactor_id_ = (next_sub_reactor_id_ + 1) % num_sub_reactors;
 			}
 
-			auto executor = sub_reactor->add_channel(client, [&](Channel* channel) { execute_event(channel); });
+			Channel* executor = ayr_make<Channel>(sub_reactor, client);
+			executor->when_handle([&](Channel* channel) { execute_event(channel); });
+			sub_reactor->add_channel(executor);
 		}
 
-		// 客户端断开连接
-		void disconnected(Channel* channel)
+		// 客户端断开连接，通过channel，子线程函数
+		void disconnected_by_channel(Channel* channel)
 		{
 			server().on_disconnected(channel->fd());
-			channel->loop()->remove_channel(channel);
+			ReactorLoop::loop()->remove_channel(channel);
 		}
 
-		// 执行事件
+		// 执行事件，子线程函数
 		void execute_event(Channel* channel)
 		{
 			uint32_t events = channel->revents();
@@ -334,12 +347,12 @@ namespace ayr
 			// 断开连接事件处理
 			if (events & EPOLLEND)
 			{
-				disconnected(channel);
+				disconnected_by_channel(channel);
 				return;
 			}
 
 			// 读事件处理
-			if (events & EPOLLIN)
+			if (events & (EPOLLIN | EPOLLPRI))
 				server().on_reading(client);
 
 			// 写事件处理

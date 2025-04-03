@@ -2,6 +2,7 @@
 #define AYR_NET_EVENTLOOP_HPP
 
 #include "Channel.hpp"
+#include "../async/ThreadPool.hpp"
 
 namespace ayr
 {
@@ -14,40 +15,75 @@ namespace ayr
 
 		Epoll epoll_;
 
-		bool quit;
+		bool quit_;
+
+		Dict<Socket, Channel*> channel_map;
+
+		std::mutex mtx;
+
+		std::thread::id thread_id_;
+
+		UltraEventLoop() : epoll_(), quit_(false), channel_map(), thread_id_(std::this_thread::get_id()) {}
 	public:
-		UltraEventLoop(): epoll_(), quit(false) {}
-
-		~UltraEventLoop() 
-		{
-			for (auto&& [fd, ep_ev] : epoll_.epoll_events_.items())
-				ayr_desloc(static_cast<Channel*>(ep_ev.data.ptr));
-		}
-
-		Channel* add_channel(const Socket& socket, const std::function<void(Channel*)>& handle)
-		{
-			Channel* channel = ayr_make<Channel>(this, socket);
-			channel->when_handle(handle);
-			epoll_.set(channel->fd(), channel, channel->events());
-			return channel;
-		}
-
-		void remove_channel(Channel* channel) 
+		bool quit() 
 		{ 
-			if (channel->loop() != this)
-				RuntimeError("Channel is not created by this loop");
+			std::lock_guard<std::mutex> lock(mtx);
+			return quit_; 
+		}
 
-			epoll_.del(channel->fd()); 
+		void stop() 
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			quit_ = true; 
+		}
+
+		static self* loop()
+		{
+			thread_local static self instance;
+			return &instance;
+		}
+
+		~UltraEventLoop()
+		{
+			// 释放所有Channel
+			for (auto& channel : channel_map.values())
+				ayr_desloc(channel);
+		}
+
+		// 从当前事件循环获取socket对应的Channel
+		Channel* get_channel(const Socket& socket)
+		{
+			check_inthread();
+			std::lock_guard<std::mutex> lock(mtx);
+			return channel_map.get(socket.fd());
+		}
+
+		// 添加一个Channel到事件循环中, 该函数由主线程调用
+		void add_channel(Channel* channel)
+		{
+			check_inloop(channel);
+			std::lock_guard<std::mutex> lock(mtx);
+			epoll_.add(channel->fd(), channel, channel->events());
+			channel_map.insert(channel->fd(), channel);
+		}
+
+		// 从事件循环中移除一个Channel
+		void remove_channel(Channel* channel)
+		{
+			check_inthread();
+			check_inloop(channel);
+			std::lock_guard<std::mutex> lock(mtx);
+			epoll_.del(channel->fd());
+			channel_map.pop(channel->fd());
 			ayr_desloc(channel);
 		}
-
-		void stop() { quit = true; }
 
 		// 运行一次事件循环，返回处理的事件数量
 		// 返回为0表示超时，返回为-1表示无法运行
 		c_size run_once(int timeout_ms)
 		{
-			if (quit) return -1;
+			check_inthread();
+			if (quit()) return -1;
 			Array<epoll_event> ep_evs = epoll_.wait(timeout_ms);
 			for (auto& ep_ev : ep_evs)
 			{
@@ -55,9 +91,21 @@ namespace ayr
 				channel->set_revents(ep_ev.events);
 				channel->handle();
 			}
-				
+
 			return ep_evs.size();
-		}	
+		}
+	private:
+		void check_inloop(Channel* channel) const
+		{
+			if (channel->loop() != this)
+				RuntimeError("Channel is not created by this loop");
+		}
+
+		void check_inthread() const
+		{
+			if (std::this_thread::get_id() != thread_id_)
+				RuntimeError("Function must be called in the loop thread");
+		}
 	};
 #endif // AYR_LINUX
 }
