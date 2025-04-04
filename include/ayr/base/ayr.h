@@ -22,8 +22,11 @@ namespace ayr
 
 #define hasmember(T, member) requires(T t) { &T::member; }
 
+#ifdef _MSC_VER
+#define hasmethod(T, method, ...) requires(T t) { t.method( ##__VA_ARGS__); }
+#elif defined(__GNUC__) || defined(__clang__)
 #define hasmethod(T, method, ...) requires(T t) { t.method( __VA_OPT__( ) __VA_ARGS__); }
-
+#endif 
 #define hasattr(T, attr) hasmember(T, attr) || hastype(T, attr)
 
 	// container size type 
