@@ -341,11 +341,11 @@ namespace ayr
 			const Socket& client = channel->fd();
 
 			// 错误事件处理
-			if (events & EPOLLERR)
+			if (events & (EPOLLERR | EPOLLHUP))
 				server().on_error(client, get_error_msg());
 
 			// 断开连接事件处理
-			if (events & EPOLLEND)
+			if (events & (EPOLLHUP | EPOLLRDHUP | EPOLLERR))
 			{
 				disconnected_by_channel(channel);
 				return;
@@ -361,8 +361,6 @@ namespace ayr
 		}
 
 		DeriverdServer& server() { return static_cast<DeriverdServer&>(*this); }
-
-		constexpr static uint32_t EPOLLEND = EPOLLHUP | EPOLLRDHUP | EPOLLERR;
 	};
 #endif // AYR_LINUX
 }
