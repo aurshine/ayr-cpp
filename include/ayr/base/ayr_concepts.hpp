@@ -20,6 +20,18 @@ namespace ayr
 	template<typename S>
 	concept ConveribleToCstr = std::convertible_to<S, const char*>;
 
+	// 基础类型约束概念, 没有析构函数的类型
+	template<typename T>
+	concept BaseType = Or<
+		std::is_fundamental_v<T>, // 算术类型 void 或 nullptr_t
+		std::is_pointer_v<T>, // 指针类型
+		std::is_array_v<T>, // 数组类型
+		std::is_enum_v<T>, // 枚举类型
+		std::is_union_v<T>, // 联合类型
+		std::is_function_v<T>, // 函数类型
+		std::is_reference_v<T>, // 引用类型
+	>;
+
 	// 可输出的类型约束概念
 	template<typename T>
 	concept StdPrintable = Or<
