@@ -29,7 +29,7 @@ namespace ayr
 		std::is_enum_v<T>, // 枚举类型
 		std::is_union_v<T>, // 联合类型
 		std::is_function_v<T>, // 函数类型
-		std::is_reference_v<T>, // 引用类型
+		std::is_reference_v<T> // 引用类型
 	>;
 
 	// 可输出的类型约束概念
