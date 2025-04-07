@@ -53,8 +53,7 @@ namespace ayr
 
 		~Appender()
 		{
-			ayr_destroy(buffer_, size_);
-			ayr_delloc(buffer_);
+			ayr_desloc(buffer_, size_);
 			size_ = capacity_ = 0;
 		}
 

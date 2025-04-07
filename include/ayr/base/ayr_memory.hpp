@@ -30,11 +30,13 @@ namespace ayr
 		return ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
 	}
 
+	template<typename T>
+	def ayr_destroy(T* ptr) { ptr->~T(); }
+
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
-	def ayr_destroy(T* ptr, size_t size = 1)
+	def ayr_destroy(T* ptr, size_t size)
 	{
-		if (ptr == nullptr) return;
 		for (size_t i = 0; i < size; ++i, ++ptr)
 			ptr->~T();
 	}
@@ -43,10 +45,19 @@ namespace ayr
 	template<typename T>
 	def ayr_delloc(T* ptr) { ::operator delete(ptr); }
 
+	template<typename T>
+	def ayr_desloc(T* ptr)
+	{
+		if (ptr == nullptr) return;
+		ayr_destroy(ptr);
+		ayr_delloc(ptr);
+	}
+
 	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
-	def ayr_desloc(T* ptr, size_t size = 1)
+	def ayr_desloc(T* ptr, size_t size)
 	{
+		if (ptr == nullptr) return;
 		ayr_destroy(ptr, size);
 		ayr_delloc(ptr);
 	}

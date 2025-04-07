@@ -76,7 +76,7 @@ namespace ayr
 
 		void __swap__(self& other)
 		{
-			swap(arr_, other.arr_);
+			ayr::swap(arr_, other.arr_);
 			swap(size_, other.size_);
 		}
 

@@ -50,7 +50,7 @@ namespace ayr
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_destroy(byte_code_);
+			ayr_destroy(this);
 
 			return *ayr_construct(this, other);
 		}
@@ -58,14 +58,14 @@ namespace ayr
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_destroy(byte_code_);
+			ayr_destroy(this);
 
 			return *ayr_construct(this, std::move(other));
 		}
 
 		self& operator=(char c)
 		{
-			ayr_destroy(byte_code_);
+			ayr_destroy(this);
 
 			code_size_ = 1;
 			byte_code_ = ayr_alloc<char>(1);
