@@ -17,11 +17,16 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		template<typename ...Args>
-		Array(c_size size, const Args&... args) : size_(size), arr_(ayr_alloc<T>(size))
+		Array(c_size size): size_(size), arr_(ayr_alloc<T>(size)) 
 		{
 			for (c_size i = 0; i < size; ++i)
-				ayr_construct(data() + i, args...);
+				ayr_construct(data() + i);
+		}
+
+		Array(c_size size, const Value_t& value) : size_(size), arr_(ayr_alloc<T>(size))
+		{
+			for (c_size i = 0; i < size; ++i)
+				ayr_construct(data() + i, value);
 		}
 
 		Array(std::initializer_list<T>&& init_list) : size_(init_list.size()), arr_(ayr_alloc<T>(init_list.size()))
@@ -41,8 +46,7 @@ namespace ayr
 
 		~Array()
 		{
-			ayr_destroy(arr_, size_);
-			ayr_delloc(arr_);
+			ayr_desloc(arr_, size_);
 			size_ = 0;
 		};
 
@@ -81,11 +85,13 @@ namespace ayr
 		}
 
 		// 重新分配内存，不保留原有数据
-		template<typename ...Args>
-		void resize(c_size new_size, const Args&... args)
+		void resize(c_size new_size)
 		{
-			ayr_destroy(this);
-			ayr_construct(this, new_size, args...);
+			ayr_desloc(arr_, size_);
+			size_ = new_size;
+			arr_ = ayr_alloc<T>(new_size);
+			for (c_size i = 0; i < new_size; ++i)
+				ayr_construct(data() + i);
 		}
 
 		// 分离数组，返回数组指针和大小，并将数组置空
