@@ -114,5 +114,12 @@ namespace ayr
 		{ obj.begin() } -> IteratorU<U>;
 		{ obj.end() } -> IteratorU<U>;
 	};
+
+	// 继承后表示释放内存不需要析构
+	struct NoDestroyObj {};
+
+	// 释放内存不需要析构概念
+	template<typename T>
+	concept NoDestroy = Or<BaseType<T>, isinstance<T, NoDestroyObj>>;
 }
 #endif

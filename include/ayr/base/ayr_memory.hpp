@@ -31,20 +31,26 @@ namespace ayr
 	}
 
 	template<typename T>
-	def ayr_destroy(T* ptr) { ptr->~T(); }
+	def ayr_destroy(T* ptr) 
+	{
+		if constexpr (Not<NoDestroy<T>>)
+			ptr->~T(); 
+	}
 
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
 	def ayr_destroy(T* ptr, size_t size)
 	{
-		for (size_t i = 0; i < size; ++i, ++ptr)
-			ptr->~T();
+		if constexpr (Not<NoDestroy<T>>)
+			for (size_t i = 0; i < size; ++i, ++ptr)
+				ptr->~T();	
 	}
 
 	// 释放ptr指向的内存
 	template<typename T>
 	def ayr_delloc(T* ptr) { ::operator delete(ptr); }
 
+	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
 	def ayr_desloc(T* ptr)
 	{
