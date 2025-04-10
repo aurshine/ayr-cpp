@@ -170,6 +170,27 @@ namespace ayr
 	der(CString) cstr(const T& value) { return value.__str__(); }
 
 	der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
+	
+	template<IteratableV<CString> It>
+	der(CString) cjoin(const It& it_able)
+	{
+		c_size length = 0;
+		for (const CString& s: it_able)
+			length += s.size();
+		CString result(length);
+		char* ptr = result.data();
+		for (const CString& s : it_able)
+		{
+			const char* s_ptr = s.data();
+			while (*s_ptr)
+			{
+				*ptr = *s_ptr;
+				++ptr, ++s_ptr;
+			}
+		}
+
+		return result;
+	}
 }
 
 template<>
