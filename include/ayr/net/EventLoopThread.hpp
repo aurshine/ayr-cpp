@@ -6,6 +6,7 @@
 
 namespace ayr
 {
+#ifdef AYR_LINUX
 	class UltraEventLoopThread : public Object<UltraEventLoopThread>
 	{
 		using self = UltraEventLoopThread;
@@ -59,5 +60,6 @@ namespace ayr
 
 		Loop* loop() const { return loop_; }
 	};
+#endif // AYR_LINUX
 }
 #endif // AYR_NET_EVENTLOOPTHREAD_HPP
