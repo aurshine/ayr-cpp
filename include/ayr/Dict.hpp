@@ -1,4 +1,4 @@
-﻿#ifndef AYR_DICT_HPP
+#ifndef AYR_DICT_HPP
 #define AYR_DICT_HPP
 
 #include <ranges>
@@ -6,7 +6,8 @@
 #include "ayr_memory.hpp"
 #include "Array.hpp"
 #include "Chain.hpp"
-#include "base/HashBucket.hpp"
+#include "base/Table.hpp"
+
 
 namespace ayr
 {
@@ -21,93 +22,139 @@ namespace ayr
 
 		using Value_t = V;
 
-		using Bucket_t = RobinHashBucket<std::pair<typename Chain<Key_t>::Node_t*, V>>;
+		using KV_t = std::pair<const Key_t, Value_t>;
 
-		using BucketValue_t = typename Bucket_t::Value_t;
+		using Table_t = Table<typename Chain<KV_t>::Node_t*>;
 
-		using KeyIterator = typename Chain<Key_t>::Iterator;
+		using TableValue_t = typename Chain<KV_t>::Node_t*;
 
-		using ConstKeyIterator = typename Chain<Key_t>::ConstIterator;
-
-		using Iterator = KeyIterator;
-
-		using ConstIterator = ConstKeyIterator;
-
-		template<bool IsConst>
-		struct _ValueIterator : public IteratorInfo<
-			_ValueIterator<IsConst>,
-			add_const_t<IsConst, Dict>,
-			std::forward_iterator_tag,
-			add_const_t<IsConst, Value_t>
-		>
+		struct _KeyIterator : public IteratorInfo<_KeyIterator, self, std::bidirectional_iterator_tag, const Key_t>
 		{
-			using self = _ValueIterator<IsConst>;
+			using ItInfo = IteratorInfo<_KeyIterator, self, std::bidirectional_iterator_tag, const Key_t>;
 
-			using ItInfo = IteratorInfo<self, add_const_t<IsConst, Dict>, std::forward_iterator_tag, add_const_t<IsConst, Value_t>>;
+			using KV_IT = Chain<KV_t>::ConstIterator;
 
-			using KI = std::conditional_t<IsConst, ConstKeyIterator, KeyIterator>;
+			KV_IT it;
 
-			_ValueIterator() : dict_(nullptr), it_() {}
+			_KeyIterator() : it() {}
 
-			_ValueIterator(ItInfo::container_type* dict, KI it) : dict_(dict), it_(it) {}
+			_KeyIterator(const KV_IT& it) : it(it) {}
 
-			_ValueIterator(const self& other) : dict_(other.dict_), it_(other.it_) {}
+			_KeyIterator(const typename ItInfo::iterator_type& other) : it(other.it) {}
 
-			self& operator=(const self& other)
+			typename ItInfo::iterator_type& operator=(const typename ItInfo::iterator_type& other)
 			{
-				if (this == &other) return *this;
-
-				dict_ = other.dict_;
-				it_ = other.it_;
+				it = other.it;
 				return *this;
 			}
 
-			typename ItInfo::reference operator*() const { return dict_->get(*it_); }
+			ItInfo::reference operator*() const { return it->first; }
 
-			typename ItInfo::pointer operator->() const { return dict_->get(*it_);; }
+			ItInfo::pointer operator->() const { return &it->first; }
 
-			typename ItInfo::iterator_type& operator++() { ++it_; return *this; }
+			typename ItInfo::iterator_type& operator++()
+			{
+				++it;
+				return *this;
+			}
 
-			typename ItInfo::iterator_type operator++(int) { auto tmp = *this; ++(*this); return tmp; }
+			typename ItInfo::iterator_type operator++(int)
+			{
+				auto ret = *this;
+				++it;
+				return ret;
+			}
 
-			typename ItInfo::iterator_type& operator--() { --it_; return *this; }
+			typename ItInfo::iterator_type& operator--()
+			{
+				--it;
+				return *this;
+			}
 
-			typename ItInfo::iterator_type operator--(int) { auto tmp = *this; --(*this); return tmp; }
+			typename ItInfo::iterator_type operator--(int)
+			{
+				auto ret = *this;
+				--it;
+				return ret;
+			}
 
-			typename ItInfo::iterator_type& operator+=(typename ItInfo::difference_type n) { it_ += n; return *this; }
-
-			typename ItInfo::iterator_type operator+(typename ItInfo::difference_type n) const { auto tmp = *this; tmp += n; return tmp; }
-
-			typename ItInfo::iterator_type& operator-=(typename ItInfo::difference_type n) { it_ -= n; return *this; }
-
-			typename ItInfo::iterator_type operator-(typename ItInfo::difference_type n) const { auto tmp = *this; tmp -= n; return tmp; }
-
-			typename ItInfo::difference_type operator-(const typename ItInfo::iterator_type& other) const { return it_ - other.it_; }
-
-			bool __equals__(const typename ItInfo::iterator_type& other) const { return it_ == other.it_; }
-		private:
-			typename ItInfo::container_type* dict_;
-
-			KI it_;
+			bool __equals__(const typename ItInfo::iterator_type& other) const { return it == other.it; }
 		};
 
-		using ValueIterator = _ValueIterator<false>;
+		template<bool IsConst>
+		struct _ValueIterator : public IteratorInfo<_ValueIterator<IsConst>, self, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>
+		{
+			using ItInfo = IteratorInfo<_ValueIterator<IsConst>, self, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>;
 
+			using KV_IT = std::conditional_t<IsConst, typename Chain<KV_t>::ConstIterator, typename Chain<KV_t>::Iterator>;
+
+			KV_IT it;
+
+			_ValueIterator() : it() {}
+
+			_ValueIterator(const KV_IT& it) : it(it) {}
+
+			_ValueIterator(const typename ItInfo::iterator_type& other) : it(other.it) {}
+
+			typename ItInfo::iterator_type& operator=(const typename ItInfo::iterator_type& other)
+			{
+				it = other.it;
+				return *this;
+			}
+
+			ItInfo::reference operator*() const { return it->second; }
+
+			ItInfo::pointer operator->() const { return &it->second; }
+
+			typename ItInfo::iterator_type& operator++()
+			{
+				++it;
+				return *this;
+			}
+
+			typename ItInfo::iterator_type operator++(int)
+			{
+				auto ret = *this;
+				++it;
+				return ret;
+			}
+
+			typename ItInfo::iterator_type& operator--()
+			{
+				--it;
+				return *this;
+			}
+
+			typename ItInfo::iterator_type operator--(int)
+			{
+				auto ret = *this;
+				--it;
+				return ret;
+			}
+
+			bool __equals__(const typename ItInfo::iterator_type& other) const { return it == other.it; }
+		};
+
+		using Iterator = _KeyIterator;
+		using ConstIterator = _KeyIterator;
+		using KeyIterator = _KeyIterator;
+		using ConstKeyIterator = _KeyIterator;
+		using ValueIterator = _ValueIterator<false>;
 		using ConstValueIterator = _ValueIterator<true>;
 
-		Dict() : bucket_(MIN_BUCKET_SIZE), keys_() {}
+		Dict() : htable_(), kv_chain_() {}
 
-		Dict(c_size size) : bucket_(std::max(MIN_BUCKET_SIZE, adapt_bucket_size(size, MAX_LOAD_FACTOR))), keys_() {}
+		Dict(c_size size) : htable_(size), kv_chain_() {}
 
-		Dict(std::initializer_list<std::pair<Key_t, Value_t>>&& kv_list) : Dict(adapt_bucket_size(kv_list.size(), MAX_LOAD_FACTOR))
+		Dict(const std::initializer_list<KV_t>& il) : htable_(il.size()), kv_chain_()
 		{
-			for (auto&& kv : kv_list)
-				insert(kv.first, kv.second);
+			for (auto& [key, value] : il)
+				insert(key, value);
 		}
 
-		Dict(const self& other) : bucket_(other.bucket_), keys_(other.keys_) {}
+		Dict(const self& other) : htable_(other.htable_), kv_chain_(other.kv_chain_) {}
 
-		Dict(self&& other) noexcept : bucket_(std::move(other.bucket_)), keys_(std::move(other.keys_)) {}
+		Dict(self&& other) noexcept : htable_(std::move(other.htable_)), kv_chain_(std::move(other.kv_chain_)) {}
 
 		Dict& operator=(const self& other)
 		{
@@ -124,106 +171,62 @@ namespace ayr
 		}
 
 		// key-value对的数量
-		c_size size() const { return keys_.size(); }
+		c_size size() const { return kv_chain_.size(); }
 
 		// 桶容量
-		c_size capacity() const { return bucket_.capacity(); }
+		c_size capacity() const { return htable_.capacity(); }
 
-		bool contains(const Key_t& key) const { return contains_hashv(ayrhash(key)); }
+		bool contains(const Key_t& key) const { return htable_.contains(ayrhash(key)); }
 
-		// 负载因子
-		double load_factor() const { return 1.0 * size() / capacity(); }
+		auto keys() const { return std::ranges::subrange(key_begin(), key_end()); }
 
-		// 键的迭代视图
-		auto keys() const { return std::ranges::subrange(begin(), end()); }
+		auto values() { return std::ranges::subrange(value_begin(), value_end()); }
 
-		// 值的迭代视图
-		auto values() { return std::ranges::subrange(ValueIterator(this, begin()), ValueIterator(this, end())); }
+		auto values() const { return std::ranges::subrange(value_begin(), value_end()); }
 
-		auto values() const { return std::ranges::subrange(ConstValueIterator(this, begin()), ConstValueIterator(this, end())); }
+		auto items() { return std::ranges::subrange(kv_chain_.begin(), kv_chain_.end()); }
 
-		// 键值对的迭代视图
-		auto items() { return zip(keys(), values()); }
+		auto items() const { return std::ranges::subrange(kv_chain_.begin(), kv_chain_.end()); }
 
-		auto items() const { return zip(keys(), values()); }
-
-		// 重载[]运算符, key 必须存在, 否则KeyError
-		const V& operator[](const Key_t& key) const { return get(key); }
-
-		// 重载[]运算符, 若key不存在, 则创建并返回一个默认值
-		Value_t& operator[](const Key_t& key)
-		{
-			hash_t hashv = ayrhash(key);
-			if (!contains_hashv(hashv))
-				return insert_impl(key, V(), hashv);
-
-			return get_impl(hashv)->second;
-		}
-
-		// 获得key对应的value, 若key不存在, 则抛出KeyError
-		Value_t& get(const Key_t& key)
-		{
-			BucketValue_t* value = get_impl(ayrhash(key));
-
-			if (value != nullptr) return value->second;
-			KeyError(std::format("Key '{}' not found in dict", key));
-			return None<V>;
-		}
-
-		// 获得key对应的value, 若key不存在, 则抛出KeyError
 		const Value_t& get(const Key_t& key) const
 		{
-			const BucketValue_t* value = get_impl(ayrhash(key));
-
-			if (value != nullptr) return value->second;
-			KeyError(std::format("Key '{}' not found in dict", key));
-			return None<V>;
+			TableValue_t item = get_impl(ayrhash(key));
+			if (item) return item->value.second;
+			key_not_found_error(key);
+			return None<Value_t>;
 		}
 
-		// 获得key对应的value, 若key不存在, 则返回default_value
-		Value_t& get(const Key_t& key, Value_t& default_value)
+		Value_t& get(const Key_t& key)
 		{
-			BucketValue_t* value = get_impl(ayrhash(key));
-			if (value != nullptr) return value->second;
+			TableValue_t item = get_impl(ayrhash(key));
+			if (item) return item->value.second;
+			key_not_found_error(key);
+			return None<Value_t>;
+		}
 
+		const Value_t& get(const Key_t& key, const Value_t& default_value) const
+		{
+			TableValue_t item = get_impl(ayrhash(key));
+			if (item) return item->value.second;
 			return default_value;
 		}
 
-		// 获得key对应的value, 若key不存在, 则返回default_value
-		const Value_t& get(const Key_t& key, const Key_t& default_value) const
+		Value_t& get(const Key_t& key, const Value_t& default_value)
 		{
-			const BucketValue_t* value = get_impl(ayrhash(key));
-			if (value != nullptr) return value->second;
-
+			TableValue_t item = get_impl(ayrhash(key));
+			if (item) return item->value.second;
 			return default_value;
 		}
 
-		// 若key不存在, 则添加一个默认值
-		template<typename _V>
-		self& setdefault(const Key_t& key, _V&& default_value)
+		const Value_t& operator[](const Key_t& key) const { return get(key); }
+
+		Value_t& operator[](const Key_t& key)
 		{
-			hash_t hashv = ayrhash(key);
-			if (!contains_hashv(hashv))
-				insert_impl(key, std::forward<_V>(default_value), hashv);
-
-			return *this;
-		}
-
-		// 根据传入的字典更新字典
-		self& update(const self& other)
-		{
-			for (auto [k, v] : other.items())
-				insert(k, v);
-
-			return *this;
-		}
-
-		self& update(self&& other)
-		{
-			for (auto [k, v] : other.items())
-				insert(std::move(k), std::move(v));
-
-			return *this;
+			auto [index, move_dist] = htable_.try_get(ayrhash(key));
+			if (htable_.items_[index].used() && htable_.items_[index].hashv == ayrhash(key))
+				return htable_.items_[index].value()->value.second;
+			else
+				htable_.insert_value_on_index(index, ayrhash(key), move_dist, kv_chain_.append(key, Value_t{}));
 		}
 
 		// 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
@@ -239,241 +242,195 @@ namespace ayr
 		template<typename _K, typename _V>
 		Value_t& insert(_K&& key, _V&& value, hash_t hashv)
 		{
-			BucketValue_t* m_value = get_impl(hashv);
-			if (m_value != nullptr)
-				return m_value->second = std::forward<_V>(value);
+			htable_.try_expand();
+			auto [index, move_dist] = htable_.try_get(hashv);
 
-			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), hashv);
+			if (htable_.items_[index].used())
+				if (htable_.items_[index].hashv == hashv)
+					htable_.items_[index].value()->value.second = std::forward<_V>(value);
+				else
+				{
+					htable_.insert_value_on_index(index, hashv, move_dist, kv_chain_.append(std::forward<_K>(key), std::forward<_V>(value)));
+					++htable_.size_;
+				}
+			else
+			{
+				htable_.items_[index].set_empty_value(hashv, move_dist, kv_chain_.append(std::forward<_K>(key), std::forward<_V>(value)));
+				++htable_.size_;
+			}
+
+			return htable_.items_[index].value()->value.second;
+		}
+
+		void setdefault(const Key_t& key, const Value_t& default_value)
+		{
+			hash_t hashv = ayrhash(key);
+			auto [index, move_dist] = htable_.try_get(hashv);
+			if (!htable_.items_[index].used() || htable_.items_[index].hashv != hashv)
+				htable_.insert_value_on_index(index, hashv, move_dist, kv_chain_.append(key, default_value));
 		}
 
 		void pop(const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
-			BucketValue_t* value = get_impl(hashv);
-			if (value != nullptr)
+			auto [index, move_dist] = htable_.try_get(hashv);
+			if (htable_.items_[index].used() && htable_.items_[index].hashv == hashv)
 			{
-				keys_.pop(value->first);
-				bucket_.pop(hashv);
+				kv_chain_.pop(htable_.items_[index].value());
+				htable_.pop_value_on_index(index, hashv, move_dist);
+				return;
 			}
-			else
-			{
-				RuntimeError(std::format("Key '{}' not found in dict", key));
-			}
+
+			key_not_found_error(key);
 		}
 
 		void clear()
 		{
-			bucket_.clear();
-			bucket_.expand(MIN_BUCKET_SIZE);
-			keys_.clear();
+			htable_.clear();
+			kv_chain_.clear();
 		}
 
+		// 根据key都存在，取this的value
 		self operator&(const self& other) const
 		{
 			if (this == &other) return *this;
-			else if (size() > other.size()) return other & *this;
-
-			self result(std::min(capacity(), other.capacity()));
-			for (auto [k, v] : items())
-				if (other.contains(k))
-					result.insert_impl(k, v);
+			self result(std::min(size(), other.size()));
+			for (auto& [key, value] : items())
+				if (other.contains(key))
+					result.insert(key, value);
 
 			return result;
 		}
 
-		self& operator&= (const self& other)
-		{
-			if (this == &other) return *this;
-			*this = *this & other;
-			return *this;
-		}
+		self& operator&=(const self& other) { return *this = *this & other; }
 
+		// 根据key有一方存在，都存在的取this的value
 		self operator|(const self& other) const
 		{
 			if (this == &other) return *this;
-			else if (size() > other.size()) return other | *this;
-
-			self result(static_cast<c_size>((size() + other.size()) / MAX_LOAD_FACTOR));
-			for (auto [k, v] : items())
-				result.insert_impl(k, v);
-
-			for (auto [k, v] : other.items())
-				result.insert(k, v);
+			self result(*this);
+			for (auto& [key, value] : other.items())
+				if (!result.contains(key))
+					result.insert(key, value);
 
 			return result;
 		}
 
-		self& operator|= (const self& other)
+		// 根据key有一方存在，都存在的取this的value
+		self operator|(self&& other) const
 		{
 			if (this == &other) return *this;
-
-			for (auto [k, v] : other.items())
-				insert(k, v);
-
-			return *this;
+			self result(*this);
+			for (auto& [key, value] : other.items())
+				if (!result.contains(key))
+					result.insert(std::move(key), std::move(value));
+			return result;
 		}
+
+		self& operator|=(const self& other) { return *this = *this | other; }
+
+		self& operator|=(self&& other) { return *this = *this | std::move(other); }
 
 		self operator^(const self& other) const
 		{
 			if (this == &other) return self();
-			else if (size() > other.size()) return other ^ *this;
+			self result(size() + other.size());
+			for (auto& [key, value] : items())
+				if (!other.contains(key))
+					result.insert(key, value);
 
-			self result(std::min(capacity(), other.capacity()));
-			for (auto [k, v] : items())
-				if (!other.contains(k))
-					result.insert_impl(k, v);
-
-			for (auto [k, v] : other.items())
-				if (!contains(k))
-					result.insert_impl(k, v);
+			for (auto& [key, value] : other.items())
+				if (!contains(key))
+					result.insert(key, value);
 			return result;
 		}
 
-		self& operator^= (const self& other)
-		{
-			if (this == &other)
-			{
-				clear();
-				return *this;
-			}
-
-			for (auto [k, v] : other.items())
-				if (contains(k))
-					pop(k);
-				else
-					insert_impl(k, v);
-
-			return *this;
-		}
-
-
-		self operator+ (const self& other) const
-		{
-			return *this | other;
-		}
-
-		self& operator+= (const self& other)
-		{
-			return *this |= other;
-		}
-
-		self operator- (const self& other) const
+		self operator^(self&& other) const
 		{
 			if (this == &other) return self();
+			self result(size() + other.size());
+			for (auto& [key, value] : items())
+				if (!other.contains(key))
+					result.insert(key, value);
 
-			self result(capacity());
-			for (auto [k, v] : items())
-				if (!other.contains(k))
-					result.insert_impl(k, v);
-
+			for (auto& [key, value] : other.items())
+				if (!contains(key))
+					result.insert(std::move(key), std::move(value));
 			return result;
 		}
 
-		self& operator-= (const self& other)
+		self& operator^= (const self& other) { return *this = *this ^ other; }
+
+		self& operator^= (self&& other) { return *this = *this ^ std::move(other); }
+
+		CString __str__() const
 		{
-			if (this == &other)
+			DynArray<CString> strs;
+			strs.append("{");
+			for (auto& [key, value] : items())
 			{
-				clear();
-				return *this;
+				strs.append(cstr(key));
+				strs.append(": ");
+				strs.append(cstr(value));
+				strs.append(", ");
 			}
+			if (size() > 0) strs.pop_back();
 
-			for (auto&& key : other)
-				pop(key);
-
-			return *this;
+			strs.append("}");
+			return cjoin(strs);
 		}
 
 		bool __equals__(const self& other) const
 		{
+			if (this == &other) return true;
 			if (size() != other.size()) return false;
-			for (auto&& key : keys())
-				if (!other.contains(key) || get(key) != other.get(key))
+			for (auto& [key, value] : *this)
+				if (!other.contains(key) || other.get(key) != value)
 					return false;
-
 			return true;
 		}
 
-		CString __str__() const
+		void __swap__(self& other) noexcept
 		{
-			std::stringstream stream;
-			stream << "{";
-			for (auto [k, v] : items())
-			{
-				if constexpr (issame<Key_t, CString, Atring, std::string>)
-					stream << "\"" << k << "\"";
-				else
-					stream << k;
-				stream << ": ";
-				if constexpr (issame<Value_t, CString, Atring, std::string>)
-					stream << "\"" << v << "\"";
-				else
-					stream << v;
-				stream << ", ";
-			}
-
-			std::string str = stream.str();
-			if (str.size() > 2)
-			{
-				str.pop_back();
-				str.pop_back();
-			}
-			str.push_back('}');
-
-			return str;
+			ayr::swap(htable_, other.htable_);
+			ayr::swap(kv_chain_, other.kv_chain_);
 		}
 
-		void __swap__(self& other)
-		{
-			swap(bucket_, other.bucket_);
-			swap(keys_, other.keys_);
-		}
+		Iterator begin() { return Iterator(kv_chain_.begin()); }
 
-		Iterator begin() { return keys_.begin(); }
+		Iterator end() { return Iterator(kv_chain_.end()); }
 
-		Iterator end() { return keys_.end(); }
+		ConstIterator begin() const { return ConstIterator(kv_chain_.begin()); }
 
-		ConstIterator begin() const { return keys_.begin(); }
+		ConstIterator end() const { return ConstIterator(kv_chain_.end()); }
 
-		ConstIterator end() const { return keys_.end(); }
+		ConstKeyIterator key_begin() const { return ConstKeyIterator(kv_chain_.begin()); }
+
+		ConstKeyIterator key_end() const { return ConstKeyIterator(kv_chain_.end()); }
+
+		ValueIterator value_begin() { return ValueIterator(kv_chain_.begin()); }
+
+		ValueIterator value_end() { return ValueIterator(kv_chain_.end()); }
+
+		ConstValueIterator value_begin() const { return ConstValueIterator(kv_chain_.begin()); }
+
+		ConstValueIterator value_end() const { return ConstValueIterator(kv_chain_.end()); }
 	private:
-		bool contains_hashv(hash_t hashv) const { return bucket_.contains(hashv); }
-
-		void expand() { bucket_.expand(std::max<c_size>(capacity() * 2, MIN_BUCKET_SIZE)); }
-
-		// 向字典中插入一个key-value对
-		// 不检查key是否存在
-		template<typename _K, typename _V>
-		Value_t& insert_impl(_K&& key, _V&& value)
+		TableValue_t get_impl(hash_t hashv) const
 		{
-			return insert_impl(std::forward<_K>(key), std::forward<_V>(value), ayrhash(static_cast<const Key_t&>(key)));
+			auto [index, move_dist] = htable_.try_get(hashv);
+
+			if (htable_.items_[index].used() && htable_.items_[index].hashv == hashv)
+				return htable_.items_[index].value();
+			else
+				return nullptr;
 		}
 
-		template<typename _K, typename _V>
-		Value_t& insert_impl(_K&& key, _V&& value, hash_t hashv)
-		{
-			if (load_factor() >= MAX_LOAD_FACTOR)
-				expand();
+		void key_not_found_error(const Key_t& key) const { RuntimeError("Key '{}' not found in dictionary.", key); }
 
-			BucketValue_t* v = bucket_.set_value(
-				std::make_pair(keys_.append(std::forward<_K>(key)), std::forward<_V>(value)),
-				hashv);
+		Table_t htable_;
 
-			return v->second;
-		}
-
-		// 获得hash值对应的value指针
-		// 不检查key是否存在
-		BucketValue_t* get_impl(hash_t hashv) { return bucket_.try_get(hashv); }
-
-		const BucketValue_t* get_impl(hash_t hashv) const { return bucket_.try_get(hashv); }
-	private:
-		Bucket_t bucket_;
-
-		Chain<Key_t> keys_;
-
-		static constexpr double MAX_LOAD_FACTOR = 0.75;
-
-		static constexpr c_size MIN_BUCKET_SIZE = 8;
+		Chain<KV_t> kv_chain_;
 	};
 }
 #endif
