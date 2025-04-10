@@ -210,7 +210,7 @@ namespace ayr
 			return default_value;
 		}
 
-		Value_t& get(const Key_t& key, const Value_t& default_value)
+		Value_t& get(const Key_t& key, Value_t& default_value)
 		{
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
@@ -376,7 +376,7 @@ namespace ayr
 			if (size() > 0) strs.pop_back();
 
 			strs.append("}");
-			return cjoin(strs);
+			return CString::cjoin(strs);
 		}
 
 		bool __equals__(const self& other) const

@@ -161,7 +161,7 @@ namespace ayr
 			if (size() > 0) strs.pop_back();
 			strs.append("}");
 
-			return cjoin(strs);
+			return CString::cjoin(strs);
 		}
 
 		bool __equals__(const self& other)
