@@ -11,7 +11,7 @@ using namespace ayr;
 void dict_run_speed_test()
 {
 	Timer_ms t;
-	Dict<std::string, int> d;
+	Dict<std::string, std::string> d;
 	std::vector<std::string> vs;
 	constexpr int N = 1e6;
 
@@ -20,7 +20,7 @@ void dict_run_speed_test()
 
 	t.into();
 	for (int i = 0; i < N; i++)
-		d.insert(vs[i], i);
+		d.insert(vs[i], vs[i]);
 	print("Dict insert time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
@@ -34,10 +34,10 @@ void dict_run_speed_test()
 
 	print("Dict pop time: ", t.escape(), "ms");
 
-	std::unordered_map<std::string, int> u;
+	std::unordered_map<std::string, std::string> u;
 	t.into();
 	for (int i = 0; i < N; i++)
-		u.insert(std::make_pair(vs[i], i));
+		u.insert(std::make_pair(vs[i], vs[i]));
 	print("std::unordered_map insert time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
@@ -57,32 +57,32 @@ void set_run_speed_test()
 	for (int i = 0; i < N; i++)
 		vs.push_back(std::to_string(i));
 
-	Set<std::string> s;
+	Set<c_size> s;
 	t.into();
 	for (int i = 0; i < N; i++)
-		s.insert(vs[i]);
+		s.insert(i);
 	print("Set insert time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
-		assert(s.contains(vs[i]));
+		assert(s.contains(i));
 	print("Set query time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
-		s.pop(vs[i]);
+		s.pop(i);
 	print("Set pop time: ", t.escape(), "ms");
 
-	std::unordered_set<std::string> u;
+	std::unordered_set<c_size> u;
 	t.into();
 	for (int i = 0; i < N; i++)
-		u.insert(vs[i]);
+		u.insert(i);
 	print("std::unordered_set insert time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
-		assert(u.count(vs[i]));
+		assert(u.count(i));
 	print("std::unordered_set query time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
-		u.erase(vs[i]);
+		u.erase(i);
 	print("std::unordered_set pop time: ", t.escape(), "ms");
 }
 
@@ -152,8 +152,8 @@ void dict_test()
 	print("after pop 1, 2:", d, "\n");
 
 	Dict<int, int> d2{ {9, 9} };
-	d.update({ {10, 10} });
-	d.update(d2);
+	d |= { {10, 10} };
+	d |= d2;
 	print(d.size());
 	print("after update {9, 9}, {10, 10}:", d, "\n");
 
@@ -192,7 +192,7 @@ void set_test()
 
 int main()
 {
-	dict_test();
+	// dict_test();
 	set_test();
 	return 0;
 }

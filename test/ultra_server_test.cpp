@@ -8,7 +8,7 @@ class TServer : public ayr::UltraTcpServer<TServer>
 {
 	using super = ayr::UltraTcpServer<TServer>;
 public:
-	TServer(int port, int num_thread, int timeout_s) : super(port, num_thread, timeout_s) {}
+	TServer(const CString& ip, int port, int num_thread, int timeout_s) : super(ip, port, num_thread, timeout_s) {}
 
 	// 客户端连接到服务器后调用的回调函数
 	void on_connected(const Socket& client)
@@ -46,7 +46,7 @@ public:
 
 int main()
 {
-	TServer server(5555, 2, 5000);
+	TServer server("127.0.0.1", 5555, 0, 5000);
 	print("server start");
 	server.run();
 }

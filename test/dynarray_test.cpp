@@ -1,6 +1,8 @@
 
 #include <vector>
 #include <string>
+#include <algorithm>
+
 #include <ayr/Array.hpp>
 #include <ayr/DynArray.hpp>
 #include <ayr/timer.hpp>

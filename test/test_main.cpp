@@ -1,32 +1,17 @@
-#include <ayr/net.hpp>
-#include <ayr/net/http/Request.hpp>
+#include <ayr/async/ThreadPool.hpp>
+#include <ayr/Array.hpp>
+#include <ayr/base/View.hpp>
+#include <ayr/Dict.hpp>
+#include <ayr/Atring.hpp>
 
 using namespace ayr;
 
 int main()
 {
-	RequestParser parser;
+	const Dict<Atring, Atring> d1 = { { "a", "1" }, { "b", "2" }, { "c", "3" } };
 
-	Socket http_fd = tcpv4();
-	http_fd.bind("127.0.0.1", 7070);
-	http_fd.listen();
-
-	auto client_fd = http_fd.accept();
-
-	for (int i = 0; i < 5; i++)
+	for (auto& [key, value] : d1.items())
 	{
-		Atring req_str(client_fd.recv(1024));
-		parser.reset();
-		assert(parser.parse(req_str));
-
-		print(parser.method, parser.uri, parser.version);
-		print(parser.headers);
-		CString msg = "hello world";
-
-		client_fd.send(std::format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}{}", msg.size() + 1, msg, i));
+		print("\n"as.ajoin(Array<View>({ key, value })));
 	}
-
-	client_fd.close();
-	http_fd.close();
-	return 0;
 }
