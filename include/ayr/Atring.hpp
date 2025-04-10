@@ -346,17 +346,18 @@ namespace ayr
 				new_length += elem.size() + m_size;
 			new_length = std::max((c_size)0, new_length - m_size);
 
-			auto put_back = [&pos](self& str, const self& other) {
-				for (auto&& c : std::ranges::subrange(other.achars_, other.achars_ + other.size()))
-					str.achars_[pos++] = c;
+			self result(new_length, encoding());
+			print("new_length: ", new_length);
+			auto put_back = [&pos, &result](const self& other) {
+				for (const AChar& c : std::ranges::subrange(other.achars_, other.achars_ + other.size()))
+					result.achars_[pos++] = c;
 				};
 
-			self result(new_length, encoding());
+			bool started = false;
 			for (const self& elem : elems)
 			{
-				static bool started = false;
-				if (started) put_back(result, *this);
-				put_back(result, elem);
+				if (started) put_back(*this);
+				put_back(elem);
 				started = true;
 			}
 
@@ -380,7 +381,7 @@ namespace ayr
 
 			Atring result(length, encoding);
 			c_size pos = 0;
-			for (const Atring& str : it_ables)
+			for (const Atring& str : elems)
 				for (c_size i = 0, n = str.size(); i < n; ++i)
 					result.achars_[pos++] = str.achars_[i];
 
