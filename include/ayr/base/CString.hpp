@@ -106,21 +106,23 @@ namespace ayr
 			return *this;
 		}
 
-		template<IteratableV<self> I>
-		self join(const I& it_able) const
+		template<IteratableU<self> Obj>
+		self join(const Obj& elems) const
 		{
+			if (empty()) return cjoin(elems);
+
 			c_size len = 0, s_size = size();
 
-			for (const self& str : it_able)
+			for (const self& str : elems)
 				len += str.size() + s_size;
 			if (len) len -= s_size;
 
 			self ret(len);
 			char* ptr = ret.data();
-			for (auto it = it_able.begin(); it != it_able.end(); ++it)
+			for (auto it = elems.begin(); it != elems.end(); ++it)
 			{
 				c_size o_size = it->size();
-				if (it != it_able.begin())
+				if (it != elems.begin())
 				{
 					std::memcpy(ptr, data(), s_size);
 					ptr += s_size;
@@ -129,6 +131,27 @@ namespace ayr
 				ptr += o_size;
 			}
 			return ret;
+		}
+
+		template<IteratableU<CString> Obj>
+		static CString cjoin(const Obj& elems)
+		{
+			c_size length = 0;
+			for (const CString& s : elems)
+				length += s.size();
+			CString result(length);
+			char* ptr = result.data();
+			for (const CString& s : elems)
+			{
+				const char* s_ptr = s.data();
+				while (*s_ptr)
+				{
+					*ptr = *s_ptr;
+					++ptr, ++s_ptr;
+				}
+			}
+
+			return result;
 		}
 	private:
 		char* str;
@@ -170,27 +193,6 @@ namespace ayr
 	der(CString) cstr(const T& value) { return value.__str__(); }
 
 	der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
-	
-	template<IteratableV<CString> It>
-	der(CString) cjoin(const It& it_able)
-	{
-		c_size length = 0;
-		for (const CString& s: it_able)
-			length += s.size();
-		CString result(length);
-		char* ptr = result.data();
-		for (const CString& s : it_able)
-		{
-			const char* s_ptr = s.data();
-			while (*s_ptr)
-			{
-				*ptr = *s_ptr;
-				++ptr, ++s_ptr;
-			}
-		}
-
-		return result;
-	}
 }
 
 template<>

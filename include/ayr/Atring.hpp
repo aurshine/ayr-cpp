@@ -339,10 +339,12 @@ namespace ayr
 		template<IteratableU<self> Obj>
 		self join(const Obj& elems) const
 		{
+			if (size() == 0) return ajoin(elems);
+
 			c_size new_length = 0, pos = 0, m_size = size();
 			for (const self& elem : elems)
 				new_length += elem.size() + m_size;
-			new_length = std::max<c_size>(0, new_length - m_size);
+			new_length = std::max((c_size)0, new_length - m_size);
 
 			auto put_back = [&pos](self& str, const self& other) {
 				for (auto&& c : std::ranges::subrange(other.achars_, other.achars_ + other.size()))
@@ -360,6 +362,31 @@ namespace ayr
 
 			return result;
 		}
+
+		template<IteratableU<Atring> Obj>
+		static Atring ajoin(const Obj& elems)
+		{
+			c_size length = 0;
+			Encoding* encoding = nullptr;
+
+			for (const Atring& str : elems)
+			{
+				length += str.size();
+				if (encoding == nullptr)
+					encoding = str.encoding();
+				else if (encoding != str.encoding())
+					RuntimeError("Strings have different encodings");
+			}
+
+			Atring result(length, encoding);
+			c_size pos = 0;
+			for (const Atring& str : it_ables)
+				for (c_size i = 0, n = str.size(); i < n; ++i)
+					result.achars_[pos++] = str.achars_[i];
+
+			return result;
+		}
+
 
 		// 替换old_为new_，返回新的字符串
 		self replace(const self& old_, const self& new_) const
