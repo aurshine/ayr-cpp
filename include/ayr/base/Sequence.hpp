@@ -36,9 +36,9 @@ namespace ayr
 
 		const Value_t& front() const { return *super::derived().begin(); }
 
-		Value_t& back() { return std::next(super::derived().begin(), super::derived().size() - 1); }
+		Value_t& back() { return *std::next(super::derived().begin(), super::derived().size() - 1); }
 
-		const Value_t& back() const { return std::next(super::derived().begin(), super::derived().size() - 1); }
+		const Value_t& back() const { return *std::next(super::derived().begin(), super::derived().size() - 1); }
 
 		Value_t& operator[] (c_size index) { return super::derived().at(neg_index(index, super::derived().size())); }
 
