@@ -12,9 +12,8 @@
 
 namespace ayr
 {
-	namespace thread
+	namespace async
 	{
-
 		struct StopFlag
 		{
 			// 不停止

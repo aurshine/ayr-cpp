@@ -207,7 +207,7 @@ namespace ayr
 
 		Array<UltraEventLoopThread> sub_reactor_threads_;
 
-		thread::ThreadPool acceptor_thread_;
+		async::ThreadPool acceptor_thread_;
 
 		Socket server_socket_;
 
