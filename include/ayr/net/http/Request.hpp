@@ -3,88 +3,130 @@
 
 #include "../Socket.hpp"
 #include "../../Atring.hpp"
+#include "../../Dict.hpp"
+#include "../../base/View.hpp"
 
 namespace ayr
 {
-	class RequestParser : public Object<RequestParser>
+	class RequestInfo : public Object<RequestInfo>
 	{
-		Atring req_line_, headers_, more_data_;
+		using self = RequestInfo;
 
-		bool req_line_finised = false, headers_finised = false;
+		using super = Object<RequestInfo>;
+
 	public:
-		Dict<Atring, Atring> headers;
-
 		Atring method, uri, version;
 
-		RequestParser() {}
+		Dict<Atring, Atring> headers;
 
-		void reset()
+		Atring body;
+
+		RequestInfo(Atring method, Atring uri, Atring version, Dict<Atring, Atring> headers, Atring body) :
+			method(method), uri(uri), version(version), headers(headers), body(body) {}
+
+		RequestInfo(const self& other) : RequestInfo(other.method, other.uri, other.version, other.headers, other.body) {}
+
+		RequestInfo(self&& other) : RequestInfo(std::move(other.method), std::move(other.uri), std::move(other.version), std::move(other.headers), std::move(other.body)) {}
+
+		self& operator=(const self& other)
 		{
-			req_line_ = more_data_ = headers_ = "";
-			headers.clear();
-			req_line_finised = headers_finised = false;
+			if (this == &other) return *this;
+			method = other.method;
+			uri = other.uri;
+			version = other.version;
+			headers = other.headers;
+			body = other.body;
+			return *this;
 		}
 
-		bool parse(const Atring& data)
+		self& operator=(self&& other)
+		{
+			if (this == &other) return *this;
+			method = std::move(other.method);
+			uri = std::move(other.uri);
+			version = std::move(other.version);
+			headers = std::move(other.headers);
+			body = std::move(other.body);
+			return *this;
+		}
+
+		/*
+		* 返回请求的文本
+		* request line
+		* \r\n
+		* headers
+		* \r\n
+		* \r\n
+		* body
+		*/
+		Atring text() const
+		{
+			Atring request_line = Atring::ajoin(Array<View>{ method, uri, version });
+			DynArray<Atring> kvs;
+			for (auto& [k, v] : headers.items())
+				kvs.append(": "as.join(Array<View>{ k, v }));
+			Atring headers_lines = "\n"as.join(kvs);
+			Atring null_line = "";
+
+			return "\r\n"as.join(Array<View>({ request_line, headers_lines, null_line, body }));
+		}
+	};
+
+	class RequestParser : public Object<RequestParser>
+	{
+		Atring more_data_;
+	public:
+		RequestParser() {}
+
+		RequestInfo operator()(const Atring& data)
 		{
 			more_data_ += data;
 
-			if (!req_line_finised && !parse_req_line())
-				return false;
-			else
-			{
-				auto&& line_parts = req_line_.split(" ");
-				method = line_parts[0];
-				uri = line_parts[1];
-				version = line_parts[2];
-			}
+			Dict<Atring, Atring> headers;
 
-			if (!headers_finised && !parse_headers())
-				return false;
-			else
-			{
-				for (const Atring& kv_str : headers_.split("\r\n"))
-				{
-					auto&& kv = kv_str.split(":");
-					if (kv.size() == 2)
-						headers.insert(kv[0].lower().strip(), kv[1].lower().strip());
-				}
-			}
-			return true;
+			Atring method, uri, version;
+
+			parse_req_line(method, uri, version);
+			parse_headers(headers);
+
+			// c_size content_length = headers.get("content-length", "0").to_int();
+			// if (more_data_.size() != content_length)
+			// RuntimeError("parse request body failed, content_length != body.size()");
+
+			return RequestInfo(std::move(method), std::move(uri), std::move(version), std::move(headers), std::move(more_data_));
 		}
 	private:
-		bool parse_req_line()
+		void parse_req_line(Atring& method, Atring& uri, Atring& version)
 		{
 			c_size pos = more_data_.find("\r\n");
 			if (pos == -1)
-			{
-				req_line_ += more_data_;
-			}
-			else
-			{
-				req_line_ += more_data_.slice(0, pos);
-				more_data_ = more_data_.slice(pos + 2);
-				req_line_finised = true;
-			}
+				RuntimeError("parse request line failed, not found \\r\\n");
 
-			return req_line_finised;
+			Array<Atring> req_datas = more_data_.slice(0, pos).split(" ");
+			if (req_datas.size() != 3)
+				RuntimeError("parse request line failed, req_datas.size() != 3");
+
+			method = std::move(req_datas[0]);
+			uri = std::move(req_datas[1]);
+			version = std::move(req_datas[2]);
+
+			more_data_ = more_data_.slice(pos + 2);
 		}
 
-		bool parse_headers()
+		void parse_headers(Dict<Atring, Atring>& headers)
 		{
 			c_size pos = more_data_.find("\r\n\r\n");
-			if (pos == -1)
+			if (pos == -1) RuntimeError("parse headers failed, not found \\r\\n\\r\\n");
+
+			Atring headers_datas = more_data_.slice(0, pos);
+			for (const Atring& kv_str : headers_datas.split("\r\n"))
 			{
-				headers_ += more_data_;
-			}
-			else
-			{
-				headers_ += more_data_.slice(0, pos);
-				more_data_ = more_data_.slice(pos + 4);
-				headers_finised = true;
+				c_size pos = kv_str.find(":");
+				if (pos == -1) RuntimeError("parse headers failed, not found :");
+				headers.insert(kv_str.slice(0, pos).lower().strip(), kv_str.slice(pos + 1).lower().strip());
 			}
 
-			return headers_finised;
+			more_data_ = more_data_.slice(pos + 4);
 		}
 	};
 }
