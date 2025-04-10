@@ -112,6 +112,6 @@ namespace ayr
 
 		c_size size_;
 	};
-#endif // AYR_LINUX
 }
-#endif
+#endif // AYR_LINUX
+#endif // AYR_NET_EPOLL_HPP
