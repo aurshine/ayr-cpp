@@ -339,7 +339,7 @@ namespace ayr
 					RuntimeError("Cannot concatenate strings with different encodings");
 				new_length += elem.size() + m_size;
 			}
-			
+
 			new_length = std::max<c_size>(0, new_length - m_size);
 
 			self result(new_length, encoding());
@@ -382,7 +382,6 @@ namespace ayr
 
 			return result;
 		}
-
 
 		// 替换old_为new_，返回新的字符串
 		self replace(const self& old_, const self& new_) const
@@ -473,6 +472,46 @@ namespace ayr
 
 			ValueError("Unmatched parentheses, too many left parentheses");
 			return None<self>;
+		}
+
+		c_size to_int() const
+		{
+			if (size() == 0) return 0;
+			c_size res = 0;
+			bool neg = atchar(0) == '-';
+			self num_body = ifelse(neg, slice(1), *this);
+
+			if (!num_body.isdigit())
+				RuntimeError("string is not a valid integer");
+
+			for (c_size i = 0, n = num_body.size(); i < n; ++i)
+				res = res * 10 + num_body.atchar(i).to_int(encoding()) - '0';
+
+			return ifelse(neg, -res, res);
+		}
+
+		double to_double() const
+		{
+			Array<c_size> dot_indices = find_all(".");
+
+			if (dot_indices.size() == 0)
+				return to_int();
+			else if (dot_indices.size() == 1)
+			{
+				self int_part = slice(0, dot_indices[0]);
+				self float_part = slice(dot_indices[0] + 1);
+
+				c_size int_val = int_part.to_int();
+				if (!float_part.isdigit())
+					RuntimeError("string is not a valid float");
+				double float_val = float_part.to_int();
+				while (float_val > 1) float_val /= 10;
+				return ifelse(int_val >= 0, int_val + float_val, int_val - float_val);
+			}
+			else
+				RuntimeError("string is not a valid float");
+
+			return 0;
 		}
 
 		class AtringIterator : public IteratorInfo<AtringIterator, Atring, std::forward_iterator_tag, Atring>
