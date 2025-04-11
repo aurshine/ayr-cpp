@@ -45,32 +45,37 @@ namespace ayr
 
 		AChar(self&& other) noexcept : byte_code_(std::exchange(other.byte_code_, nullptr)), code_size_(std::exchange(other.code_size_, 0)) {}
 
-		~AChar() { ayr_delloc(byte_code_); code_size_ = 0; };
+		~AChar() { ayr_desloc(byte_code_, code_size_); code_size_ = 0; };
 
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_destroy(this);
-
-			return *ayr_construct(this, other);
+			if (size() < other.size())
+			{
+				ayr_desloc(byte_code_, code_size_);
+				byte_code_ = ayr_alloc<char>(other.size());
+			}
+			code_size_ = other.size();
+			std::memcpy(data(), other.data(), code_size_);
+			return *this;
 		}
 
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_destroy(this);
-
-			return *ayr_construct(this, std::move(other));
+			ayr_desloc(byte_code_, code_size_);
+			byte_code_ = std::exchange(other.byte_code_, nullptr);
+			code_size_ = std::exchange(other.code_size_, 0);
+			return *this;
 		}
 
 		self& operator=(char c)
 		{
-			ayr_destroy(this);
+			if (code_size_ < 1)
+				byte_code_ = ayr_alloc<char>(1);
 
 			code_size_ = 1;
-			byte_code_ = ayr_alloc<char>(1);
 			byte_code_[0] = c;
-
 			return *this;
 		}
 
