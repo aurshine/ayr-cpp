@@ -110,7 +110,7 @@ namespace ayr
 	template<std::input_or_output_iterator... Its>
 	def zip_it(Its... its) -> ZipIterator<Its...>
 	{
-		return  ZipIterator<Its...>(its...);
+		return ZipIterator<Its...>(its...);
 	}
 
 	template<Iteratable ...Itables>
@@ -120,6 +120,42 @@ namespace ayr
 			zip_it(itables.begin()...),
 			zip_it(itables.end()...)
 		);
+	}
+
+	template<typename It>
+	class EnumerateIterator : public IteratorInfo<EnumerateIterator<It>, NonContainer, std::forward_iterator_tag, std::tuple<c_size&, typename std::iterator_traits<It>::value_type&>>
+	{
+		using self = EnumerateIterator<It>;
+
+		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<c_size, typename std::iterator_traits<It>::value_type&>>;
+
+		c_size current_;
+
+		It it_;
+	public:
+		EnumerateIterator() : current_(0), it_() {}
+
+		EnumerateIterator(c_size current, It it) : current_(current), it_(it) {}
+
+		EnumerateIterator(const self& other) : current_(other.current_), it_(other.it_) {}
+
+		self& operator= (const self& other) { current_ = other.current_; it_ = other.it_; return *this; }
+
+		ItInfo::value_type operator*() const { return typename ItInfo::value_type(current_, *it_); }
+
+		self& operator++() { ++current_; ++it_; return *this; }
+
+		self operator++(int) { self tmp(*this); ++(*this); return tmp; }
+
+		bool __equals__(const self& other) const { return it_ == other.it_; }
+	};
+
+	template<Iteratable Obj>
+	def enumerate(Obj&& obj)
+	{
+		using It = EnumerateIterator<decltype(obj.begin())>;
+
+		return std::ranges::subrange(It(0, obj.begin()), It(-1, obj.end()));
 	}
 
 	template<Iteratable T, typename Init>
