@@ -425,7 +425,7 @@ namespace ayr
 				return nullptr;
 		}
 
-		void key_not_found_error(const Key_t& key) const { RuntimeError("Key '{}' not found in dictionary.", key); }
+		void key_not_found_error(const Key_t& key) const { RuntimeError(std::format("Key '{}' not found in dictionary.", key)); }
 
 		Table_t htable_;
 
