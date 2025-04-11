@@ -3,7 +3,10 @@
 
 #include <utility>
 
+#include "Array.hpp"
 #include "base/AChar.hpp"
+#include "base/View.hpp"
+
 
 namespace ayr
 {
@@ -85,6 +88,9 @@ namespace ayr
 
 		self operator+ (const self& other) const
 		{
+			if (encoding() != other.encoding())
+				RuntimeError("Cannot concatenate strings with different encodings");
+
 			self result(size() + other.size(), encoding());
 			size_t m_size = size(), o_size = other.size();
 			for (size_t i = 0; i < m_size; ++i)
@@ -95,24 +101,9 @@ namespace ayr
 			return result;
 		}
 
-		self& operator+= (const self& other)
-		{
-			self result = *this + other;
-			*this = *this + other;
-			return *this;
-		}
+		self& operator+= (const self& other) { return *this = *this + other; }
 
-		self operator* (size_t n) const
-		{
-			self result(size() * n, encoding());
-
-			size_t pos = 0, m_size = size();
-			while (n--)
-				for (size_t i = 0; i < m_size; ++i)
-					result.achars_[pos++] = atchar(i);
-
-			return result;
-		}
+		self operator* (size_t n) const { return ajoin(Array<View>(n, *this)); }
 
 		self at(c_size index) const { return slice(index, index + 1); }
 
@@ -343,11 +334,15 @@ namespace ayr
 
 			c_size new_length = 0, pos = 0, m_size = size();
 			for (const self& elem : elems)
+			{
+				if (encoding() != elem.encoding())
+					RuntimeError("Cannot concatenate strings with different encodings");
 				new_length += elem.size() + m_size;
-			new_length = std::max((c_size)0, new_length - m_size);
+			}
+			
+			new_length = std::max<c_size>(0, new_length - m_size);
 
 			self result(new_length, encoding());
-			print("new_length: ", new_length);
 			auto put_back = [&pos, &result](const self& other) {
 				for (const AChar& c : std::ranges::subrange(other.achars_, other.achars_ + other.size()))
 					result.achars_[pos++] = c;
