@@ -61,14 +61,14 @@ namespace ayr
 		*/
 		Atring text() const
 		{
-			Atring request_line = Atring::ajoin(Array<View>{ method, uri, version });
+			Atring request_line = Atring::ajoin(arr({ view_of(method), view_of(uri), view_of(version) }));
 			DynArray<Atring> kvs;
 			for (auto& [k, v] : headers.items())
-				kvs.append(": "as.join(Array<View>{ k, v }));
+				kvs.append(": "as.join(arr({ view_of(k), view_of(v) })));
 			Atring headers_lines = "\n"as.join(kvs);
 			Atring null_line = "";
 
-			return "\r\n"as.join(Array<View>({ request_line, headers_lines, null_line, body }));
+			return "\r\n"as.join(arr({ view_of(request_line), view_of(headers_lines), view_of(null_line), view_of(body) }));
 		}
 	};
 

@@ -103,7 +103,7 @@ namespace ayr
 
 		self& operator+= (const self& other) { return *this = *this + other; }
 
-		self operator* (size_t n) const { return ajoin(Array<View>(n, *this)); }
+		self operator* (size_t n) const { return ajoin(Array<ViewOF<self>>(n, view_of(*this))); }
 
 		self at(c_size index) const { return slice(index, index + 1); }
 
