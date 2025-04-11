@@ -4,6 +4,7 @@
 #include "raise_error.hpp"
 #include "ayr_memory.hpp"
 #include "Sequence.hpp"
+#include "View.hpp"
 
 
 namespace ayr
@@ -108,5 +109,8 @@ namespace ayr
 
 		c_size size_;
 	};
+
+	template<typename T>
+	def arr(std::initializer_list<T>&& init_list) { return Array<T>(std::move(init_list)); }
 }
 #endif
