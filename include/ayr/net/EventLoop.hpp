@@ -23,18 +23,18 @@ namespace ayr
 
 		std::thread::id thread_id_;
 
-		UltraEventLoop() : epoll_(), quit_(false), channel_map(), thread_id_(std::this_thread::get_id()) {}
+		UltraEventLoop() : epoll_(), quit_(false), channel_map(), mtx(), thread_id_(std::this_thread::get_id()) {}
 	public:
-		bool quit() 
-		{ 
-			std::lock_guard<std::mutex> lock(mtx);
-			return quit_; 
-		}
-
-		void stop() 
+		bool quit()
 		{
 			std::lock_guard<std::mutex> lock(mtx);
-			quit_ = true; 
+			return quit_;
+		}
+
+		void stop()
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			quit_ = true;
 		}
 
 		static self* loop()

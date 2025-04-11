@@ -20,23 +20,23 @@ namespace ayr
 		std::thread thread_;
 
 		Loop* loop_ = nullptr;
-
-		DynArray<Task> tasks_;
 	public:
-		UltraEventLoopThread() : thread_(), tasks_() {}
+		UltraEventLoopThread() : thread_() {}
 
 		UltraEventLoopThread(const std::function<void()>& fn)
 		{
+			std::promise<Loop*> promise;
+			std::future<Loop*> future = promise.get_future();
 			thread_ = std::thread([&]() {
-				loop_ = Loop::loop();
+				promise.set_value(Loop::loop());
 				fn();
 				});
+			loop_ = future.get();
 		}
 
 		UltraEventLoopThread(self&& other) noexcept :
 			thread_(std::move(other.thread_)),
-			loop_(other.loop_),
-			tasks_(std::move(other.tasks_))
+			loop_(other.loop_)
 		{
 			other.loop_ = nullptr;
 		}
@@ -47,7 +47,6 @@ namespace ayr
 		{
 			thread_ = std::move(other.thread_);
 			loop_ = other.loop_;
-			tasks_ = std::move(other.tasks_);
 			other.loop_ = nullptr;
 			return *this;
 		}
