@@ -151,20 +151,95 @@ namespace ayr
 	};
 
 	template<Iteratable Obj>
-	def enumerate(Obj&& obj)
+	def enumerate(Obj&& elems)
 	{
-		using It = EnumerateIterator<decltype(obj.begin())>;
+		using It = EnumerateIterator<decltype(elems.begin())>;
 
-		return std::ranges::subrange(It(0, obj.begin()), It(-1, obj.end()));
+		return std::ranges::subrange(It(0, elems.begin()), It(-1, elems.end()));
 	}
 
-	template<Iteratable T, typename Init>
-	def sum(T&& obj, Init init = Init()) -> Init
+	// 求和
+	template<Iteratable Obj, typename Init>
+	def sum(Obj&& elems, Init init = Init()) -> Init
 	{
-		for (auto&& elem : obj)
+		for (auto&& elem : elems)
 			init += elem;
 
 		return init;
+	}
+
+	// 最大值
+	template<Iteratable Obj>
+	def max(Obj&& elems)
+	{
+		using T = decltype(*elems.begin());
+
+		T max_elem = *elems.begin();
+		auto it = ++elems.begin();
+		while (it != elems.end())
+		{
+			if (*it > max_elem)
+				max_elem = *it;
+			++it;
+		}
+		return max_elem;
+	}
+
+	// 最小值
+	template<Iteratable Obj>
+	def min(Obj&& elems)
+	{
+		using T = decltype(*elems.begin());
+
+		T min_elem = *elems.begin();
+		auto it = ++elems.begin();
+		while (it != elems.end())
+		{
+			if (*it < min_elem)
+				min_elem = *it;
+			++it;
+		}
+		return min_elem;
+	}
+
+	// 所有元素都为真
+	template<IteratableU<bool> Obj>
+	def all(Obj&& elems) -> bool
+	{
+		for (bool elem : elems)
+			if (!elem)
+				return false;
+		return true;
+	}
+
+	// 所有元素都满足条件f
+	template<Iteratable Obj, typename F>
+	def all(Obj&& elems, F&& f) -> bool
+	{
+		for (bool elem : elems)
+			if (!f(elem))
+				return false;
+		return true;
+	}
+
+	// 至少有一个元素为真
+	template<IteratableU<bool> Obj>
+	def any(Obj&& elems) -> bool
+	{
+		for (bool elem : elems)
+			if (elem)
+				return true;
+		return false;
+	}
+
+	// 至少有一个元素满足条件f
+	template<Iteratable Obj, typename F>
+	def any(Obj&& elems, F&& f) -> bool
+	{
+		for (bool elem : elems)
+			if (f(elem))
+				return true;
+		return false;
 	}
 }
 
