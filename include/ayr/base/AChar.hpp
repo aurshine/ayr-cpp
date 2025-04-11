@@ -100,6 +100,13 @@ namespace ayr
 				return std::memcmp(data(), other.data(), m_size);
 		}
 
+		cmp_t __cmp__(char c) const
+		{
+			if (code_size_ < 1) return -1;
+			if (c != byte_code_[0]) return byte_code_[0] - c;
+			return 1;
+		}
+
 		void __swap__(self& other)
 		{
 			swap(byte_code_, other.byte_code_);
