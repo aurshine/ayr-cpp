@@ -4,7 +4,6 @@
 #include "EventLoopThread.hpp"
 #include "ServerCallback.hpp"
 #include "Select.hpp"
-#include "../async/ThreadPool.hpp"
 #include "../base/ayr_memory.hpp"
 #include "../base/View.hpp"
 
