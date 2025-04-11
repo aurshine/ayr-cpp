@@ -56,5 +56,46 @@ namespace ayr
 		template<typename T>
 		bool __equals__(const T& other) const { return data() == &other || get<T>() == other; }
 	};
+
+	// T类型的只读视图
+	template<typename T>
+	class ViewOF
+	{
+		View view_;
+
+		using ConstValue_t = std::add_const_t<T>;
+	public:
+		ViewOF(ConstValue_t& obj): view_(obj) {}
+
+		ViewOF(const ViewOF& other): view_(other.view_) {}
+
+		ViewOF& operator=(ConstValue_t& obj)
+		{
+			view_ = obj;
+			return *this;
+		}
+
+		ViewOF& operator=(const ViewOF& other)
+		{
+			view_ = other.view_;
+			return *this;
+		}
+
+		ConstValue_t& get() const { return view_.get<ConstValue_t>(); }
+
+		operator ConstValue_t& () const { return get(); }
+
+		CString __str__() const { return cstr(get()); }
+
+		bool __equals__(const ConstValue_t& other) const { return view_.__equals__(other); }
+
+		void __swap__(ConstValue_t& other) { swap(view_, other); }
+	};
+
+	template<typename T>
+	def view_of(T& obj) { return ViewOF<std::remove_const_t<T>>(obj); }
+
+	template<typename T>
+	def view_of(const ViewOF<T>& obj) { return ViewOF<T>(obj); }
 }
 #endif
