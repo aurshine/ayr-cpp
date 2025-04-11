@@ -339,10 +339,10 @@ namespace ayr
 			swap(hashv, other.hashv);
 			swap(dist, other.dist);
 
-			uint8_t tmp[sizeof T];
-			std::memcpy(tmp, &value_, sizeof T);
-			std::memcpy(&value_, &other.value_, sizeof T);
-			std::memcpy(&other.value_, tmp, sizeof T);
+			uint8_t tmp[sizeof(T)];
+			std::memcpy(tmp, &value_, sizeof(T));
+			std::memcpy(&value_, &other.value_, sizeof(T));
+			std::memcpy(&other.value_, tmp, sizeof(T));
 		}
 
 		// 销毁value，value必须有效
