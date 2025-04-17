@@ -224,8 +224,10 @@ namespace ayr
 			auto [index, move_dist] = htable_.try_get(ayrhash(key));
 			if (htable_.items_[index].used() && htable_.items_[index].hashv == ayrhash(key))
 				return htable_.items_[index].value()->value.second;
-			else
-				htable_.insert_value_on_index(index, ayrhash(key), move_dist, kv_chain_.append(key, Value_t{}));
+			
+			auto kv_node = kv_chain_.append(key, Value_t{});
+			htable_.insert_value_on_index(index, ayrhash(key), move_dist, kv_node);
+			return kv_node->value.second;
 		}
 
 		// 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
@@ -383,7 +385,7 @@ namespace ayr
 		{
 			if (this == &other) return true;
 			if (size() != other.size()) return false;
-			for (auto& [key, value] : *this)
+			for (auto& [key, value] : items())
 				if (!other.contains(key) || other.get(key) != value)
 					return false;
 			return true;
