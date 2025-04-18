@@ -20,9 +20,9 @@ namespace ayr
 		// 返回当前编码方式，开头字符的字节数
 		virtual int byte_size(const char* data) const = 0;
 
-		virtual int to_int(const char* data, int size = -1) const = 0;
+		virtual int ord(const char* data, int size = -1) const = 0;
 
-		virtual CString from_int(int code) const = 0;
+		virtual CString chr(int code) const = 0;
 
 		virtual ~Encoding() = default;
 	};
@@ -41,9 +41,9 @@ namespace ayr
 
 		constexpr int byte_size(const char* data) const override { return 1; }
 
-		constexpr int to_int(const char* data, int size = -1) const override { return data[0]; }
+		constexpr int ord(const char* data, int size = -1) const override { return data[0]; }
 
-		CString from_int(int code) const override { return CString(reinterpret_cast<const char*>(&code), 1); }
+		CString chr(int code) const override { return CString(reinterpret_cast<const char*>(&code), 1); }
 	};
 
 
@@ -73,7 +73,7 @@ namespace ayr
 			return 0;
 		}
 
-		constexpr int to_int(const char* data, int size = -1) const override
+		constexpr int ord(const char* data, int size = -1) const override
 		{
 			if (size == -1)
 				size = byte_size(data);
@@ -89,7 +89,7 @@ namespace ayr
 			return None<int>;
 		}
 
-		CString from_int(int code) const override
+		CString chr(int code) const override
 		{
 			if (code < 0 || code > 0x10FFFF)
 				EncodingError("Invalid AChar");
@@ -152,7 +152,7 @@ namespace ayr
 			return 2; // BMP 范围
 		}
 
-		constexpr int to_int(const char* data, int size = -1) const override
+		constexpr int ord(const char* data, int size = -1) const override
 		{
 			if (size == -1)
 				size = byte_size(data);
@@ -170,7 +170,7 @@ namespace ayr
 			return None<int>;
 		}
 
-		CString from_int(int code) const override
+		CString chr(int code) const override
 		{
 			if (code < 0 || code > 0x10FFFF)
 				EncodingError("Invalid AChar");
@@ -211,12 +211,12 @@ namespace ayr
 
 		constexpr int byte_size(const char* data) const override { return 4; }
 
-		constexpr int to_int(const char* data, int size = -1) const override
+		constexpr int ord(const char* data, int size = -1) const override
 		{
 			return (data[0] << 24) + (data[1] << 16) + (data[2] << 8) + data[3];
 		}
 
-		CString from_int(int code) const override
+		CString chr(int code) const override
 		{
 			char buf[4];
 			buf[0] = code >> 24;
@@ -245,13 +245,13 @@ namespace ayr
 			return 0;
 		}
 
-		int to_int(const char* data, int size = -1) const override
+		int ord(const char* data, int size = -1) const override
 		{
 			NotImplementedError("GB2312Encoding is not suppoerted yet");
 			return 0;
 		}
 
-		CString from_int(int code) const override
+		CString chr(int code) const override
 		{
 			NotImplementedError("GB2312Encoding::from_int is not suppoerted yet");
 			return CString();

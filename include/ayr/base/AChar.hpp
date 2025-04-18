@@ -34,7 +34,7 @@ namespace ayr
 			std::memcpy(data(), data_, code_size_);
 		}
 
-		AChar(int code, Encoding* encoding) : AChar(encoding->from_int(code).data(), encoding) {}
+		AChar(int code, Encoding* encoding) : AChar(encoding->chr(code).data(), encoding) {}
 
 		AChar(const self& other)
 		{
@@ -122,7 +122,7 @@ namespace ayr
 		}
 
 		// 转换为整数
-		int to_int(Encoding* encoding) const { return encoding->to_int(data(), size()); }
+		int ord(Encoding* encoding) const { return encoding->ord(data(), size()); }
 
 		// 转换为大写字母
 		self upper() const

@@ -485,7 +485,7 @@ namespace ayr
 				RuntimeError("string is not a valid integer");
 
 			for (c_size i = 0, n = num_body.size(); i < n; ++i)
-				res = res * 10 + num_body.atchar(i).to_int(encoding()) - '0';
+				res = res * 10 + num_body.atchar(i).ord(encoding()) - '0';
 
 			return ifelse(neg, -res, res);
 		}
@@ -507,7 +507,7 @@ namespace ayr
 					RuntimeError("string is not a valid float");
 				double float_val = 0;
 				for (c_size i = float_part.size() - 1; i >= 0; --i)
-					float_val = (float_val + float_part.atchar(i).to_int(encoding()) - '0') / 10.0;
+					float_val = (float_val + float_part.atchar(i).ord(encoding()) - '0') / 10.0;
 				return ifelse(int_val >= 0, int_val + float_val, int_val - float_val);
 			}
 			else
