@@ -89,9 +89,9 @@ namespace ayr
 			parse_req_line(method, uri, version);
 			parse_headers(headers);
 
-			// c_size content_length = headers.get("content-length", "0").to_int();
-			// if (more_data_.size() != content_length)
-			// RuntimeError("parse request body failed, content_length != body.size()");
+			c_size content_length = headers.get("content-length", "0").to_int();
+			if (more_data_.size() != content_length)
+			RuntimeError("parse request body failed, content_length != body.size()");
 
 			return RequestInfo(std::move(method), std::move(uri), std::move(version), std::move(headers), std::move(more_data_));
 		}
