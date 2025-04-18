@@ -40,19 +40,19 @@ namespace ayr
 
 				using DictArgT = add_const_t<IsConst, JsonDict>&;
 
-				std::function<R(NullArgT)> for_null_{ [](NullArgT) -> R { json_invalid_error<JsonNull>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(NullArgT)> for_null_;
 
-				std::function<R(IntArgT)> for_int_{ [](IntArgT) -> R { json_invalid_error<JsonInt>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(IntArgT)> for_int_;
 
-				std::function<R(FloatArgT)> for_float_{ [](FloatArgT) -> R { json_invalid_error<JsonFloat>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(FloatArgT)> for_float_;
 
-				std::function<R(BoolArgT)> for_bool_{ [](BoolArgT) -> R { json_invalid_error<JsonBool>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(BoolArgT)> for_bool_;
 
-				std::function<R(StrArgT)> for_str_{ [](StrArgT) -> R { json_invalid_error<JsonStr>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(StrArgT)> for_str_;
 
-				std::function<R(ArrayArgT)> for_array_{ [](ArrayArgT) -> R { json_invalid_error<JsonArray>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(ArrayArgT)> for_array_;
 
-				std::function<R(DictArgT)> for_dict_{ [](DictArgT) -> R { json_invalid_error<JsonDict>(); if constexpr (Not<issame<R, void>>) { return None<R>; } } };
+				std::function<R(DictArgT)> for_dict_;
 			public:
 				JsonMethodsImpl() {}
 
@@ -70,22 +70,78 @@ namespace ayr
 
 				void for_dict(std::function<R(DictArgT)>&& func) { for_dict_ = std::move(func); }
 
+				R null_fn(NullArgT obj) const
+				{
+					if (for_null_) return for_null_(obj);
+					json_invalid_error<JsonNull>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R int_fn(IntArgT obj) const
+				{
+					if (for_int_) return for_int_(obj);
+					json_invalid_error<JsonInt>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R float_fn(FloatArgT obj) const
+				{
+					if (for_float_) return for_float_(obj);
+					json_invalid_error<JsonFloat>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R bool_fn(BoolArgT obj) const
+				{
+					if (for_bool_) return for_bool_(obj);
+					json_invalid_error<JsonBool>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R str_fn(StrArgT obj) const
+				{
+					if (for_str_) return for_str_(obj);
+					json_invalid_error<JsonStr>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R array_fn(ArrayArgT obj) const
+				{
+					if (for_array_) return for_array_(obj);
+					json_invalid_error<JsonArray>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
+				R dict_fn(DictArgT obj) const
+				{
+					if (for_dict_) return for_dict_(obj);
+					json_invalid_error<JsonDict>();
+					if constexpr (Not<issame<R, void>>)
+						return None<R>;
+				}
+
 				R operator()(add_const_t<IsConst, Json>& obj) const
 				{
 					if (obj.is_null())
-						return for_null_(obj.as_null());
+						return null_fn(obj.as_null());
 					else if (obj.is_int())
-						return for_int_(obj.as_int());
+						return int_fn(obj.as_int());
 					else if (obj.is_float())
-						return for_float_(obj.as_float());
+						return float_fn(obj.as_float());
 					else if (obj.is_bool())
-						return for_bool_(obj.as_bool());
+						return bool_fn(obj.as_bool());
 					else if (obj.is_str())
-						return for_str_(obj.as_str());
+						return str_fn(obj.as_str());
 					else if (obj.is_array())
-						return for_array_(obj.as_array());
+						return array_fn(obj.as_array());
 					else if (obj.is_dict())
-						return for_dict_(obj.as_dict());
+						return dict_fn(obj.as_dict());
 
 					JSON_TYPE_INVALID_ERROR;
 					if constexpr (Not<issame<R, void>>)
@@ -118,6 +174,12 @@ namespace ayr
 				jmc.for_array([&](const JsonArray& obj) { ayr_construct(this, obj); });
 				jmc.for_dict([&](const JsonDict& obj) { ayr_construct(this, obj); });
 				jmc(other);
+			}
+
+			Json(Json&& other) : json_item_(other.json_item_), json_type_id_(other.json_type_id_)
+			{
+				other.json_item_ = nullptr;
+				other.json_type_id_ = -1;
 			}
 
 			~Json()
