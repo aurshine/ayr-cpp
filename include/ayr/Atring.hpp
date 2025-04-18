@@ -496,7 +496,8 @@ namespace ayr
 
 			if (dot_indices.size() == 0)
 				return to_int();
-			else if (dot_indices.size() == 1)
+			
+			if (dot_indices.size() == 1)
 			{
 				self int_part = slice(0, dot_indices[0]);
 				self float_part = slice(dot_indices[0] + 1);
@@ -504,8 +505,9 @@ namespace ayr
 				c_size int_val = int_part.to_int();
 				if (!float_part.isdigit())
 					RuntimeError("string is not a valid float");
-				double float_val = float_part.to_int();
-				while (float_val > 1) float_val /= 10;
+				double float_val = 0;
+				for (c_size i = float_part.size() - 1; i >= 0; --i)
+					float_val = (float_val + float_part.atchar(i).to_int(encoding()) - '0') / 10.0;
 				return ifelse(int_val >= 0, int_val + float_val, int_val - float_val);
 			}
 			else
