@@ -181,19 +181,18 @@ namespace ayr
 			return -1;
 		}
 
-		Array<c_size> find_all(const self& pattern) const
+		Array<c_size> find_all(const self& pattern, c_size count = -1) const
 		{
 			DynArray<c_size> result;
 
 			c_size pos = 0;
-			while (true)
+			while (count != 0)
 			{
 				pos = find(pattern, pos);
-				if (pos != -1)
-					result.append(pos);
-				else
-					break;
+				if (pos == -1) break;
+				result.append(pos);
 				pos += pattern.size();
+				-- count;
 			}
 			return result.to_array();
 		}
@@ -384,15 +383,9 @@ namespace ayr
 		}
 
 		// 替换old_为new_，返回新的字符串
-		self replace(const self& old_, const self& new_) const
+		self replace(const self& old_, const self& new_, c_size maxreplace = -1) const
 		{
-			DynArray<c_size> indices;
-			c_size pos = 0;
-			while (pos = find(old_, pos), pos != -1)
-			{
-				indices.append(pos);
-				pos += old_.size();
-			}
+			Array<c_size> indices = find_all(old_, maxreplace);
 
 			self result(size() + indices.size() * (new_.size() - old_.size()), encoding());
 			for (c_size i = 0, j = 0, k = 0; i < size(); ++i)
@@ -412,16 +405,17 @@ namespace ayr
 		}
 
 		// 根据空白符切分字符串,数组里的元素浅拷贝
-		Array<self> split() const
+		Array<self> split(c_size maxsplit = -1) const
 		{
 			c_size l = 0, r = 0, size_ = size();
 			DynArray<self> result;
-			while (r < size_)
+			while (r < size_ && maxsplit != 0)
 			{
 				if (atchar(r).isspace())
 				{
 					if (r > l) result.append(slice(l, r));
 					l = r + 1;
+					--maxsplit;
 				}
 				++r;
 			}
@@ -431,25 +425,22 @@ namespace ayr
 		}
 
 		// 根据pattern切分字符串,数组里的元素浅拷贝
-		Array<self> split(const self& pattern) const
+		Array<self> split(const self& pattern, c_size maxsplit = -1) const
 		{
-			c_size l = 0, r = 0, size_ = size(), p_size = pattern.size();
-			DynArray<self> result;
+			c_size size_ = size(), p_size = pattern.size();
+			Array<c_size> indices = find_all(pattern, maxsplit);
+			c_size res_size = indices.size() - 1;
 
-			while (r + p_size <= size_)
-			{
-				if (pattern == slice(r, r + p_size))
-				{
-					if (r > l) result.append(slice(l, r));
-					r += p_size;
-					l = r;
-				}
-				else
-					++r;
-			}
-
-			if (r > l) result.append(slice(l));
-			return result.to_array();
+			if (indices.front() != 0) res_size += 1;
+			if (indices.back() + p_size != size_) res_size += 1;
+			Array<self> result(res_size, encoding());
+			
+			c_size k = 0;
+			if (indices.front() != 0) result[k++] = slice(0, indices.front());
+			for (c_size i = 1; i < indices.size(); ++i)
+				result[k++] = slice(indices[i - 1] + p_size, indices[i]);
+			if (indices.back() + p_size != size_) result[k++] = slice(indices.back() + p_size);
+			return result;
 		}
 
 		self match(const self& lmatch, const self& rmatch) const
