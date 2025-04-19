@@ -7,172 +7,183 @@ namespace ayr
 {
 	namespace json
 	{
-		// 解析字符串
-		def _parse_str(JsonStr& json_str) -> Json;
-		def _parse_num(JsonStr& json_str) -> Json;
-		def _parse_bool(JsonStr& json_str) -> Json;
-		def _parse_null(JsonStr& json_str) -> Json;
-		def _parse_simple(JsonStr& json_str) -> Json;
-		def _parse_array(JsonStr& json_str) -> Json;
-		def _parse_dict(JsonStr& json_str) -> Json;
-
-		// 返回一个可以被实际解析为Json对象的字符串
-		def parse(JsonStr& json_str) -> Json
+		class JsonParser : Object<JsonParser>
 		{
-			json_str = json_str.strip();
+		public:
+			JsonParser() {}
 
-			if (json_str[0] == "{")  // dict类型
+			Json operator()(Atring json_str) const
 			{
-				JsonStr match = json_str.match("{", "}");
-				return _parse_dict(match);
+				json_str = json_str.strip();
+				return parse_obj(json_str);
 			}
-			else if (json_str[0] == "[")  // array类型
+		private:
+			// 解析 str
+			Json _parse_str(JsonStr& json_str) const
 			{
-				JsonStr match = json_str.match("[", "]");
-				return _parse_array(match);
+				for (c_size i = 1, n = json_str.size(); i < n; i++)
+					if (json_str[i] == "\""as && json_str[i - 1] != "\\"as)
+					{
+						JsonStr str_part = json_str.slice(1, i);
+						json_str = json_str.slice(i + 1);
+						return Json(std::move(str_part));
+					}
+
+				RuntimeError("invalid str parse: {}", json_str);
+				return None<Json>;
 			}
-			else if (json_str[0] == "\"")  // str类型
-				return _parse_str(json_str);
-			else
-				return _parse_simple(json_str);
-		}
 
-		def parse(JsonStr&& json_str) { return parse(json_str); }
-
-		// 解析 str
-		def _parse_str(JsonStr& json_str) -> Json { return Json(json_str.slice(1, -1)); }
-
-
-		// 返回解析为num对象的字符串
-		def _parse_num(JsonStr& json_str) -> Json
-		{
-			bool float_flag = false;
-			for (auto&& c : json_str)
-				if (!c.isdigit())
-					if (c == "." && !float_flag)
-						float_flag = true;
-					else
-						ValueError(std::format("invalid number parse: {}", json_str));
-
-			CString _cstr = cstr(json_str);
-			if (float_flag)
-				return make_float(atof(_cstr));
-			else
-				return make_int(atoll(_cstr));
-		}
-
-
-		def _parse_bool(JsonStr& json_str) -> Json
-		{
-			if (json_str == "true"as) return Json(true);
-			if (json_str == "false"as) return Json(false);
-
-			ValueError(std::format("invalid bool parse: {}", json_str));
-			return None<Json>;
-		}
-
-
-		def _parse_null(JsonStr& json_str) -> Json
-		{
-			if (json_str == JsonStr("null", 4))
-				return Json();
-
-			ValueError(std::format("invalid null parse: {}", json_str));
-			return None<Json>;
-		}
-
-
-		def _parse_simple(JsonStr& json_str) -> Json
-		{
-			if (json_str[0].isdigit())  // number类型
-				return _parse_num(json_str);
-			else if (json_str[0] == "n") // null类型
-				return _parse_null(json_str);
-			else if (json_str[0] == "t" || json_str[0] == "f") // bool类型
-				return _parse_bool(json_str);
-
-			ValueError(std::format("invalid simple parse: {}", json_str));
-			return None<Json>;
-		}
-
-
-		def parse_first_object(JsonStr& json_str, const JsonStr& stop_sign) -> std::pair<Json, JsonStr>
-		{
-			json_str = json_str.strip();
-			if (json_str.size() == 0)
-				ValueError("json_str is empty");
-
-			JsonStr match;
-			if (json_str[0] == "[")
+			// 解析 number, bool, null
+			Json _parse_simple(JsonStr& json_str) const
 			{
-				match = json_str.match("[", "]");
+				if (json_str.startswith("null")) // null类型
+				{
+					json_str = json_str.slice(4);
+					return Json();
+				}
+				else if (json_str.startswith("true"))
+				{
+					json_str = json_str.slice(4);
+					return Json(true);
+				}
+				else if (json_str.startswith("false"))
+				{
+					json_str = json_str.slice(5);
+					return Json(false);
+				}
+				else if (json_str.startswith("-") || json_str[0].isdigit()) // number类型
+				{
+					bool float_flag = false;
+					c_size r = 1;
+					while (r < json_str.size())
+					{
+						if (json_str[r].isdigit())
+						{
+							++r;
+							continue;
+						}
+
+						if (json_str[r] == "." && !float_flag)
+						{
+							float_flag = true;
+							++r;
+							continue;
+						}
+						break;
+					}
+
+					auto num_part = json_str.slice(0, r);
+					json_str = json_str.slice(r);
+
+					return ifelse(float_flag, make_float(num_part.to_double()), make_int(num_part.to_int()));
+				}
+
+				ValueError(std::format("invalid simple parse: {}", json_str));
+				return None<Json>;
 			}
-			else if (json_str[0] == "{")
+
+			// 返回一个可以被实际解析为Json对象的字符串
+			Json parse_obj(JsonStr& json_str) const
 			{
-				match = json_str.match("{", "}");
-			}
-			else if (json_str[0] == "\"")
-			{
-				match = json_str.slice(0, json_str.find("\"", 1) + 1);
-			}
-			else
-			{
-				c_size stop_sign_idx = json_str.find(stop_sign);
-				if (stop_sign_idx == -1)
-					match = json_str;
+				if (json_str.startswith("{"))  // dict类型
+				{
+					return _parse_dict(json_str);
+				}
+				else if (json_str.startswith("["))  // array类型)
+				{
+					return _parse_array(json_str);
+				}
+				else if (json_str[0].startswith("\""))  // str类型
+					return _parse_str(json_str);
 				else
-					match = json_str.slice(0, stop_sign_idx);
+					return _parse_simple(json_str);
 			}
 
-			JsonStr other_str = json_str.slice(match.size()).strip();
-
-			// 还有剩余
-			if (other_str.size())
-				if (!other_str.startswith(stop_sign))
-					ValueError(std::format("stop_sign '{}' not found, other_str: {}", stop_sign, other_str));
-				else
-					other_str = other_str.slice(stop_sign.size()).strip();
-
-			return { parse(match), other_str };
-		}
-
-
-		// 解析array
-		def _parse_array(JsonStr& json_str) -> Json
-		{
-			JsonArray arr;
-			// 去掉 []
-			json_str = json_str.slice(1, -1).strip();
-			while (json_str.size())
+			// 解析array
+			Json _parse_array(JsonStr& json_str) const
 			{
-				auto [item, _json_str] = parse_first_object(json_str, ",");
-				arr.append(item);
-				json_str = _json_str;
+				JsonArray arr;
+				// 去掉 [
+				c_size pos = first_non_space(json_str, 1);
+				json_str = json_str.slice(pos);
+
+				while (json_str[0] != "]"as)
+				{
+					arr.append(parse_obj(json_str));
+					
+					pos = first_non_space(json_str);
+					if (json_str[pos] == "]"as)
+					{
+						json_str = json_str.slice(first_non_space(json_str, pos + 1));
+						break;
+					}
+					else if (json_str[pos] == ","as)
+					{
+						json_str = json_str.slice(first_non_space(json_str, pos + 1));
+						continue;
+					}
+					
+					ValueError(std::format("invalid array parse: {}", json_str));
+					return None<Json>;
+				}
+
+				return Json(std::move(arr));
 			}
 
-			return Json(std::move(arr));
-		}
 
-
-		// 解析dict
-		def _parse_dict(JsonStr& json_str) -> Json
-		{
-			JsonDict dict;
-			json_str = json_str.slice(1, -1).strip();
-
-			while (json_str.size())
+			// 解析dict
+			Json _parse_dict(JsonStr& json_str) const
 			{
-				auto [key, _json_str1] = parse_first_object(json_str, ":");
-				json_str = _json_str1;
+				JsonDict dict;
+				// 去掉 {
+				c_size pos = first_non_space(json_str, 1);
+				json_str = json_str.slice(pos);
 
-				auto [value, _json_str2] = parse_first_object(json_str, ",");
-				json_str = _json_str2;
+				while (json_str[0] != "}"as)
+				{
+					Json key = parse_obj(json_str);
+					if (!key.is_str())
+					{
+						ValueError(std::format("invalid dict key parse: {}", json_str));
+						return None<Json>;
+					}
+					pos = first_non_space(json_str);
+					if (json_str[pos] != ":"as)
+					{
+						ValueError(std::format("invalid dict parse: {}", json_str));
+						return None<Json>;
+					}
+					json_str = json_str.slice(first_non_space(json_str, pos + 1));
 
-				dict[key.as_str()] = std::move(value);
+					dict[key.as_str()] = parse_obj(json_str);
+
+					pos = first_non_space(json_str);
+					if (json_str[pos] == "}"as)
+					{
+						json_str = json_str.slice(first_non_space(json_str, pos + 1));
+						break;
+					}
+					else if (json_str[pos] == ","as)
+					{
+						json_str = json_str.slice(first_non_space(json_str, pos + 1));
+						continue;
+					}
+
+					ValueError(std::format("invalid dict parse: {}", json_str));
+					return None<Json>;
+				}
+
+				return Json(std::move(dict));
 			}
 
-			return Json(std::move(dict));
-		}
+		private:
+			// 从pos开始第一个不是空白符的位置
+			c_size first_non_space(const JsonStr& json_str, c_size pos=0) const
+			{
+				while (pos < json_str.size() && json_str[pos].isspace()) ++pos;
+				return pos;
+			}
+		};
 	}
 }
 
