@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "Array.hpp"
+#include "DynArray.hpp"
 #include "base/AChar.hpp"
 #include "base/View.hpp"
 
@@ -192,7 +193,7 @@ namespace ayr
 				if (pos == -1) break;
 				result.append(pos);
 				pos += pattern.size();
-				-- count;
+				--count;
 			}
 			return result.to_array();
 		}
@@ -434,7 +435,7 @@ namespace ayr
 			if (indices.front() != 0) res_size += 1;
 			if (indices.back() + p_size != size_) res_size += 1;
 			Array<self> result(res_size, encoding());
-			
+
 			c_size k = 0;
 			if (indices.front() != 0) result[k++] = slice(0, indices.front());
 			for (c_size i = 1; i < indices.size(); ++i)
@@ -487,7 +488,7 @@ namespace ayr
 
 			if (dot_indices.size() == 0)
 				return to_int();
-			
+
 			if (dot_indices.size() == 1)
 			{
 				self int_part = slice(0, dot_indices[0]);
