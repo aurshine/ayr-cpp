@@ -22,7 +22,7 @@ namespace ayr
 			Json _parse_str(JsonStr& json_str) const
 			{
 				for (c_size i = 1, n = json_str.size(); i < n; i++)
-					if (json_str[i] == "\""as && json_str[i - 1] != "\\"as)
+					if (json_str.atchar(i) == '"' && json_str.atchar(i - 1) != '\\')
 					{
 						JsonStr str_part = json_str.slice(1, i);
 						json_str = json_str.slice(i + 1);
@@ -51,7 +51,7 @@ namespace ayr
 					json_str = json_str.slice(5);
 					return Json(false);
 				}
-				else if (json_str.startswith("-") || json_str[0].isdigit()) // number类型
+				else if (json_str.atchar(0) == '-' || json_str[0].isdigit()) // number类型
 				{
 					bool float_flag = false;
 					c_size r = 1;
@@ -63,7 +63,7 @@ namespace ayr
 							continue;
 						}
 
-						if (json_str[r] == "." && !float_flag)
+						if (json_str.atchar(r) == '.' && !float_flag)
 						{
 							float_flag = true;
 							++r;
@@ -85,15 +85,15 @@ namespace ayr
 			// 返回一个可以被实际解析为Json对象的字符串
 			Json parse_obj(JsonStr& json_str) const
 			{
-				if (json_str.startswith("{"))  // dict类型
+				if (json_str.atchar(0) == '{')  // dict类型
 				{
 					return _parse_dict(json_str);
 				}
-				else if (json_str.startswith("["))  // array类型)
+				else if (json_str.atchar(0) == '[')  // array类型)
 				{
 					return _parse_array(json_str);
 				}
-				else if (json_str[0].startswith("\""))  // str类型
+				else if (json_str.atchar(0) == '"')  // str类型
 					return _parse_str(json_str);
 				else
 					return _parse_simple(json_str);
@@ -107,17 +107,17 @@ namespace ayr
 				c_size pos = first_non_space(json_str, 1);
 				json_str = json_str.slice(pos);
 
-				while (json_str[0] != "]"as)
+				while (json_str.atchar(0) != ']')
 				{
 					arr.append(parse_obj(json_str));
 					
 					pos = first_non_space(json_str);
-					if (json_str[pos] == "]"as)
+					if (json_str.atchar(pos) == ']')
 					{
 						json_str = json_str.slice(first_non_space(json_str, pos + 1));
 						break;
 					}
-					else if (json_str[pos] == ","as)
+					else if (json_str.atchar(pos) == ',')
 					{
 						json_str = json_str.slice(first_non_space(json_str, pos + 1));
 						continue;
@@ -139,7 +139,7 @@ namespace ayr
 				c_size pos = first_non_space(json_str, 1);
 				json_str = json_str.slice(pos);
 
-				while (json_str[0] != "}"as)
+				while (json_str.atchar(0) != '}')
 				{
 					Json key = parse_obj(json_str);
 					if (!key.is_str())
@@ -148,7 +148,7 @@ namespace ayr
 						return None<Json>;
 					}
 					pos = first_non_space(json_str);
-					if (json_str[pos] != ":"as)
+					if (json_str.atchar(pos) != ':')
 					{
 						ValueError(std::format("invalid dict parse: {}", json_str));
 						return None<Json>;
@@ -158,12 +158,12 @@ namespace ayr
 					dict[key.as_str()] = parse_obj(json_str);
 
 					pos = first_non_space(json_str);
-					if (json_str[pos] == "}"as)
+					if (json_str.atchar(pos) == '}')
 					{
 						json_str = json_str.slice(first_non_space(json_str, pos + 1));
 						break;
 					}
-					else if (json_str[pos] == ","as)
+					else if (json_str.atchar(pos) == ',')
 					{
 						json_str = json_str.slice(first_non_space(json_str, pos + 1));
 						continue;
