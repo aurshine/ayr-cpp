@@ -81,10 +81,20 @@ namespace ayr
 	}
 
 	template<AyrObject T, typename U>
-	bool operator==(const T& a, const U& b) { return a.__equals__(b); }
+	bool operator==(const T& a, const U& b) 
+	{ 
+		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
+			return a.__equals__(b); 
+		return a.__cmp__(b) == 0;
+	}
 
 	template<AyrObject T, typename U>
-	bool operator!=(const T& a, const U& b) { return !a.__equals__(b); }
+	bool operator!=(const T& a, const U& b) 
+	{
+		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
+			return !a.__equals__(b); 
+		return a.__cmp__(b) != 0;
+	}
 
 	template<AyrObject T, typename U>
 	bool operator>(const T& a, const U& b) { return a.__cmp__(b) > 0; }
