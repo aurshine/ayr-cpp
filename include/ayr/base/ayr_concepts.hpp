@@ -43,7 +43,7 @@ namespace ayr
 	template<typename T>
 	concept AyrPrintable = requires(T t)
 	{
-		{ t.__str__() } -> ConveribleToCstr;
+		{ t.__str__() } -> std::same_as<CString>;
 	};
 
 	template<typename T>

@@ -40,6 +40,8 @@ namespace ayr
 	// 空值, 不会被使用, 仅用于占位符
 	template<typename T>
 	T& None = *static_cast<std::remove_reference_t<T>*>(nullptr);
+
+	class CString;
 }
 
 #endif
