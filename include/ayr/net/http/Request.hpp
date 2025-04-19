@@ -21,12 +21,16 @@ namespace ayr
 
 		Atring body;
 
-		HttpRequest(Atring method, Atring uri, Atring version, Dict<Atring, Atring> headers, Atring body) :
-			method(method), uri(uri), version(version), headers(headers), body(body) {}
+		HttpRequest(const Atring& method, const Atring& uri, const Atring& version, Dict<Atring, Atring> headers, const Atring& body) :
+			method(method),
+			uri(uri),
+			version(version),
+			headers(std::move(headers)),
+			body(body) {}
 
 		HttpRequest(const self& other) : HttpRequest(other.method, other.uri, other.version, other.headers, other.body) {}
 
-		HttpRequest(self&& other) : HttpRequest(std::move(other.method), std::move(other.uri), std::move(other.version), std::move(other.headers), std::move(other.body)) {}
+		HttpRequest(self&& other) noexcept : HttpRequest(other.method, other.uri, other.version, std::move(other.headers), other.body) {}
 
 		self& operator=(const self& other)
 		{
@@ -39,7 +43,7 @@ namespace ayr
 			return *this;
 		}
 
-		self& operator=(self&& other)
+		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
 			method = std::move(other.method);
@@ -61,14 +65,16 @@ namespace ayr
 		*/
 		Atring text() const
 		{
+			DynArray<Atring> lines;
 			Atring request_line = Atring::ajoin(arr({ view_of(method), view_of(uri), view_of(version) }));
-			DynArray<Atring> kvs;
-			for (auto& [k, v] : headers.items())
-				kvs.append(": "as.join(arr({ view_of(k), view_of(v) })));
-			Atring headers_lines = "\n"as.join(kvs);
-			Atring null_line = "";
+			lines.append(request_line);
 
-			return "\r\n"as.join(arr({ view_of(request_line), view_of(headers_lines), view_of(null_line), view_of(body) }));
+			for (auto& [k, v] : headers.items())
+				lines.append(": "as.join(arr({ view_of(k), view_of(v) })));
+			lines.append("");
+			lines.append(body);
+
+			return "\r\n"as.join(lines);
 		}
 	};
 
@@ -99,7 +105,7 @@ namespace ayr
 			if (pos == -1)
 				RuntimeError("parse request line failed, not found \\r\\n");
 
-			Array<Atring> req_datas = data.slice(0, pos).split(" ");
+			Array<Atring> req_datas = data.slice(0, pos).split(" ", 3);
 			if (req_datas.size() != 3)
 				RuntimeError("parse request line failed, req_datas.size() != 3");
 
