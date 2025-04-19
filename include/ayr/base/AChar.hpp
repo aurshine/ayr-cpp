@@ -104,7 +104,7 @@ namespace ayr
 		{
 			if (code_size_ < 1) return -1;
 			if (c != byte_code_[0]) return byte_code_[0] - c;
-			return 1;
+			return code_size_ != 1;
 		}
 
 		void __swap__(self& other)

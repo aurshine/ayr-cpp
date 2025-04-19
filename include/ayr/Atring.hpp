@@ -155,6 +155,14 @@ namespace ayr
 			return m_size - o_size;
 		}
 
+		cmp_t __cmp__(char c) const
+		{
+			if (size() == 0) return -1;
+			cmp_t cmp_ = atchar(0).__cmp__(c);
+			if (cmp_ == 0) return size() != 1;
+			return cmp_;
+		}
+
 		bool __equals__(const self& other) const
 		{
 			c_size m_size = size(), o_size = other.size();
