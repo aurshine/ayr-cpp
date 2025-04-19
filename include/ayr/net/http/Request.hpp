@@ -8,11 +8,11 @@
 
 namespace ayr
 {
-	class RequestInfo : public Object<RequestInfo>
+	class HttpRequest : public Object<HttpRequest>
 	{
-		using self = RequestInfo;
+		using self = HttpRequest;
 
-		using super = Object<RequestInfo>;
+		using super = Object<HttpRequest>;
 
 	public:
 		Atring method, uri, version;
@@ -21,12 +21,12 @@ namespace ayr
 
 		Atring body;
 
-		RequestInfo(Atring method, Atring uri, Atring version, Dict<Atring, Atring> headers, Atring body) :
+		HttpRequest(Atring method, Atring uri, Atring version, Dict<Atring, Atring> headers, Atring body) :
 			method(method), uri(uri), version(version), headers(headers), body(body) {}
 
-		RequestInfo(const self& other) : RequestInfo(other.method, other.uri, other.version, other.headers, other.body) {}
+		HttpRequest(const self& other) : HttpRequest(other.method, other.uri, other.version, other.headers, other.body) {}
 
-		RequestInfo(self&& other) : RequestInfo(std::move(other.method), std::move(other.uri), std::move(other.version), std::move(other.headers), std::move(other.body)) {}
+		HttpRequest(self&& other) : HttpRequest(std::move(other.method), std::move(other.uri), std::move(other.version), std::move(other.headers), std::move(other.body)) {}
 
 		self& operator=(const self& other)
 		{
@@ -74,35 +74,32 @@ namespace ayr
 
 	class RequestParser : public Object<RequestParser>
 	{
-		Atring more_data_;
 	public:
 		RequestParser() {}
 
-		RequestInfo operator()(const Atring& data)
+		HttpRequest operator()(Atring data)
 		{
-			more_data_ += data;
-
 			Dict<Atring, Atring> headers;
 
 			Atring method, uri, version;
 
-			parse_req_line(method, uri, version);
-			parse_headers(headers);
+			parse_req_line(data, method, uri, version);
+			parse_headers(data, headers);
 
-			c_size content_length = headers.get("content-length", "0").to_int();
-			if (more_data_.size() != content_length)
-			RuntimeError("parse request body failed, content_length != body.size()");
+			/*c_size content_length = headers.get("content-length", "0").to_int();
+			if (data.size() != content_length)
+			RuntimeError("parse request body failed, content_length != body.size()");*/
 
-			return RequestInfo(std::move(method), std::move(uri), std::move(version), std::move(headers), std::move(more_data_));
+			return HttpRequest(std::move(method), std::move(uri), std::move(version), std::move(headers), std::move(data));
 		}
 	private:
-		void parse_req_line(Atring& method, Atring& uri, Atring& version)
+		void parse_req_line(Atring& data, Atring& method, Atring& uri, Atring& version)
 		{
-			c_size pos = more_data_.find("\r\n");
+			c_size pos = data.find("\r\n");
 			if (pos == -1)
 				RuntimeError("parse request line failed, not found \\r\\n");
 
-			Array<Atring> req_datas = more_data_.slice(0, pos).split(" ");
+			Array<Atring> req_datas = data.slice(0, pos).split(" ");
 			if (req_datas.size() != 3)
 				RuntimeError("parse request line failed, req_datas.size() != 3");
 
@@ -110,15 +107,15 @@ namespace ayr
 			uri = std::move(req_datas[1]);
 			version = std::move(req_datas[2]);
 
-			more_data_ = more_data_.slice(pos + 2);
+			data = data.slice(pos + 2);
 		}
 
-		void parse_headers(Dict<Atring, Atring>& headers)
+		void parse_headers(Atring& data, Dict<Atring, Atring>& headers)
 		{
-			c_size pos = more_data_.find("\r\n\r\n");
+			c_size pos = data.find("\r\n\r\n");
 			if (pos == -1) RuntimeError("parse headers failed, not found \\r\\n\\r\\n");
 
-			Atring headers_datas = more_data_.slice(0, pos);
+			Atring headers_datas = data.slice(0, pos);
 			for (const Atring& kv_str : headers_datas.split("\r\n"))
 			{
 				c_size pos = kv_str.find(":");
@@ -126,7 +123,7 @@ namespace ayr
 				headers.insert(kv_str.slice(0, pos).lower().strip(), kv_str.slice(pos + 1).lower().strip());
 			}
 
-			more_data_ = more_data_.slice(pos + 4);
+			data = data.slice(pos + 4);
 		}
 	};
 }
