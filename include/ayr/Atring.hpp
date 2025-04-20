@@ -106,9 +106,11 @@ namespace ayr
 
 		self operator* (size_t n) const { return ajoin(Array<ViewOF<self>>(n, view_of(*this))); }
 
-		self at(c_size index) const { return slice(index, index + 1); }
-
 		const AChar& atchar(c_size index) const { return achars_[index]; }
+
+		std::ranges::subrange<const AChar*> chars() const { return std::ranges::subrange<const AChar*>(achars_, achars_ + length_); }
+
+		self at(c_size index) const { return slice(index, index + 1); }
 
 		self operator[] (c_size index) const { return at(neg_index(index, size())); }
 
@@ -127,16 +129,10 @@ namespace ayr
 
 		CString __str__() const
 		{
-			CString result(byte_size());
-
-			c_size pos = 0;
-			for (int i = 0, m_size = size(); i < m_size; ++i)
-			{
-				c_size c_size_ = atchar(i).size();
-				std::memcpy(result.data() + pos, atchar(i).data(), c_size_);
-				pos += c_size_;
-			}
-			return result;
+			DynArray<CString> results;
+			for (c_size i = 0, m_size = size(); i < m_size; ++i)
+				results.append(atchar(i).__str__());
+			return CString::cjoin(results);
 		}
 
 		hash_t __hash__() const { return __str__().__hash__(); }
@@ -146,10 +142,8 @@ namespace ayr
 			c_size m_size = size(), o_size = other.size();
 			for (c_size i = 0, j = 0; i < m_size && j < o_size; ++i, ++j)
 			{
-				if (atchar(i) < other.atchar(j))
-					return -1;
-				else if (atchar(i) > other.atchar(j))
-					return 1;
+				cmp_t cmp_ = atchar(i).__cmp__(other.atchar(j));
+				if (cmp_ != 0) return cmp_;
 			}
 
 			return m_size - o_size;
@@ -205,6 +199,8 @@ namespace ayr
 			}
 			return result.to_array();
 		}
+
+		c_size count(const self& pattern) const { return find_all(pattern).size(); }
 
 		// 切片[start, end)，内容浅拷贝
 		self slice(c_size start, c_size end) const
