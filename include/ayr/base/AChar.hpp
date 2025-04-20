@@ -23,94 +23,64 @@ namespace ayr
 
 		static const Array<AChar> UPPER_CASE_LETTER;
 
-		AChar() : byte_code_(nullptr), code_size_(0) {}
+		AChar() { std::memset(byte_code_, 0, sizeof(byte_code_)); }
 
-		AChar(char c) : byte_code_(ayr_alloc<char>(1)), code_size_(1) { byte_code_[0] = c; }
+		AChar(char c) : AChar() { byte_code_[0] = c; }
 
-		AChar(const char* data_, Encoding* encoding)
+		AChar(const char* data_, Encoding* encoding) : AChar()
 		{
-			code_size_ = encoding->byte_size(data_);
-			byte_code_ = ayr_alloc<char>(code_size_);
-			std::memcpy(data(), data_, code_size_);
+			int code_size = encoding->byte_size(data_);
+			std::memcpy(byte_code_, data_, code_size);
 		}
 
 		AChar(int code, Encoding* encoding) : AChar(encoding->chr(code).data(), encoding) {}
 
-		AChar(const self& other)
-		{
-			code_size_ = other.size();
-			byte_code_ = ayr_alloc<char>(code_size_);
-			std::memcpy(data(), other.data(), code_size_);
-		}
-
-		AChar(self&& other) noexcept : byte_code_(std::exchange(other.byte_code_, nullptr)), code_size_(std::exchange(other.code_size_, 0)) {}
-
-		~AChar() { ayr_desloc(byte_code_, code_size_); code_size_ = 0; };
+		AChar(const self& other) { std::memcpy(byte_code_, other.byte_code_, sizeof(byte_code_)); }
 
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			if (size() < other.size())
-			{
-				ayr_desloc(byte_code_, code_size_);
-				byte_code_ = ayr_alloc<char>(other.size());
-			}
-			code_size_ = other.size();
-			std::memcpy(data(), other.data(), code_size_);
-			return *this;
-		}
-
-		self& operator=(self&& other) noexcept
-		{
-			if (this == &other) return *this;
-			ayr_desloc(byte_code_, code_size_);
-			byte_code_ = std::exchange(other.byte_code_, nullptr);
-			code_size_ = std::exchange(other.code_size_, 0);
+			std::memcpy(byte_code_, other.byte_code_, sizeof(byte_code_));
 			return *this;
 		}
 
 		self& operator=(char c)
 		{
-			if (code_size_ < 1)
-				byte_code_ = ayr_alloc<char>(1);
-
-			code_size_ = 1;
+			std::memset(byte_code_, 0, sizeof(byte_code_));
 			byte_code_[0] = c;
 			return *this;
 		}
 
-		char* data() noexcept { return byte_code_; }
-
-		// 返回字节码
-		const char* data() const noexcept { return byte_code_; }
-
 		// 返回字节码长度
-		c_size size() const noexcept { return code_size_; }
+		c_size size() const noexcept
+		{
+			c_size size = 0;
+			while (size < 4 && byte_code_[size] != 0) ++size;
+			return size;
+		}
 
-		CString __str__() const { return CString(data(), size()); }
+		CString __str__() const { return CString(byte_code_, size()); }
 
-		hash_t __hash__() const { return bytes_hash(data(), size()); }
+		hash_t __hash__() const { return bytes_hash(byte_code_, size()); }
 
 		cmp_t __cmp__(const self& other)  const
 		{
-			c_size m_size = size(), o_size = other.size();
-			if (m_size != o_size)
-				return m_size - o_size;
-			else
-				return std::memcmp(data(), other.data(), m_size);
+			return std::memcmp(byte_code_, other.byte_code_, sizeof(byte_code_));
 		}
 
 		cmp_t __cmp__(char c) const
 		{
-			if (code_size_ < 1) return -1;
-			if (c != byte_code_[0]) return byte_code_[0] - c;
-			return code_size_ != 1;
+			if (byte_code_[0] == c)
+				return byte_code_[1];
+			return byte_code_[0] - c;
 		}
 
 		void __swap__(self& other)
 		{
-			swap(byte_code_, other.byte_code_);
-			swap(code_size_, other.code_size_);
+			char temp[4];
+			std::memcpy(temp, byte_code_, sizeof(byte_code_));
+			std::memcpy(byte_code_, other.byte_code_, sizeof(byte_code_));
+			std::memcpy(other.byte_code_, temp, sizeof(byte_code_));
 		}
 
 		operator char() const
@@ -122,7 +92,7 @@ namespace ayr
 		}
 
 		// 转换为整数
-		int ord(Encoding* encoding) const { return encoding->ord(data(), size()); }
+		int ord(Encoding* encoding) const { return encoding->ord(byte_code_, size()); }
 
 		// 转换为大写字母
 		self upper() const
@@ -156,9 +126,7 @@ namespace ayr
 		// 是否为ASCII字符
 		bool isasciii() const { return byte_code_[0] < 0x80; }
 	private:
-		char* byte_code_;
-
-		int8_t code_size_;
+		char byte_code_[4];
 	};
 
 	const Array<AChar> AChar::SPACE = { '\0', '\t', '\n', '\r', '\v', '\f', ' ' };
