@@ -1,12 +1,12 @@
 #ifndef AYR_FS_WIN_WINLIB_HPP
 #define AYR_FS_WIN_WINLIB_HPP
 
+#include "../../base/CString.hpp"
+
 #include <WinSock2.h>
 #include <Windows.h>
 #include <fileapi.h>
 #include <WS2tcpip.h>
-
-#include "../../base/CString.hpp"
 
 #pragma comment(lib, "Ws2_32.lib")
 

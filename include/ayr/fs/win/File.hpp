@@ -16,24 +16,23 @@ namespace ayr
 		{
 			using self = AyrFile;
 		public:
-			AyrFile(const char* filename, CString mode)
+			AyrFile(const char* filename, CString mode): fh(INVALID_HANDLE_VALUE)
 			{
 				int dwDesiredAccess = 0, dwCreationDisposition = 0;
-				if (mode == cstr("w"))
+				if (mode == "w")
 				{
 					dwDesiredAccess = GENERIC_WRITE;
 					dwCreationDisposition = CREATE_ALWAYS;
 				}
-				else if (mode == cstr("r"))
+				else if (mode == "r")
 				{
 					dwDesiredAccess = GENERIC_READ;
 					dwCreationDisposition = OPEN_EXISTING;
 				}
-				else if (mode == cstr("a"))
+				else if (mode == "a")
 				{
 					dwDesiredAccess = FILE_APPEND_DATA;
 					dwCreationDisposition = OPEN_ALWAYS;
-					SetFilePointer(fh, 0, nullptr, FILE_END);
 				}
 				else
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
@@ -50,6 +49,8 @@ namespace ayr
 
 				if (fh == INVALID_HANDLE_VALUE)
 					SystemError("Invalid HANDLE value, Failed to create or open file");
+				
+				if (mode == "a") SetFilePointer(fh, 0, nullptr, FILE_END);
 			}
 
 			AyrFile(self&& file) noexcept : fh(file.fh) { file.fh = nullptr; }
@@ -62,7 +63,14 @@ namespace ayr
 
 			~AyrFile() { close(); }
 
-			void close() { CloseHandle(fh); fh = nullptr; }
+			void close() 
+			{ 
+				if (fh != INVALID_HANDLE_VALUE)
+				{
+					CloseHandle(fh);
+					fh = nullptr;
+				}
+			}
 
 			void write(const char* c) const
 			{
