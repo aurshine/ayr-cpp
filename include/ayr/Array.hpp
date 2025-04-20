@@ -61,12 +61,12 @@ namespace ayr
 	};
 
 	template<std::input_or_output_iterator ...Its>
-	class ZipIterator : public IteratorInfo<ZipIterator<Its...>, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::value_type&...>>
+	class ZipIterator : public IteratorInfo<ZipIterator<Its...>, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::reference...>>
 	{
 	public:
 		using self = ZipIterator<Its...>;
 
-		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::value_type&...>>;
+		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<typename std::iterator_traits<Its>::reference...>>;
 
 		ZipIterator() : its_() {}
 
@@ -123,11 +123,11 @@ namespace ayr
 	}
 
 	template<typename It>
-	class EnumerateIterator : public IteratorInfo<EnumerateIterator<It>, NonContainer, std::forward_iterator_tag, std::tuple<c_size&, typename std::iterator_traits<It>::value_type&>>
+	class EnumerateIterator : public IteratorInfo<EnumerateIterator<It>, NonContainer, std::forward_iterator_tag, std::tuple<c_size&, typename std::iterator_traits<It>::reference>>
 	{
 		using self = EnumerateIterator<It>;
 
-		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<c_size, typename std::iterator_traits<It>::value_type&>>;
+		using ItInfo = IteratorInfo<self, NonContainer, std::forward_iterator_tag, std::tuple<c_size, typename std::iterator_traits<It>::reference>>;
 
 		c_size current_;
 
