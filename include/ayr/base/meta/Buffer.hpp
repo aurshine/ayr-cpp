@@ -118,7 +118,7 @@ namespace ayr
 		template<typename T>
 		def meta_repr(const T& value)
 		{
-			*this << "<" << dtype(T) << " " << &value << ">";
+			*this << "<" << dtype(T) << " 0x" << &value << ">";
 		}
 
 		template<typename T>
