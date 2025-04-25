@@ -66,7 +66,7 @@ namespace ayr
 		Atring text() const
 		{
 			DynArray<Atring> lines;
-			Atring request_line = Atring::ajoin(arr({ view_of(method), view_of(uri), view_of(version) }));
+			Atring request_line = " "as.join(arr({ view_of(method), view_of(uri), view_of(version) }));
 			lines.append(request_line);
 
 			for (auto& [k, v] : headers.items())

@@ -183,6 +183,18 @@ namespace ayr
 			return ss.str();
 		}
 
+		void __repr__(Buffer& buffer) const
+		{
+			buffer << "[";
+			for (auto it = super::derived().begin(), end_ = super::derived().end(); it != end_; ++it)
+			{
+				buffer << *it;
+				if (std::next(it) != end_)
+					buffer << ", ";
+			}
+			buffer << "]";
+		}
+
 		Iterator begin() { return Iterator(this, 0); }
 
 		Iterator end() { return Iterator(this, super::derived().size()); }

@@ -4,10 +4,8 @@
 #include <array>
 
 #include "bunit.hpp"
-#include "hash.hpp"
 #include "IteratorInfo.hpp"
 #include "raise_error.hpp"
-
 #include "../DynArray.hpp"
 
 namespace ayr
@@ -334,6 +332,13 @@ namespace ayr
 			return std::format("[hashv:{} dist:{} value:{}]", hashv, dist, value());
 		}
 
+		void __repr__(Buffer& buffer) const
+		{
+			if (!used()) buffer << "[unused]";
+			else
+				buffer << "[hashv:" << hashv << " dist:" << dist << " value:" << value() << "]";
+		}
+
 		void __swap__(self& other)
 		{
 			swap(hashv, other.hashv);
@@ -552,8 +557,14 @@ namespace ayr
 		{
 			DynArray<CString> strs;
 			for (c_size i = 0, n = capacity(); i < n; ++i)
-				strs.append(items_[i].__str__());
+				strs.append(cstr(items_[i]));
 			return cstr("\n").join(strs);
+		}
+
+		void __repr__(Buffer& buffer) const
+		{
+			for (c_size i = 0, n = capacity(); i < n; ++i)
+				buffer << items_[i];
 		}
 
 		void __swap__(self& other)

@@ -61,6 +61,8 @@ namespace ayr
 
 		CString __str__() const { return CString(byte_code_, size()); }
 
+		void __repr__(Buffer& buffer) const { buffer.append_bytes(byte_code_, size()); }
+
 		hash_t __hash__() const { return bytes_hash(byte_code_, size()); }
 
 		cmp_t __cmp__(const self& other)  const

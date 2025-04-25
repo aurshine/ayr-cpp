@@ -2,8 +2,6 @@
 #define AYR_FS_WIN_FILE_HPP
 
 #include <cstdio>
-#include <atomic>
-#include <memory>
 
 #include "Path.hpp"
 

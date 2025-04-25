@@ -3,7 +3,6 @@
 
 
 #include "base/Array.hpp"
-#include "base/ayr_concepts.hpp"
 
 
 namespace ayr

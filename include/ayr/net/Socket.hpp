@@ -6,7 +6,6 @@
 #include "SockAddr.hpp"
 #include "startsocket.hpp"
 #include "../Atring.hpp"
-#include "../base/Buffer.hpp"
 
 namespace ayr
 {

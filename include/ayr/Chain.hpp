@@ -1,11 +1,8 @@
 #ifndef AYR_CHAIN2_HPP
 #define AYR_CHAIN2_HPP
 
-#include "./base/ayr_traits.hpp"
-#include "./base/ayr_concepts.hpp"
-#include "./base/IteratorInfo.hpp"
-#include "./base/raise_error.hpp"
-#include "./base/Sequence.hpp"
+#include "base/raise_error.hpp"
+#include "base/Sequence.hpp"
 
 
 namespace ayr

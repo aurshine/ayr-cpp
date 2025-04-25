@@ -164,6 +164,22 @@ namespace ayr
 			return CString::cjoin(strs);
 		}
 
+		void __repr__(Buffer& buffer) const
+		{
+			buffer << "{";
+			bool first = true;
+			for (auto& v : *this)
+			{
+				if (first)
+					first = false;
+				else 
+					buffer << ", ";
+
+				buffer << v;
+			}
+			buffer << "}";
+		}
+
 		bool __equals__(const self& other)
 		{
 			if (size() != other.size())

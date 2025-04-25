@@ -4,9 +4,10 @@
 #include <iosfwd>
 #include <utility>
 
-#include "CString.hpp"
-#include "ayr_concepts.hpp"
-
+#include "meta/ayr_concepts.hpp"
+#include "meta/Buffer.hpp"
+#include "meta/CString.hpp"
+#include "meta/hash.hpp"
 
 namespace ayr
 {
@@ -29,20 +30,6 @@ namespace ayr
 		Derived& derived() { return static_cast<Derived&>(*this); }
 
 		const Derived& derived() const { return static_cast<const Derived&>(*this); }
-
-		// 转换为 字符串 类型
-		CString __str__() const
-		{
-			std::string type_name = dtype(Derived);
-			int s_len = type_name.size() + 22;
-			CString s(s_len);
-#ifdef _MSC_VER
-			sprintf_s(s.data(), s_len, "<%s 0x%p>", type_name.c_str(), this);
-#else
-			std::sprintf(s.data(), "<%s 0x%p>", type_name.c_str(), this);
-#endif
-			return s;
-		}
 
 		// hash 编码
 		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None<hash_t>; }

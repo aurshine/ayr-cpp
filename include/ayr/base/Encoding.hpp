@@ -17,6 +17,8 @@ namespace ayr
 
 		virtual CString __str__() const { return "Encoding"; }
 
+		virtual void __repr__(Buffer& buffer) const { buffer << "Encoding"; }
+
 		// 返回当前编码方式，开头字符的字节数
 		virtual int byte_size(const char* data) const = 0;
 
@@ -39,6 +41,8 @@ namespace ayr
 
 		CString __str__() const override { return "ASCII"; }
 
+		void __repr__(Buffer& buffer) const override { buffer << "ASCII"; }
+
 		constexpr int byte_size(const char* data) const override { return 1; }
 
 		constexpr int ord(const char* data, int size = -1) const override { return data[0]; }
@@ -57,6 +61,8 @@ namespace ayr
 		constexpr UTF8Encoding() = default;
 
 		CString __str__() const override { return "UTF8"; }
+
+		void __repr__(Buffer& buffer) const override { buffer << "UTF8"; }
 
 		constexpr int byte_size(const char* data) const override
 		{
@@ -139,6 +145,8 @@ namespace ayr
 
 		CString __str__() const  override { return "UTF16"; }
 
+		void __repr__(Buffer& buffer) const override { buffer << "UTF16"; }
+
 		constexpr int byte_size(const char* data) const override
 		{
 			// 检查是否是代理对
@@ -209,6 +217,8 @@ namespace ayr
 
 		CString __str__() const  override { return "UTF32"; }
 
+		void __repr__(Buffer& buffer) const override { buffer << "UTF32"; }
+
 		constexpr int byte_size(const char* data) const override { return 4; }
 
 		constexpr int ord(const char* data, int size = -1) const override
@@ -238,6 +248,8 @@ namespace ayr
 		constexpr GB2312Encoding() = default;
 
 		CString __str__() const  override { return "GB2312"; }
+
+		void __repr__(Buffer& buffer) const override { buffer << "GB2312"; }
 
 		int byte_size(const char* data) const override
 		{

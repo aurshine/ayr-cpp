@@ -6,7 +6,6 @@
 #include <thread>
 
 #include "Task.hpp"
-#include "../base/ayr_traits.hpp"
 
 namespace ayr
 {

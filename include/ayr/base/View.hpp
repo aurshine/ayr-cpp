@@ -87,6 +87,8 @@ namespace ayr
 
 		CString __str__() const { return cstr(get()); }
 
+		void __repr__(Buffer& buffer) const { buffer << get(); }
+
 		bool __equals__(const ConstValue_t& other) const { return view_.__equals__(other); }
 
 		void __swap__(ConstValue_t& other) { swap(view_, other); }

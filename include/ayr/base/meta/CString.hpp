@@ -157,43 +157,77 @@ namespace ayr
 		char* str;
 	};
 
+	template<typename T>
+	der(CString) meta_cstr(const T& value)
+	{
+		std::string type_name = dtype(value);
+		int s_len = type_name.size() + 22;
+		CString s(s_len);
+#ifdef _MSC_VER
+		sprintf_s(s.data(), s_len, "<%s 0x%p>", type_name.c_str(), this);
+#else
+		std::sprintf(s.data(), "<%s 0x%p>", type_name.c_str(), this);
+#endif
+		return s;
+	}
+
+	der(CString) cstr_int(c_size value)
+	{
+		CString tmp(32);
+		sprintf_int(tmp.data(), 32, value);
+		return tmp;
+	}
+
+	der(CString) cstr_float(double value)
+	{
+		CString tmp(32);
+		sprintf_float(tmp.data(), 32, value);
+		return tmp;
+	}
+
+	der(CString) cstr_pointer(const void* value)
+	{
+		CString tmp(32);
+		sprintf_pointer(tmp.data(), 32, value);
+		return tmp;
+	}
+
 	der(CString) cstr(bool value) { return ifelse(value, "true", "false"); }
 
-	der(CString) cstr(char value)
-	{
-		CString ret(1);
-		ret[0] = value;
-		return ret;
-	}
+	der(CString) cstr(char value) { return CString(&value, 1); }
 
 	der(CString) cstr(const char* value) { return value; }
 
-	der(CString) cstr(char* value) { return value; }
-
 	der(CString) cstr(nullptr_t) { return "nullptr"; }
 
-	der(CString) cstr(const std::string& value) { return value; }
-
-	der(CString) cstr(const CString& value) { return value; }
+	der(CString) cstr(const std::string& value) { return CString(value.c_str(), value.size()); }
 
 	der(CString) cstr(const std::string_view& value) { return CString(value.data(), value.size()); }
 
+	der(CString) cstr(const CString& value) { return value; }
+
 	template<typename T>
-		requires Or<std::is_arithmetic_v<T>, std::is_pointer_v<T>>
-	der(CString) cstr(T value)
-	{
-		std::stringstream ss;
-		if constexpr (std::is_pointer_v<T>)
-			ss << "0x" << std::hex;
-		ss << value;
-		return ss.str();
+	der(CString) cstr(const T& value) 
+	{ 
+		if constexpr (hasmethod(T, __str__))
+			return value.__str__();
+		else if constexpr (hasmethod(T, __repr__, std::declval<Buffer&>()))
+		{
+			Buffer buf;
+			value.__repr__(buf);
+			return CString(buf.data(), buf.size());
+		}else if constexpr (std::is_integral_v<T>)
+			return cstr_int(value);
+		else if constexpr (std::is_floating_point_v<T>)
+			return cstr_float(value);
+		else if constexpr (std::is_pointer_v<T>)
+			return cstr_pointer(value);
+		else
+			return meta_cstr(value);
 	}
-
-	template<AyrPrintable T>
-	der(CString) cstr(const T& value) { return value.__str__(); }
-
-	der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
 }
+
+der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
 
 template<>
 struct std::formatter<ayr::CString> : std::formatter<const char*>

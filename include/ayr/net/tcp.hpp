@@ -3,7 +3,6 @@
 
 #include "EventLoopThread.hpp"
 #include "Select.hpp"
-#include "../base/ayr_memory.hpp"
 #include "../base/View.hpp"
 
 namespace ayr

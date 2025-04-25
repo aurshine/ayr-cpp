@@ -10,8 +10,6 @@
 
 namespace ayr
 {
-	class Atring;
-
 	template<Hashable K, typename V>
 	class Dict : public Object<Dict<K, V>>
 	{
@@ -379,6 +377,24 @@ namespace ayr
 
 			strs.append("}");
 			return CString::cjoin(strs);
+		}
+
+		void __repr__(Buffer& buffer) const
+		{
+			buffer << "{";
+			bool first = true;
+			for (auto& [key, value] : items())
+			{
+				if (first)
+					first = false;
+				else
+					buffer << ", ";
+
+				buffer << cstr(key);
+				buffer << ": ";
+				buffer << cstr(value);
+			}
+			buffer << "}";
 		}
 
 		bool __equals__(const self& other) const

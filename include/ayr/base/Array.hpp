@@ -2,10 +2,8 @@
 #define AYR_BASE_ARRAY_HPP
 
 #include "raise_error.hpp"
-#include "ayr_memory.hpp"
 #include "Sequence.hpp"
 #include "View.hpp"
-
 
 namespace ayr
 {

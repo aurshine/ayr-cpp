@@ -5,50 +5,47 @@
 #include <format>
 #include <source_location>
 
-#include "CString.hpp"
 #include "Object.hpp"
-#include "ayr_concepts.hpp"
 
 namespace ayr
 {
-	struct _Flush : public Object<_Flush> {};
-
-	constexpr static const _Flush flush{};
-
-	der(std::ostream&) operator<<(std::ostream& os, const _Flush& flush)
-	{
-		os.flush();
-		return os;
-	}
-
 	class Printer : public Object<Printer>
 	{
 	public:
 		Printer(FILE* file_ptr, CString sw = " ", CString ew = "\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
 
-		template<Printable T0, Printable... Args>
+		template<typename T0, typename... Args>
 		void operator()(const T0& object, const Args&... args) const
 		{
-			__print__(object);
-			if constexpr (sizeof...(args) > 0)
-				((__print__(sw_), __print__(args)), ...);
-			__print__(ew_);
+			Buffer buffer(128);
+			write_buffer(buffer, object, args...);
+			std::fprintf(output_file_, buffer.data());
 		}
 
-		void operator()() const { __print__(ew_); }
+		void operator()() const 
+		{ 
+			Buffer buffer(128);
+			buffer << ew_;
+			std::fprintf(output_file_, buffer.data());
+		}
+
+		void flush() const { std::fflush(output_file_); }
 
 		// 设置输出结束符
 		void setend(CString ew) { ew_ = std::move(ew); }
 
 		// 设置输出分隔符
 		void setsep(CString sw) { sw_ = std::move(sw); }
-
 	protected:
-		void __print__(const _Flush& flush) const { std::fflush(output_file_); }
+		template<typename First, typename... Args>
+		void write_buffer(Buffer& buffer, First&& first, Args&&... args) const
+		{
+			buffer << first;
+			if constexpr (sizeof...(args) > 0)
+				((buffer << sw_ << args), ...);
+			buffer << ew_;
+		}
 
-		template<Printable P>
-		void __print__(const P& object) const { std::fprintf(output_file_, cstr(object)); }
-	private:
 		CString ew_; // 结束符
 
 		CString sw_; // 分隔符
@@ -88,17 +85,24 @@ namespace ayr
 		ColorPrinter(FILE* file_ptr, CString color = Color::WHITE)
 			: Printer(file_ptr), color_(std::move(color)) {}
 
-		template<Printable T, Printable... Args>
+		template<typename T, typename... Args>
 		void operator()(const T& object, const Args&... args) const
 		{
-			opencolor();
-			super::operator()(object, args...);
-			closecolor();
+			Buffer buffer(128);
+			buffer << color_;
+			super::write_buffer(buffer, object, args...);
+			buffer << Color::CLOSE;
+			std::fprintf(output_file_, buffer.data());
 		}
 
-		void opencolor() const { super::__print__(color_); }
-
-		void closecolor() const { super::__print__(Color::CLOSE); }
+		void operator()() const 
+		{
+			Buffer buffer(128);
+			buffer << color_ << ew_;
+			super::operator()();
+			buffer << Color::CLOSE;
+			std::fprintf(output_file_, buffer.data());
+		}
 
 		void setcolor(CString color) { color_ = std::move(color); }
 	private:

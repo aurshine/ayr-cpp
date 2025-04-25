@@ -59,6 +59,8 @@ namespace ayr
 		int get_port() const { return ntohs(addr_.sin_port); }
 
 		CString __str__() const { return std::format("{}:{}", get_ip(), get_port()); }
+
+		void __repr__(Buffer& buffer) const { buffer << get_ip() << ":" << get_port(); }
 	private:
 		sockaddr_in addr_;
 	};

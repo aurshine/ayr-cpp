@@ -130,9 +130,15 @@ namespace ayr
 		CString __str__() const
 		{
 			DynArray<CString> results;
-			for (c_size i = 0, m_size = size(); i < m_size; ++i)
-				results.append(atchar(i).__str__());
+			for (const AChar& c : chars())
+				results.append(cstr(c));
 			return CString::cjoin(results);
+		}
+
+		void __repr__(Buffer& buffer) const
+		{
+			for (const AChar& c : chars())
+				buffer << c;
 		}
 
 		hash_t __hash__() const { return __str__().__hash__(); }

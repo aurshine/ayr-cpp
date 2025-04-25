@@ -1,5 +1,5 @@
-﻿#ifndef AYR_BASE_AYR_H
-#define AYR_BASE_AYR_H
+﻿#ifndef AYR_BASE_META_AYR_H
+#define AYR_BASE_META_AYR_H
 
 #include <cstdint>
 #include <cassert>
@@ -44,4 +44,4 @@ namespace ayr
 	class CString;
 }
 
-#endif
+#endif // AYR_BASE_META_AYR_H
