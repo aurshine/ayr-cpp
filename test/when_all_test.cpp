@@ -1,5 +1,4 @@
 #include "ayr/coro.hpp"
-#include "ayr/base/CString.hpp"
 
 using namespace ayr;
 using namespace coro;
@@ -31,16 +30,16 @@ void when_all_test()
 	asyncio.run();
 }
 
-coro::Task<void> when_any_hello_world()
-{
-	auto a = co_await coro::when_any(hello(), world());
-}
+//coro::Task<void> when_any_hello_world()
+//{
+//	auto a = co_await coro::when_any(hello(), world());
+//}
 
-void when_any_test()
-{
-	asyncio.add(when_any_hello_world());
-	asyncio.run();
-}
+//void when_any_test()
+//{
+//	asyncio.add(when_any_hello_world());
+//	asyncio.run();
+//}
 
 void sleep_sort_test()
 {
@@ -62,6 +61,6 @@ void sleep_sort_test()
 int main()
 {
 	when_all_test();
-	when_any_test();
+	// when_any_test();
 	sleep_sort_test();
 }

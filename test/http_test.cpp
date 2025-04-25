@@ -1,4 +1,4 @@
-#include <ayr/net/http/Request.hpp>
+#include <ayr/net/http.hpp>
 
 using namespace ayr;
 
@@ -12,7 +12,7 @@ int main()
 
 	auto client_fd = http_fd.accept();
 
-	for (int i = 0; i < 5; i++)
+	while (true)
 	{
 		Atring req_str(client_fd.recv(1024));
 		auto req = parser(req_str);
@@ -20,8 +20,11 @@ int main()
 		print(req.text());
 
 		CString msg = "hello world";
+		HttpResponse response("HTTP/1.1", 200, "OK");
+		response.add_header("Content-Type", "text/plain");
+		response.set_body(msg);
 
-		client_fd.send(std::format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{}{}", msg.size() + 1, msg, i));
+		client_fd.send(response.text());
 	}
 
 	client_fd.close();

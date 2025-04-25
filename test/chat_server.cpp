@@ -2,6 +2,7 @@
 
 using namespace ayr;
 
+#ifdef AYR_LINUX
 class ChatServer : public UltraTcpServer<ChatServer>
 {
 	DynArray<Socket> clients;
@@ -25,10 +26,10 @@ public:
 			print("server stopped");
 			return;
 		}
-		else if (message.empty())
+		else if (message == "disconnect")
 		{
 			print("disconnected signal");
-			client.send("bye");
+			disconnected(client);
 			return;
 		}
 
@@ -38,7 +39,7 @@ public:
 				print("sending message to ", c);
 				c.sendall(message);
 			}
-				
+
 	}
 
 	void on_disconnected(const Socket& client)
@@ -58,3 +59,9 @@ int main()
 	server.run();
 	return 0;
 }
+#else
+int main()
+{
+	return 0;
+}
+#endif
