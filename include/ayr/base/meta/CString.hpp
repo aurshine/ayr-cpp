@@ -16,6 +16,8 @@ namespace ayr
 	{
 		using self = CString;
 	public:
+		friend class Buffer;
+
 		CString() : str(ayr_alloc<char>(1)) { std::memset(str, 0, 1); }
 
 		CString(c_size len) : str(ayr_alloc<char>(len + 1)) { std::memset(str, 0, len + 1); }
