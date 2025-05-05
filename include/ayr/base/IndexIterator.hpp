@@ -12,7 +12,7 @@ namespace ayr
 	{
 		using ItInfo = IteratorInfo<IndexIterator<IsConst, C, V>, add_const_t<IsConst, C>, std::random_access_iterator_tag, add_const_t<IsConst, V>>;
 
-		using self = IndexIterator;
+		using self = typename ItInfo::iterator_type;
 	public:
 		IndexIterator() : container_(nullptr), index_(0) {}
 
@@ -24,7 +24,7 @@ namespace ayr
 
 		ItInfo::reference operator*() const { return container_->operator[](index_); }
 
-		ItInfo::pointer operator->() const { return &container_->operator[](index_); }
+		ItInfo::pointer operator->() const { return std::addressof(container_->operator[](index_)); }
 
 		self& operator++() { ++index_; return *this; }
 

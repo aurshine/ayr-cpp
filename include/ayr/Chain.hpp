@@ -254,15 +254,15 @@ namespace ayr
 
 			typename ItInfo::iterator_type& operator++() { node_ = node_->next(); return *this; }
 
-			typename ItInfo::iterator_type operator++(int) { self res = *this; node_ = node_->next(); return res; }
+			typename ItInfo::iterator_type operator++(int) { typename ItInfo::iterator_type res = *this; node_ = node_->next(); return res; }
 
 			typename ItInfo::iterator_type& operator--() { node_ = node_->prev(); return *this; }
 
-			typename ItInfo::iterator_type operator--(int) { self res = *this; node_ = node_->prev(); return res; }
+			typename ItInfo::iterator_type operator--(int) { typename ItInfo::iterator_type res = *this; node_ = node_->prev(); return res; }
 
-			typename ItInfo::iterator_type operator+(ItInfo::difference_type n) { self res = *this; return res += n; }
+			typename ItInfo::iterator_type operator+(ItInfo::difference_type n) const { typename ItInfo::iterator_type res = *this; return res += n; }
 
-			typename ItInfo::iterator_type operator-(ItInfo::difference_type n) { self res = *this; return res -= n; }
+			typename ItInfo::iterator_type operator-(ItInfo::difference_type n) const { typename ItInfo::iterator_type res = *this; return res -= n; }
 
 			typename ItInfo::iterator_type& operator+=(ItInfo::difference_type n)
 			{
@@ -278,11 +278,11 @@ namespace ayr
 				return *this;
 			}
 
-			ItInfo::difference_type operator-(const self& other) const
+			ItInfo::difference_type operator-(const typename ItInfo::iterator_type& other) const
 			{
 				c_size res = 0;
-				Node_t* cur = node_;
-				while (cur != other.node_)
+				Node_t* cur = other.node_;
+				while (cur != node_)
 				{
 					cur = cur->next();
 					++res;
