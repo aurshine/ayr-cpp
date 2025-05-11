@@ -125,7 +125,7 @@ namespace ayr
 	};
 
 	template<typename T>
-	def view_of(T& obj) { return ViewOF<T>(obj); }
+	def view_of(T& obj) { return ViewOF<const std::decay_t<T>>(obj); }
 
 	template<typename T>
 	def view_of(ViewOF<T> obj) { return obj; }
