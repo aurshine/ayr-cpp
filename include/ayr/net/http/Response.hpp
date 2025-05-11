@@ -23,12 +23,15 @@ namespace ayr
 
 		Atring body;
 
-		HttpResponse(const Atring& version, int status_code, const Atring& status_message) :
+		HttpResponse(const Atring& version, int status_code, const Atring& status_message, bool keep_alive = true) :
 			version(version),
 			status_code(status_code),
 			status_message(status_message),
 			headers(),
-			body() {}
+			body() 
+		{
+			this->keep_alive(keep_alive);
+		}
 
 		HttpResponse(const self& other) :
 			version(other.version),
@@ -44,6 +47,7 @@ namespace ayr
 			headers(std::move(other.headers)),
 			body(other.body) {}
 
+		// 添加一个头
 		void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
 
 		// 会自动设置 Content-Length 头
@@ -52,6 +56,15 @@ namespace ayr
 			this->body = body;
 			this->headers.insert("Content-Length", cstr(body.size()));
 		};
+
+		// 设置是否保持连接
+		void keep_alive(bool on)
+		{
+			if (on) 
+				add_header("Connection", "keep-alive");
+			else 
+				add_header("Connection", "close");
+		}
 
 		Atring text() const
 		{
