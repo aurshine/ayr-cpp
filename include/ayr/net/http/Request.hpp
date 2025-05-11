@@ -54,6 +54,27 @@ namespace ayr
 			return *this;
 		}
 
+		Atring path() const { return uri.split("?", 1)[0]; }
+
+		Dict<Atring, Atring> querys() const
+		{
+			Array<Atring> splits = uri.split("?", 1);
+			Dict<Atring, Atring> querys_dict;
+
+			if (splits.size() == 2)
+			{
+				Atring querys_string = splits[1];
+				for (const Atring& kv_str : querys_string.split("&"))
+				{
+					Array<Atring> kv = kv_str.split("=", 1);
+					if (kv.size() != 2) continue;
+					querys_dict.insert(kv[0], kv[1]);
+				}
+			}
+			
+			return querys_dict;
+		}
+
 		/*
 		* 返回请求的文本
 		* request line
