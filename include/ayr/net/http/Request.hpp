@@ -21,6 +21,8 @@ namespace ayr
 
 		Atring body;
 
+		HttpRequest() : method(), uri(), version(), headers(), body() {}
+
 		HttpRequest(const Atring& method, const Atring& uri, const Atring& version, Dict<Atring, Atring> headers, const Atring& body) :
 			method(method),
 			uri(uri),
@@ -54,6 +56,16 @@ namespace ayr
 			return *this;
 		}
 
+		void set_method(const Atring& method) { this->method = method; }
+
+		void set_uri(const Atring& uri) { this->uri = uri; }
+
+		void set_version(const Atring& version) { this->version = version; }
+
+		void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
+
+		void set_body(const Atring& body) { this->body = body; }
+
 		Atring path() const { return uri.split("?", 1)[0]; }
 
 		Dict<Atring, Atring> querys() const
@@ -71,7 +83,7 @@ namespace ayr
 					querys_dict.insert(kv[0], kv[1]);
 				}
 			}
-			
+
 			return querys_dict;
 		}
 
@@ -101,56 +113,102 @@ namespace ayr
 
 	class RequestParser : public Object<RequestParser>
 	{
-	public:
-		RequestParser() {}
-
-		HttpRequest operator()(Atring data)
+		enum class Expect
 		{
-			Dict<Atring, Atring> headers;
+			ExpectReqLine,
+			ExpectHeaders,
+			ExpectBody,
+			Done
+		} parse_expect;
 
-			Atring method, uri, version;
+		Atring buffer;
+	public:
+		RequestParser() : parse_expect(Expect::ExpectReqLine), buffer() {}
 
-			parse_req_line(data, method, uri, version);
-			parse_headers(data, headers);
+		bool operator()(HttpRequest& request, const Atring& data)
+		{
+			buffer += data;
 
-			/*c_size content_length = headers.get("content-length", "0").to_int();
-			if (data.size() != content_length)
-			RuntimeError("parse request body failed, content_length != body.size()");*/
+			// 是否还有更多数据可解析
+			bool has_more = true;
+			while (has_more)
+			{
+				switch (parse_expect)
+				{
+				case Expect::ExpectReqLine:
+					has_more = parse_req_line(request);
+					break;
+				case Expect::ExpectHeaders:
+					has_more = parse_headers(request);
+					break;
+				case Expect::ExpectBody:
+					parse_body(request);
+					has_more = false;
+					break;
+				}
+			}
 
-			return HttpRequest(std::move(method), std::move(uri), std::move(version), std::move(headers), std::move(data));
+			if (parse_expect == Expect::Done)
+			{
+				parse_expect = Expect::ExpectReqLine;
+				return true;
+			}
+
+			return false;
 		}
 	private:
-		void parse_req_line(Atring& data, Atring& method, Atring& uri, Atring& version)
+		bool parse_req_line(HttpRequest& request)
 		{
-			c_size pos = data.find("\r\n");
-			if (pos == -1)
-				RuntimeError("parse request line failed, not found \\r\\n");
+			c_size pos = buffer.find("\r\n");
+			if (pos == -1) return false;
 
-			Array<Atring> req_datas = data.slice(0, pos).split(" ", 3);
+			Atring req_line = buffer.slice(0, pos);
+			buffer = buffer.slice(pos + 2);
+
+			Array<Atring> req_datas = req_line.split(" ", 3);
 			if (req_datas.size() != 3)
 				RuntimeError("parse request line failed, req_datas.size() != 3");
 
-			method = std::move(req_datas[0]);
-			uri = std::move(req_datas[1]);
-			version = std::move(req_datas[2]);
+			request.set_method(std::move(req_datas[0]));
+			request.set_uri(std::move(req_datas[1]));
+			request.set_version(std::move(req_datas[2]));
 
-			data = data.slice(pos + 2);
+			parse_expect = Expect::ExpectHeaders;
+			return true;
 		}
 
-		void parse_headers(Atring& data, Dict<Atring, Atring>& headers)
+		bool parse_headers(HttpRequest& request)
 		{
-			c_size pos = data.find("\r\n\r\n");
-			if (pos == -1) RuntimeError("parse headers failed, not found \\r\\n\\r\\n");
-
-			Atring headers_datas = data.slice(0, pos);
-			for (const Atring& kv_str : headers_datas.split("\r\n"))
+			c_size pos = buffer.find("\r\n");
+			if (pos == -1) return false;
+			if (pos == 0)
 			{
-				c_size pos = kv_str.find(":");
-				if (pos == -1) RuntimeError("parse headers failed, not found :");
-				headers.insert(kv_str.slice(0, pos).lower().strip(), kv_str.slice(pos + 1).lower().strip());
+				parse_expect = Expect::ExpectBody;
+				buffer = buffer.slice(pos + 2);
+				return true;
 			}
 
-			data = data.slice(pos + 4);
+			Atring header_line = buffer.slice(0, pos);
+			buffer = buffer.slice(pos + 2);
+			Array<Atring> kv = header_line.split(":", 1);
+			if (kv.size() != 2)
+				RuntimeError("parse headers failed, kv.size() != 2");
+
+			request.add_header(std::move(kv[0].strip()), std::move(kv[1].strip()));
+
+			return true;
+		}
+
+		void parse_body(HttpRequest& request)
+		{
+			c_size content_length = request.headers.get("content-length", "0").to_int();
+			if (buffer.size() >= content_length)
+			{
+				request.set_body(std::move(buffer.slice(0, content_length)));
+				buffer = buffer.slice(content_length);
+
+				parse_expect = Expect::Done;
+			}
 		}
 	};
 }
