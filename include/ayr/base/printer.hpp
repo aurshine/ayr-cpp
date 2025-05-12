@@ -22,10 +22,10 @@ namespace ayr
 			std::fprintf(output_file_, buffer.data());
 		}
 
-		void operator()() const 
-		{ 
+		void operator()() const
+		{
 			Buffer buffer(128);
-			buffer << ew_;
+			write_buffer(buffer);
 			std::fprintf(output_file_, buffer.data());
 		}
 
@@ -45,6 +45,8 @@ namespace ayr
 				((buffer << sw_ << args), ...);
 			buffer << ew_;
 		}
+
+		void write_buffer(Buffer& buffer) const { buffer << ew_; }
 
 		CString ew_; // 结束符
 
@@ -85,21 +87,12 @@ namespace ayr
 		ColorPrinter(FILE* file_ptr, CString color = Color::WHITE)
 			: Printer(file_ptr), color_(std::move(color)) {}
 
-		template<typename T, typename... Args>
-		void operator()(const T& object, const Args&... args) const
+		template<typename... Args>
+		void operator()(const Args&... args) const
 		{
 			Buffer buffer(128);
 			buffer << color_;
-			super::write_buffer(buffer, object, args...);
-			buffer << Color::CLOSE;
-			std::fprintf(output_file_, buffer.data());
-		}
-
-		void operator()() const 
-		{
-			Buffer buffer(128);
-			buffer << color_ << ew_;
-			super::operator()();
+			super::write_buffer(buffer, args...);
 			buffer << Color::CLOSE;
 			std::fprintf(output_file_, buffer.data());
 		}
@@ -109,10 +102,9 @@ namespace ayr
 		CString color_;
 	};
 
-
 	static Printer print{ stdout };
 
-	static ColorPrinter ayr_warner{ stdin, Color::YELLOW };
+	static ColorPrinter ayr_warner{ stdout, Color::YELLOW };
 
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 }
