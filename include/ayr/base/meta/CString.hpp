@@ -209,8 +209,8 @@ namespace ayr
 	der(CString) cstr(const CString& value) { return value; }
 
 	template<typename T>
-	der(CString) cstr(const T& value) 
-	{ 
+	der(CString) cstr(const T& value)
+	{
 		if constexpr (hasmethod(T, __str__))
 			return value.__str__();
 		else if constexpr (hasmethod(T, __repr__, std::declval<Buffer&>()))
@@ -218,7 +218,8 @@ namespace ayr
 			Buffer buf;
 			value.__repr__(buf);
 			return CString(buf.data(), buf.size());
-		}else if constexpr (std::is_integral_v<T>)
+		}
+		else if constexpr (std::is_integral_v<T>)
 			return cstr_int(value);
 		else if constexpr (std::is_floating_point_v<T>)
 			return cstr_float(value);
