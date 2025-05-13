@@ -116,23 +116,26 @@ pass time: 3003.89 ms
 */
 ```
 
-## Chain&BiChain单链表双链表
+## Chain双链表
 添加速度与std::list相当，随机删除速度快std::list 6倍
 ```cpp
-def chain_speed_test()
+#include <list>
+#include <forward_list>
+
+#include "ayr/Chain.hpp"
+#include "ayr/timer.hpp"
+
+using namespace ayr;
+
+
+int main()
 {
 	Timer_ms timer;
-	Chain<CString> chain;
-	BiChain<CString> bichain;
+	Chain<CString> bichain;
 	std::list<CString> stdlist;
 	std::forward_list<CString> stdflist;
 
 	int N = 1e6;
-
-	timer.into();
-	for (int i = 0; i < N; i++)
-		chain.append("hello");
-	print("chain append time: ", timer.escape(), "ms");
 
 	timer.into();
 	for (int i = 0; i < N; i++)
@@ -150,40 +153,29 @@ def chain_speed_test()
 	print("std::forward_list append time: ", timer.escape(), "ms");
 
 	timer.into();
-	auto cnd = chain.at_node(1000);
-	while (chain.size() > 1005)
-		chain.pop_from(cnd->next_node(), 1, cnd);
-	print("chain random pop time: ", timer.escape(), "ms");
-
-	timer.into();
-	auto bicnd = bichain.at_node(1000);
+	auto bcnd = bichain.at_node(1000);
 	while (bichain.size() > 1005)
-		bichain.pop_from(bicnd->next_node(), 1);
+		bichain.pop(bcnd->next());
 	print("bichain random pop time: ", timer.escape(), "ms");
 
 	timer.into();
-	auto stdit = stdlist.begin();
-	std::advance(stdit, 1000);
+	auto it = stdlist.begin();
+	std::advance(it, 1000);
 	while (stdlist.size() > 1005)
 	{
-		auto _0 = stdit++;
-		auto _1 = stdit++;
-		stdlist.erase(_1, stdit);
-		stdit = _0;
+		stdlist.erase(std::next(it, 1), std::next(it, 2));
 	}
 
 	print("std::list random pop time: ", timer.escape(), "ms");
-
+	return 0;
 }
 /*
 输出:
-chain append time:  478 ms
-bichain append time:  461 ms
-std::list append time:  601 ms
-std::forward_list append time:  559 ms
-chain random pop time:  196 ms
-bichain random pop time:  216 ms
-std::list random pop time:  1213 ms
+bichain append time:  387 ms
+std::list append time:  473 ms
+std::forward_list append time:  484 ms
+bichain random pop time:  312 ms
+std::list random pop time:  1095 ms
 */
 ```
 
@@ -316,12 +308,12 @@ after update {9, 9}, {10, 10}: {3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 10: 10, 9: 9
 0
 after clear: {}
 
-Dict insert time:  2128 ms
-Dict query time:  341 ms
-Dict pop time:  1075 ms
-std::unordered_map insert time:  2887 ms
-std::unordered_map query time:  372 ms
-std::unordered_map pop time:  967 ms
+Dict insert time:  2420 ms
+Dict query time:  258 ms
+Dict pop time:  931 ms
+std::unordered_map insert time:  2771 ms
+std::unordered_map query time:  273 ms
+std::unordered_map pop time:  952 ms
 d1:  {1: 1, 2: 2, 3: 3, 4: 4, 5: 5}
 d2:  {3: 3, 4: 4, 5: 5, 6: 6, 7: 7}
 d1 & d2:  {3: 3, 4: 4, 5: 5}
@@ -445,99 +437,94 @@ void sleep_sort_test()
 */
 ```
 
-## tcp回声服务器
+## tcp服务器
 ```cpp
 #include <ayr/net.hpp>
 
-constexpr int PORT = 14514;
-
-void tcp_echo_server()
+class TServer : public ayr::UltraTcpServer<TServer>
 {
-	ayr::TcpServer server(nullptr, PORT);
-	Socket& client = server.accept();
-	while (true)
-	{
-		CString data = server.recv(0);
-		if (!data) break;
-		server.send(0, data, data.size());
-	}
-	print("server exit");
-}
+	using super = ayr::UltraTcpServer<TServer>;
+public:
+	TServer(const CString& ip, int port, int num_thread, int timeout_s) : super(ip, port, num_thread, timeout_s) {}
 
-void tcp_echo_client()
+	// 客户端连接到服务器后调用的回调函数
+	void on_connected(const Socket& client)
+	{
+		++count_in;
+		ayr::print("conected: ", client);
+	}
+
+	// 客户端断开连接时调用的回调函数
+	void on_disconnected(const Socket& client)
+	{
+		++count_out;
+		ayr::print("disconnected: ", client);
+	}
+
+	// 读事件产生时的回调函数, 返回读取的数据
+	void on_reading(const Socket& client)
+	{
+		print("from: ", client, "recv: ", client.recv(1024));
+		client.send("hello, world!");
+	}
+
+	// 写事件产生时的回调函数, 用于发送数据
+	void on_writing(const Socket& client) {}
+
+	void on_timeout()
+	{
+		print("count_in: ", count_in.load(), "count_out: ", count_out.load());
+		stop();
+		print("server stop");
+	}
+
+	std::atomic<int> count_in = 0, count_out = 0;
+};
+
+int main()
 {
-	ayr::TcpClient client("127.0.0.1", PORT);
-
-	while (true)
-	{
-		char data[1024];
-		print.setend(" ");
-		print("input:");
-		print.setend("\n");
-		std::cin >> data;
-		if (data[0] == 'q' || data[0] == 'Q')
-			break;
-
-		client.send(data, strlen(data));
-		ayr::print("server response:", client.recv());
-	}
-	print("client exit");
+	TServer server("127.0.0.1", 5555, 0, 5000);
+	print("server start");
+	server.run();
 }
-
-/*
-输出:
-client input message: hello
-server recv message: hello
-
-client input message: hi
-server recv message: hi
-
-client input message: Q
-*/
 ```
 
-## udp回声服务器
-```cpp
-void udp_echo_server_test()
-{
-	ayr::UdpServer server(nullptr, PORT);
-	while (true)
-	{
-		auto [data, client_addr] = server.recv();
-		print(data, client_addr);
-		if (!data) break;
-		server.send(data, data.size(), client_addr);
-	}
-	print("udp server exit");
-}
+## 简易http服务器
+```
+#include <ayr/net/http.hpp>
 
-void udp_echo_client_test()
+using namespace ayr;
+
+int main()
 {
-	ayr::UdpClient client("127.0.0.1", PORT);
+	RequestParser parser;
+
+	Socket http_fd = tcpv4();
+	http_fd.bind("127.0.0.1", 7070);
+	http_fd.listen();
+
+	auto client_fd = http_fd.accept();
 
 	while (true)
 	{
-		char data[1024];
-		print.setend(" ");
-		print("input:");
-		print.setend("\n");
-		std::cin >> data;
-		if (data[0] == 'q' || data[0] == 'Q')
-			break;
+		HttpRequest req;
+		Atring req_str;
+		do {
+			req_str = client_fd.recv(1024);
+		} while (!parser(req, req_str));
 
-		client.send(data, strlen(data));
-		ayr::print("server response:", client.recv().first);
+		print(req.text());
+
+		CString msg = "hello world";
+		HttpResponse response("HTTP/1.1", 200, "OK");
+		response.add_header("Content-Type", "text/plain");
+		response.set_body(msg);
+
+		client_fd.send(response.text());
 	}
-	print("udp client exit");
-}
 
-void udp_echo_test()
-{
-	std::thread server(udp_echo_server_test);
-	std::this_thread::sleep_for(1s); // 等待服务端启动
-	std::thread client(udp_echo_client_test);
-
-	server.join();
-	client.join();
+	client_fd.close();
+	http_fd.close();
+	return 0;
 }
 ```
