@@ -2,8 +2,7 @@
 #define AYR_CORO_CO_UTILS_HPP_
 
 #include <coroutine>
-
-#include "../base/Void.hpp"
+#include "../base/Object.hpp"
 
 namespace ayr
 {
@@ -27,7 +26,7 @@ namespace ayr
 
 		struct CoroAwaiter : public std::suspend_always, public Object<CoroAwaiter>
 		{
-			CoroAwaiter() noexcept = default;
+			CoroAwaiter() noexcept {};
 
 			CoroAwaiter(Coroutine coro) noexcept : coro_(coro) {}
 

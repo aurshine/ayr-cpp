@@ -2,6 +2,7 @@
 #define AYR_CORO_AWAITER_HPP
 
 #include "Promise.hpp"
+#include "../base/Void.hpp"
 
 namespace ayr
 {

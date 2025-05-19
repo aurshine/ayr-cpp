@@ -2,8 +2,6 @@
 #define AYR_CORO_GENERATOR_HPP
 
 #include "Promise.hpp"
-
-#include "../base/raise_error.hpp"
 #include "../base/IteratorInfo.hpp"
 
 namespace ayr
