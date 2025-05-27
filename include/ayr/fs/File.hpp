@@ -1,11 +1,9 @@
-﻿#ifndef AYR_FS_WIN_FILE_HPP
-#define AYR_FS_WIN_FILE_HPP
-
-#include <cstdio>
+#ifndef AYR_FS_FILE_HPP
+#define AYR_FS_FILE_HPP
 
 #include "Path.hpp"
 
-
+#if defined(AYR_WIN)
 namespace ayr
 {
 	namespace fs
@@ -14,7 +12,7 @@ namespace ayr
 		{
 			using self = AyrFile;
 		public:
-			AyrFile(const char* filename, CString mode): fh(INVALID_HANDLE_VALUE)
+			AyrFile(const char* filename, CString mode) : fh(INVALID_HANDLE_VALUE)
 			{
 				int dwDesiredAccess = 0, dwCreationDisposition = 0;
 				if (mode == "w")
@@ -47,7 +45,7 @@ namespace ayr
 
 				if (fh == INVALID_HANDLE_VALUE)
 					SystemError("Invalid HANDLE value, Failed to create or open file");
-				
+
 				if (mode == "a") SetFilePointer(fh, 0, nullptr, FILE_END);
 			}
 
@@ -61,8 +59,8 @@ namespace ayr
 
 			~AyrFile() { close(); }
 
-			void close() 
-			{ 
+			void close()
+			{
 				if (fh != INVALID_HANDLE_VALUE)
 				{
 					CloseHandle(fh);
@@ -96,6 +94,6 @@ namespace ayr
 		};
 	}
 }
+#endif // AYR_WIN
 
-
-#endif // AYR_FILE_HPP
+#endif // AYR_FS_FILE_HPP

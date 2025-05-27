@@ -3,13 +3,13 @@
 
 #include <functional>
 
-#include "filesystem.hpp"
+#include "fs/oslib.h"
 
 namespace ayr
 {
 	namespace keyboard
 	{
-#if defined(AYR_WINDOWS)
+#if defined(AYR_WIN)
 #pragma comment(lib, "User32.lib")
 
 		static std::function<void(int /* keycode*/)> _ON_KEYDOWN, _ON_KEYUP;

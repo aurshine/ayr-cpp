@@ -1,4 +1,0 @@
-#ifndef AYR_FS_MAC_MACLIB_HPP
-#define AYR_FS_MAC_MACLIB_HPP
-
-#endif

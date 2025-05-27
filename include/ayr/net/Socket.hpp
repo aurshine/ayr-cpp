@@ -12,8 +12,6 @@ namespace ayr
 #if defined(AYR_WIN)
 
 #elif defined(AYR_LINUX)
-#include <cerrno>
-#include <fcntl.h>
 
 #define INVALID_SOCKET -1
 #define SOCKET_ERROR 0

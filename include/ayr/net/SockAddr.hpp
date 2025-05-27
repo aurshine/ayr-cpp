@@ -1,8 +1,7 @@
 #ifndef AYR_NET_SOCKADDR_HPP
 #define AYR_NET_SOCKADDR_HPP
 
-#include "../filesystem.hpp"
-#include "../base/raise_error.hpp"
+#include "../fs/oslib.h"
 
 namespace ayr
 {

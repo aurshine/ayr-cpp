@@ -1,11 +1,13 @@
-﻿#ifndef AYR_FS_WIN_PATH_HPP
-#define AYR_FS_WIN_PATH_HPP
+#ifndef AYR_FS_PATH_HPP
+#define AYR_FS_PATH_HPP
 
-#include "winlib.hpp"
-#include "../../Atring.hpp"
-#include "../../DynArray.hpp"
+#include "oslib.h"
 
+#ifdef AYR_WIN
+#include "../Atring.hpp"
+#include "../DynArray.hpp"
 
+#include <queue>
 namespace ayr
 {
 	namespace fs
@@ -26,39 +28,38 @@ namespace ayr
 
 			using super = Object<Path>;
 
-			PathStatus status_;
-
 			CString path_;
 		public:
-			Path(const char* path) : path_(path), status_(PathStatus::UNKNOWN) { identify(); }
+			Path(const char* path) : path_(path) {}
 
-			Path(CString path) : path_(std::move(path)), status_(PathStatus::UNKNOWN) { identify(); }
+			Path(CString path) : path_(std::move(path)) {}
 
-			Path(const Atring& path) : path_(cstr(path)), status_(PathStatus::UNKNOWN) { identify(); }
+			Path(const Atring& path) : path_(cstr(path)) {}
 
-			Path(self&& other) : path_(other.path_), status_(other.status_)
+			Path(self&& other) noexcept : path_(std::move(other.path_))
 			{
 				other.path_ = "";
-				other.status_ = PathStatus::UNKNOWN;
 			}
 
-			self& operator= (self&& other)
+			self& operator= (self&& other) noexcept
 			{
-				path_ = other.path_;
-				status_ = other.status_;
+				path_ = std::move(other.path_);
 				other.path_ = "";
-				other.status_ = PathStatus::UNKNOWN;
 				return *this;
 			}
 
 			// 是否存在路径
-			bool exists() const { return status_ != PathStatus::NOT_EXISTS; }
+			bool exists() const
+			{
+				PathStatus status = identify();
+				return  status == PathStatus::IS_FILE || status == PathStatus::IS_DIR;
+			}
 
 			// 是否是文件
-			bool isfile() const { return status_ == PathStatus::IS_FILE; }
+			bool isfile() const { return identify() == PathStatus::IS_FILE; }
 
 			// 是否是文件夹
-			bool isdir() const { return status_ == PathStatus::IS_DIR; }
+			bool isdir() const { return identify() == PathStatus::IS_DIR; }
 
 			// 是否是绝对路径
 			bool isabs() const
@@ -93,8 +94,6 @@ namespace ayr
 					FileNotFoundError(std::format("Path not found: {}", path_));
 					break;
 				}
-
-				status_ = PathStatus::IS_DIR;
 			}
 
 			// 删除当前路径的文件或文件夹
@@ -103,11 +102,50 @@ namespace ayr
 				if (!exists())
 					FileNotFoundError(std::format("File or Directory not found in {}", path_));
 
-				if (isfile() && !DeleteFileA(path_))
-					SystemError("Failed to remove file");
-				else if (isdir() && !RemoveDirectoryA(path_))
-					SystemError("Failed to remove directory");
-				status_ = PathStatus::NOT_EXISTS;
+				if ((isfile() && !DeleteFileA(path_)) || (isdir() && !RemoveDirectoryA(path_)))
+					system_error(path_);
+			}
+
+			DynArray<std::tuple<CString, Array<CString>, Array<CString>>> walk() const
+			{
+				DynArray<std::tuple<CString, Array<CString>, Array<CString>>> results;
+				std::queue<CString> root_dirs;
+				root_dirs.push(path_);
+
+				while (!root_dirs.empty())
+				{
+					const char* root = root_dirs.front();
+					root_dirs.pop();
+
+					DynArray<CString> dirs, files;
+					find_files(root, "*", [&dirs, &files](const WIN32_FIND_DATAA& find_data) {
+						if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+							dirs.append(find_data.cFileName);
+						else
+							files.append(find_data.cFileName);
+						});
+					results.append(std::make_tuple(root, dirs.to_array(), files.to_array()));
+				}
+				return results;
+			}
+
+			// 获得当前路径的文件或文件夹大小，单位为字节
+			uint64_t size() const
+			{
+				uint64_t size_ = 0;
+				if (isfile())
+				{
+					WIN32_FILE_ATTRIBUTE_DATA attr;
+					if (!GetFileAttributesExA(path_.data(), GetFileExInfoStandard, &attr))
+						system_error(path_);
+					size_ = (static_cast<uint64_t>(attr.nFileSizeHigh) << 32) | attr.nFileSizeLow;
+				}
+				else
+				{
+					for (auto&& sub_path : listdir(path_))
+						size_ += self(join(path_, sub_path)).size();
+				}
+				return size_;
 			}
 
 			// 拼接两个路径
@@ -130,21 +168,8 @@ namespace ayr
 			// 列出当前路径下的所有文件和文件夹
 			static Array<CString> listdir(const char* path)
 			{
-				WIN32_FIND_DATAA find_data;
-				HANDLE handle = FindFirstFileA(join(path, "*"), &find_data);
-
-				if (handle == INVALID_HANDLE_VALUE)
-					SystemError(std::format("Failed to list directory: {}", path));
-
 				DynArray<CString> results;
-				do
-				{
-					if (strcmp(find_data.cFileName, ".") == 0 || strcmp(find_data.cFileName, "..") == 0)
-						continue;
-					results.append(find_data.cFileName);
-				} while (FindNextFileA(handle, &find_data));
-
-				FindClose(handle);
+				find_files(path, "*", [&results](const WIN32_FIND_DATAA& find_data) { results.append(find_data.cFileName); });
 				return results.to_array();
 			}
 
@@ -206,19 +231,44 @@ namespace ayr
 		private:
 			static bool is_sep(char c) { return c == '\\' || c == '/'; }
 
-			void identify()
+			static void system_error(const char* path) { SystemError(std::format("{}: {}", get_error_msg(), path)); }
+
+			static void find_files(const char* path, const char* pattern, const std::function<void(const WIN32_FIND_DATAA& find_data)>& callback)
+			{
+				WIN32_FIND_DATAA find_data;
+
+				HANDLE handle = FindFirstFileA(join(path, pattern), &find_data);
+
+				if (handle == INVALID_HANDLE_VALUE)
+					system_error(path);
+				do
+				{
+					if (strcmp(find_data.cFileName, ".") == 0 || strcmp(find_data.cFileName, "..") == 0)
+						continue;
+
+					callback(find_data);
+				} while (FindNextFileA(handle, &find_data));
+
+				FindClose(handle);
+			}
+
+			// 识别路径的类型，是文件还是文件夹还是不存在
+			PathStatus identify() const
 			{
 				DWORD attributes = GetFileAttributesA(path_);
 
 				if (attributes == INVALID_FILE_ATTRIBUTES)
-					status_ = PathStatus::NOT_EXISTS;
+					return PathStatus::NOT_EXISTS;
 				else if ((attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-					status_ = PathStatus::IS_DIR;
+					return PathStatus::IS_DIR;
 				else
-					status_ = PathStatus::IS_FILE;
+					return PathStatus::IS_FILE;
+				return PathStatus::UNKNOWN;
 			}
 		};
 	}
 }
-
+#elif defined(AYR_LINUX)
+#elif defined(AYR_MAC)
 #endif 
+#endif // AYR_FS_PATH_HPP
