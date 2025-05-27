@@ -1,9 +1,10 @@
 ﻿#ifndef AYR_BASE_META_BUFFER_HPP
 #define AYR_BASE_META_BUFFER_HPP
 
+#include <cstring>
+
 #include "ayr_memory.hpp"
 #include "sprintf.h"
-#include "CString.hpp"
 
 namespace ayr 
 {
@@ -163,17 +164,11 @@ namespace ayr
 		return buffer;
 	}
 
-	Buffer& operator<< (Buffer& buffer, const CString& value)
-	{
-		buffer.append_bytes(value.data(), value.size());
-		return buffer;
-	}
-
 	template<typename T>
 	Buffer& operator<< (Buffer& buffer, const T& value) 
 	{ 
-		if constexpr (hasmethod(T, ___repr__, *this))
-			value.___repr__(buffer);
+		if constexpr (hasmethod(T, __repr__, std::declval<Buffer&>()))
+			value.__repr__(buffer);
 		else if constexpr (hasmethod(T, __str__))
 			buffer << value.__str__();
 		else if constexpr (std::is_integral_v<T>)
