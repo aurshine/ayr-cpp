@@ -20,13 +20,15 @@
 #elif defined(__linux__) || defined(__unix__)
 #define AYR_LINUX
 
-#include <unistd.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <errno.h>
 #include <string.h>
-#include <sys/socket.h>
 #include <sys/fcntl.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/stat.h>
+#include <sys/socket.h>
+
+#include <unistd.h>
 
 #elif defined(__APPLE__)
 #define AYR_MAC
@@ -59,12 +61,12 @@ namespace ayr
 #endif // 平台判断
 	}
 
-	CString get_error_msg() 
-	{ 
+	CString get_error_msg()
+	{
 #if defined(AYR_WIN)
-		return errorno2str(GetLastError()); 
+		return errorno2str(GetLastError());
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-		return errorno2str(errno); 
+		return errorno2str(errno);
 #endif // 平台判断
 	}
 }

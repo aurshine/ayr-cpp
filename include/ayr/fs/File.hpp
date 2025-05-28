@@ -1,9 +1,8 @@
 #ifndef AYR_FS_FILE_HPP
 #define AYR_FS_FILE_HPP
 
-#include "Path.hpp"
+#include "oslib.h"
 
-#if defined(AYR_WIN)
 namespace ayr
 {
 	namespace fs
@@ -11,9 +10,20 @@ namespace ayr
 		class AyrFile : public Object<AyrFile>
 		{
 			using self = AyrFile;
+
+#if defined(AYR_WIN)
+			using FD = HANDLE;
+
+			constexpr static FD INVALID_FD = INVALID_HANDLE_VALUE;
+#else
+			using FD = int;
+
+			constexpr static FD INVALID_FD = -1;
+#endif
 		public:
-			AyrFile(const char* filename, CString mode) : fh(INVALID_HANDLE_VALUE)
+			AyrFile(const char* filename, CString mode) : fh_(INVALID_FD)
 			{
+#if defined(AYR_WIN)
 				int dwDesiredAccess = 0, dwCreationDisposition = 0;
 				if (mode == "w")
 				{
@@ -33,7 +43,7 @@ namespace ayr
 				else
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
 
-				fh = CreateFileA(
+				fh_ = CreateFileA(
 					filename,
 					dwDesiredAccess,
 					FILE_SHARE_READ,
@@ -43,57 +53,115 @@ namespace ayr
 					nullptr
 				);
 
-				if (fh == INVALID_HANDLE_VALUE)
+				if (fh_ == INVALID_HANDLE_VALUE)
 					SystemError("Invalid HANDLE value, Failed to create or open file");
 
-				if (mode == "a") SetFilePointer(fh, 0, nullptr, FILE_END);
+				if (mode == "a") SetFilePointer(fh_, 0, nullptr, FILE_END);
+#else
+
+				int flags = 0;
+				if (mode == "w")
+					flags = O_WRONLY | O_CREAT | O_TRUNC;
+				else if (mode == "r")
+					flags = O_RDONLY;
+				else if (mode == "a")
+					flags = O_WRONLY | O_CREAT | O_APPEND;
+				else
+					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
+
+				fh_ = ::open(filename, flags, 0666);
+
+				if (fh_ == -1)
+					SystemError("Failed to create or open file");
+#endif
 			}
 
-			AyrFile(self&& file) noexcept : fh(file.fh) { file.fh = nullptr; }
+			AyrFile(FD fh) : fh_(fh) {}
+
+			AyrFile(self&& file) noexcept : fh_(file.fh_) { file.fh_ = INVALID_FD; }
 
 			self& operator=(self&& file) noexcept
 			{
 				close();
-				return *ayr_construct(this, std::move(file));
+				fh_ = file.fh_;
+				file.fh_ = INVALID_FD;
+				return *this;
 			}
 
 			~AyrFile() { close(); }
 
 			void close()
 			{
-				if (fh != INVALID_HANDLE_VALUE)
+				if (fh_ != INVALID_FD)
 				{
-					CloseHandle(fh);
-					fh = nullptr;
+#if defined(AYR_WIN)
+					CloseHandle(fh_);
+#elif defined(AYR_LINUX)
+					::close(fh_);
+#endif
+					fh_ = INVALID_FD;
 				}
 			}
 
-			void write(const char* c) const
+			void write(const char* data, c_size size = -1) const
 			{
+				if (size == -1) size = strlen(data);
+#if defined(AYR_WIN)
 				DWORD written_bytes = 0;
-				if (!WriteFile(fh, c, strlen(c), &written_bytes, nullptr))
+				BOOL ok = WriteFile(fh_, data, size, &written_bytes, nullptr);
+				if (!ok || written_bytes != size)
 					SystemError("Failed to write from file");
+#elif defined(AYR_LINUX)
+				c_size num_written = 0;
+				while (num_written < size)
+				{
+					c_size written_bytes = ::write(fh_, data + num_written, size - num_written);
+					if (written_bytes == -1)
+						SystemError("Failed to write from file");
+					num_written += written_bytes;
+				}
+#endif 
 			}
 
 			CString read() const
 			{
-				DWORD read_bytes = 0;
-				c_size buffer_size = file_size() + 1;
+				c_size buffer_size = file_size();
 				CString buffer{ buffer_size };
-
-				if (!ReadFile(fh, buffer.data(), buffer_size, &read_bytes, nullptr))
+#if defined(AYR_WIN)
+				DWORD read_bytes = 0;
+				BOOL ok = ReadFile(fh_, buffer.data(), buffer_size, &read_bytes, nullptr);
+				if (!ok || read_bytes != buffer_size)
 					SystemError("Failed to read from file");
 
 				return buffer;
+#elif defined(AYR_LINUX)
+				c_size num_read = 0;
+				while (num_read < buffer_size)
+				{
+					c_size read_bytes = ::read(fh_, buffer.data() + num_read, buffer_size - num_read);
+					if (read_bytes == -1)
+						SystemError("Failed to read from file");
+					num_read += read_bytes;
+				}
+#endif 
+				return buffer;
 			}
 
-			c_size file_size() const { return GetFileSize(fh, nullptr); }
-
+			c_size file_size() const
+			{
+#if defined(AYR_WIN)
+				return GetFileSize(fh_, nullptr);
+#elif defined(AYR_LINUX)
+				struct stat st;
+				if (::fstat(fh_, &st) == -1)
+					SystemError("Failed to get file size");
+				return st.st_size;
+#endif
+			}
 		private:
-			HANDLE fh;
+			FD fh_;
 		};
 	}
 }
-#endif // AYR_WIN
 
 #endif // AYR_FS_FILE_HPP
