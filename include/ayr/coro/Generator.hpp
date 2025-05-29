@@ -1,14 +1,16 @@
 #ifndef AYR_CORO_GENERATOR_HPP
 #define AYR_CORO_GENERATOR_HPP
 
-#include "Promise.hpp"
+#include <coroutine>
+#include <optional>
+
 #include "../base/IteratorInfo.hpp"
 
 namespace ayr
 {
 	namespace coro
 	{
-		struct GenStatus
+		struct _GenStatus
 		{
 			using status_type = uint8_t;
 
@@ -23,43 +25,55 @@ namespace ayr
 		};
 
 		template<typename T>
-		struct GenPromise : public PromiseImpl<T>
+		class _GenPromise : public Object<_GenPromise<T>>
 		{
-			using self = GenPromise<T>;
+			using self = _GenPromise<T>;
+		public:
+			static_assert(std::is_move_constructible_v<T>, "T must be move constructible");
 
-			using super = PromiseImpl<T>;
+			static_assert(!std::is_reference_v<T>, "T must not be a reference");
 
 			using co_type = std::coroutine_handle<self>;
 
-			GenPromise() = default;
+			_GenPromise() {};
 
 			std::suspend_never initial_suspend() const noexcept { return {}; }
 
+			std::suspend_always final_suspend() const noexcept { return {}; }
+
 			std::suspend_always yield_value(T value) noexcept
 			{
-				super::value_ = std::move(value);
+				emplace(std::move(value));
 				return {};
 			}
 
 			void return_value(T value) noexcept
 			{
-				super::value_ = std::move(value);
+				emplace(std::move(value));
 				has_return = true;
 			}
 
+			void unhandled_exception() { RuntimeError("Generator unhandled exception"); }
+
 			co_type get_return_object() { return co_type::from_promise(*this); }
 
+			T& result() noexcept { return reinterpret_cast<T&>(value_); }
+
+			const T& result() const noexcept { return reinterpret_cast<const T&>(value_); }
+
+			void emplace(T&& value) { ayr_construct(reinterpret_cast<T*>(&value_), std::move(value)); }
+
 			bool has_return = false;
+
+			uint8_t value_[sizeof(T)];
 		};
 
 		template<typename T>
 		class Generator : public Object<Generator<T>>
 		{
-			static_assert(std::is_default_constructible_v<T>, "Generator requires default constructible result type");
-
 			using self = Generator<T>;
 		public:
-			using promise_type = GenPromise<T>;
+			using promise_type = _GenPromise<T>;
 
 			using co_type = promise_type::co_type;
 
@@ -88,7 +102,7 @@ namespace ayr
 
 				using ItInfo = IteratorInfo<GeneratorIterator, Generator<T>, std::forward_iterator_tag, T>;
 
-				GeneratorIterator(ItInfo::container_type* gen, GenStatus::status_type status = GenStatus::YIELD) : gen_(gen), status_(status) {}
+				GeneratorIterator(ItInfo::container_type* gen, _GenStatus::status_type status = _GenStatus::YIELD) : gen_(gen), status_(status) {}
 
 				GeneratorIterator(self&& other) : gen_(other.gen_) { other.gen_ = nullptr; }
 
@@ -96,13 +110,13 @@ namespace ayr
 				{
 					switch (status_)
 					{
-					case GenStatus::YIELD:
+					case _GenStatus::YIELD:
 						yield_next();
 						break;
-					case GenStatus::RETURN:
+					case _GenStatus::RETURN:
 						return_next();
 						break;
-					case GenStatus::DONE:
+					case _GenStatus::DONE:
 						RuntimeError("Generator already finished");
 					}
 					return *this;
@@ -120,22 +134,22 @@ namespace ayr
 					gen_->coro_.resume();
 					if (gen_->coro_.done())
 						if (gen_->coro_.promise().has_return)
-							status_ = GenStatus::RETURN;
+							status_ = _GenStatus::RETURN;
 						else
-							status_ = GenStatus::DONE;
+							status_ = _GenStatus::DONE;
 				}
 
 				// 当前状态是return, 进入下一个状态
-				void return_next() { status_ = GenStatus::DONE; }
+				void return_next() { status_ = _GenStatus::DONE; }
 
 				ItInfo::container_type* gen_;
 
-				GenStatus::status_type status_;
+				_GenStatus::status_type status_;
 			};
 
 			GeneratorIterator begin() { return GeneratorIterator(this); }
 
-			GeneratorIterator end() { return GeneratorIterator(this, GenStatus::DONE); }
+			GeneratorIterator end() { return GeneratorIterator(this, _GenStatus::DONE); }
 		};
 	}
 }

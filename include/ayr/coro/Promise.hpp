@@ -1,8 +1,6 @@
 #ifndef AYR_CORO_PROMISE_HPP_
 #define AYR_CORO_PROMISE_HPP_
 
-#include <coroutine>
-
 #include "co_utils.hpp"
 #include "../base/raise_error.hpp"
 
