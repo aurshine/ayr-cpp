@@ -2,9 +2,9 @@
 #define AYR_CORO_GENERATOR_HPP
 
 #include <coroutine>
-#include <optional>
 
 #include "../base/IteratorInfo.hpp"
+#include "../base/Optional.hpp"
 
 namespace ayr
 {
@@ -35,21 +35,19 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<self>;
 
-			_GenPromise() {};
-
 			std::suspend_never initial_suspend() const noexcept { return {}; }
 
 			std::suspend_always final_suspend() const noexcept { return {}; }
 
 			std::suspend_always yield_value(T value) noexcept
 			{
-				emplace(std::move(value));
+				value_ = std::move(value);
 				return {};
 			}
 
 			void return_value(T value) noexcept
 			{
-				emplace(std::move(value));
+				value_ = std::move(value);
 				has_return = true;
 			}
 
@@ -57,15 +55,13 @@ namespace ayr
 
 			co_type get_return_object() { return co_type::from_promise(*this); }
 
-			T& result() noexcept { return reinterpret_cast<T&>(value_); }
+			T& result() noexcept { return *value_; }
 
-			const T& result() const noexcept { return reinterpret_cast<const T&>(value_); }
+			const T& result() const noexcept { return *value_; }
 
-			void emplace(T&& value) { ayr_construct(reinterpret_cast<T*>(&value_), std::move(value)); }
+			Optional<T> value_;
 
 			bool has_return = false;
-
-			uint8_t value_[sizeof(T)];
 		};
 
 		template<typename T>
