@@ -81,7 +81,7 @@ namespace ayr
 		Socket accept() const
 		{
 			int accsock = ::accept(socket_, nullptr, nullptr);
-			if (accsock == INVALID_SOCKET)
+			if (accsock == INVALID_SOCKET && errno != EAGAIN && errno != EWOULDBLOCK)
 				RuntimeError(get_error_msg());
 			return accsock;
 		}
