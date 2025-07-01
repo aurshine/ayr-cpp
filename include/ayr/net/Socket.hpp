@@ -188,6 +188,7 @@ namespace ayr
 		}
 
 		// 接收所有数据，直到接收完毕或出现错误
+		// 只能在非阻塞模式下使用
 		CString recvall(int bufsize = 1024, int flags = 0) const
 		{
 			int length = 0;
