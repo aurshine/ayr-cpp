@@ -22,32 +22,13 @@ namespace ayr
 		// 返回当前编码方式，开头字符的字节数
 		virtual int byte_size(const char* data) const = 0;
 
+		// 返回当前编码方式，开头字符的字符序号
 		virtual int ord(const char* data, int size = -1) const = 0;
 
+		// 返回当前编码方式，字符序号对应的字符
 		virtual CString chr(int code) const = 0;
 
 		virtual ~Encoding() = default;
-	};
-
-
-	class ASCIIEncoding : public Encoding
-	{
-		using self = ASCIIEncoding;
-
-		using super = Encoding;
-
-	public:
-		constexpr ASCIIEncoding() = default;
-
-		CString __str__() const override { return "ASCII"; }
-
-		void __repr__(Buffer& buffer) const override { buffer << "ASCII"; }
-
-		constexpr int byte_size(const char* data) const override { return 1; }
-
-		constexpr int ord(const char* data, int size = -1) const override { return data[0]; }
-
-		CString chr(int code) const override { return CString(reinterpret_cast<const char*>(&code), 1); }
 	};
 
 
@@ -270,13 +251,11 @@ namespace ayr
 		}
 	};
 
-	static std::unique_ptr<Encoding> _u_ascii = std::make_unique<ASCIIEncoding>();
 	static std::unique_ptr<Encoding> _u_utf8 = std::make_unique<UTF8Encoding>();
 	static std::unique_ptr<Encoding> _u_utf16 = std::make_unique<UTF16Encoding>();
 	static std::unique_ptr<Encoding> _u_utf32 = std::make_unique<UTF32Encoding>();
 	static std::unique_ptr<Encoding> _u_gb2312 = std::make_unique<GB2312Encoding>();
 
-	static Encoding* ASCII = _u_ascii.get();
 	static Encoding* UTF8 = _u_utf8.get();
 	static Encoding* UTF16 = _u_utf16.get();
 	static Encoding* UTF32 = _u_utf32.get();
