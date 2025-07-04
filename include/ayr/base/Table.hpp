@@ -10,78 +10,29 @@
 
 namespace ayr
 {
-	class PowerOfTwoPolicy : Object<PowerOfTwoPolicy>
+	class Pow2Policy : Object<Pow2Policy>
 	{
-		using self = PowerOfTwoPolicy;
+		using self = Pow2Policy;
 
 		using super = Object<self>;
 
+		// 当前容量, 2^n
 		c_size capacity_;
 	public:
-		c_size load_threshold;
+		Pow2Policy() : capacity_(min_capacity()) {}
 
-		constexpr static double load_factor = 0.75;
-
-		PowerOfTwoPolicy() : capacity_(min_capacity()), load_threshold(min_capacity()* load_factor) {}
-
-		PowerOfTwoPolicy(const self& other) : capacity_(other.capacity_), load_threshold(other.load_threshold) {}
+		Pow2Policy(const self& other) : capacity_(other.capacity_) {}
 
 		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
 
 			capacity_ = other.capacity_;
-			load_threshold = other.load_threshold;
 			return *this;
 		}
 
 		// 当前策略的容量
-		c_size capacity() const { return capacity_; }
-
-		c_size prev()
-		{
-			capacity_ >>= 1;
-			update_load_threshold();
-			return capacity_;
-		}
-
-		// 尝试下一个策略
-		c_size next()
-		{
-			capacity_ <<= 1;
-			update_load_threshold();
-			return capacity_;
-		}
-
-		// 调整到比n大的最小容量策略
-		c_size adapt(c_size n)
-		{
-			if (n > max_capacity()) RuntimeError("capacity is too large!");
-
-			if (capacity() < n)
-			{
-				while (next() < n);
-			}
-			else
-			{
-				while (capacity() > min_capacity() && (capacity() >> 1) >= n) prev();
-			}
-			return capacity();
-		}
-
-		// hash值转化为索引
-		c_size hash2index(hash_t hashv) const { return hashv & (capacity_ - 1); }
-
-		// 下一个索引
-		c_size next_index(c_size index) const { return (index + 1) % capacity_; }
-
-		// 调整到初始值
-		c_size reset()
-		{
-			capacity_ = min_capacity();
-			update_load_threshold();
-			return capacity_;
-		}
+		constexpr c_size capacity() const { return capacity_; }
 
 		// 最小容量
 		constexpr c_size min_capacity() const { return 16; }
@@ -89,143 +40,50 @@ namespace ayr
 		// 最大容量
 		constexpr c_size max_capacity() const { return 1ll << 62; }
 
-	private:
-		void update_load_threshold() { load_threshold = capacity() * load_factor; }
-	};
+		// 负载阈值, 负载因子为 3 / 4
+		constexpr c_size load_threshold() { return (capacity() >> 2) * 3; }
 
-	class PrimePolicy : Object<PrimePolicy>
-	{
-		using self = PrimePolicy;
+		// 掩码
+		c_size mask() const { return capacity() - 1; }
 
-		using super = Object<self>;
-
-		int i = 0;
-	public:
-		constexpr static double load_factor = 0.75;
-
-		c_size load_threshold;
-
-		constexpr static std::array<c_size, 49> PRIMES = {
-			13ll,
-			23ll,
-			37u,
-			53u,
-			67u,
-			79u,
-			97u,
-			131u,
-			193u,
-			257u,
-			389u,
-			521u,
-			769u,
-			1031u,
-			1543u,
-			2053u,
-			3079u,
-			6151u,
-			12289u,
-			24593u,
-			49157u,
-			98317ul,
-			196613ul,
-			393241ul,
-			786433ul,
-			1572869ul,
-			3145739ul,
-			6291469ul,
-			12582917ul,
-			25165843ul,
-			50331653ul,
-			100663319ul,
-			201326611ul,
-			402653189ul,
-			805306457ul,
-			1610612741ul,
-			3221225473ul,
-			4294967291ul,
-			6442450939ull,
-			12884901893ull,
-			25769803751ull,
-			51539607551ull,
-			103079215111ull,
-			206158430209ull,
-			412316860441ull,
-			824633720831ull,
-			1649267441651ull,
-			3298534883309ull,
-			6597069766657ull
-		};
-
-		PrimePolicy() : i(0), load_threshold(PRIMES[0] * load_factor) {}
-
-		PrimePolicy(const self& other) : i(other.i), load_threshold(other.load_threshold) {}
-
-		self& operator=(const self& other)
+		// 缩小容量，并返回缩小后的容量
+		c_size shrink_capacity()
 		{
-			if (this == &other) return *this;
-
-			i = other.i;
-			load_threshold = other.load_threshold;
-			return *this;
+			capacity_ >>= 1;
+			return capacity_;
 		}
 
-		// 当前策略的容量
-		c_size capacity() const { return PRIMES[i]; }
-
-		// 尝试上一个策略
-		c_size prev()
+		// 扩大容量，并返回扩大后的容量
+		c_size expand_capacity()
 		{
-			--i;
-			update_load_threshold();
-			return capacity();
+			capacity_ <<= 1;
+			return capacity_;
 		}
 
-		// 尝试下一个策略
-		c_size next()
-		{
-			++i;
-			update_load_threshold();
-			return capacity();
-		}
-
-		// 调整到比n大的最小容量策略
-		c_size adapt(c_size n)
+		// 容量调整到比n大的最小值
+		c_size adapt_at_least(c_size n)
 		{
 			if (n > max_capacity()) RuntimeError("capacity is too large!");
 
-			if (capacity() < n)
-			{
-				while (next() < n);
-			}
-			else
-			{
-				while (i > 0 && PRIMES[i - 1] >= n) prev();
-			}
-			return capacity();
+			c_size res = highbit(n);
+			if (res != n && res < max_capacity()) res <<= 1;
+			if (res < min_capacity()) res = min_capacity();
+
+			return capacity_ = res;
 		}
 
 		// hash值转化为索引
-		c_size hash2index(hash_t hashv) const { return hashv % PRIMES[i]; }
+		c_size hash2index(hash_t hashv) const { return hashv & mask(); }
 
 		// 下一个索引
-		c_size next_index(c_size index) const { return (index + 1) % PRIMES[i]; }
+		c_size next_index(c_size index) const { return (index + 1) & mask(); }
 
 		// 调整到初始值
 		c_size reset()
 		{
-			i = 0;
-			update_load_threshold();
-			return capacity();
+			capacity_ = min_capacity();
+			return capacity_;
 		}
-
-		// 最小容量
-		constexpr c_size min_capacity() const { return PRIMES.front(); }
-
-		// 最大容量
-		constexpr c_size max_capacity() const { return PRIMES.back(); }
-	private:
-		void update_load_threshold() { load_threshold = capacity() * load_factor; }
 	};
 
 	template<typename T>
@@ -235,10 +93,7 @@ namespace ayr
 
 		using super = Object<self>;
 
-		union {
-			T value_;
-			uint8_t dummy_;
-		};
+		std::aligned_storage_t<sizeof(T), alignof(T)> value_;
 	public:
 		using Dist_t = int32_t;
 
@@ -248,15 +103,15 @@ namespace ayr
 
 		hash_t hashv;
 
-		TableItem() : dummy_(0), hashv(0), dist(-1) {}
+		TableItem() : hashv(0), dist(-1) {}
 
-		TableItem(const self& other) : TableItem()
+		TableItem(const self& other)
 		{
 			if (other.used())
 				set_empty_value(other.hashv, other.dist, other.value());
 		}
 
-		TableItem(self&& other) : TableItem()
+		TableItem(self&& other)
 		{
 			if (other.used())
 			{
@@ -283,29 +138,27 @@ namespace ayr
 
 			if (used()) destroy_value();
 			if (other.used())
-			{
 				set_empty_value(other.hashv, other.dist, std::move(other.value()));
-				set_unused();
-			}
 			return *this;
 		}
 
-		bool used() const { return dist >= 0; }
+		// 元素是否被使用
+		bool used() const { return dist != EMPITY_DIST; }
 
-		// value必须有效
-		void set_unused() { destroy_value(); dist = -1; }
-
-		// 不检查value的有效性,value必须有效
-		T& value() { return value_; }
+		// value必须有效，将元素设置为不使用
+		void set_unused() { destroy_value(); dist = EMPITY_DIST; }
 
 		// 不检查value的有效性,value必须有效
-		const T& value() const { return value_; }
+		T& value() { return reinterpret_cast<T&>(value_); }
+
+		// 不检查value的有效性,value必须有效
+		const T& value() const { return reinterpret_cast<const T&>(value_); }
 
 		// 原来不存在value, 构造一个新的value
 		template<typename... Args>
 		void set_empty_value(const hash_t& hashv, const Dist_t& dist, Args&& ... args)
 		{
-			ayr_construct(&value_, std::forward<Args>(args)...);
+			ayr_construct(&value(), std::forward<Args>(args)...);
 			this->hashv = hashv;
 			this->dist = dist;
 		}
@@ -315,13 +168,13 @@ namespace ayr
 		void set_new_value(Args&&... args)
 		{
 			destroy_value();
-			ayr_construct(&value_, std::forward<Args>(args)...);
+			ayr_construct(&value(), std::forward<Args>(args)...);
 		}
 
 		// 交换value, hashv, dist, value必须有效
 		void swap_elements(T& value, hash_t& hashv, Dist_t& dist)
 		{
-			ayr::swap(value_, value);
+			ayr::swap(this->value(), value);
 			swap(this->hashv, hashv);
 			swap(this->dist, dist);
 		}
@@ -341,17 +194,14 @@ namespace ayr
 
 		void __swap__(self& other)
 		{
-			swap(hashv, other.hashv);
-			swap(dist, other.dist);
-
-			uint8_t tmp[sizeof(T)];
-			std::memcpy(tmp, &value_, sizeof(T));
-			std::memcpy(&value_, &other.value_, sizeof(T));
-			std::memcpy(&other.value_, tmp, sizeof(T));
+			if (used() && other.used())
+				swap_elements(other.value(), other.hashv, other.dist);
+			else
+				RuntimeError("some element is unused");
 		}
 
 		// 销毁value，value必须有效
-		void destroy_value() { ayr_destroy(&value_); }
+		void destroy_value() { ayr_destroy(&value()); }
 	};
 
 	template<typename T>
@@ -366,7 +216,7 @@ namespace ayr
 	public:
 		TableItem<T>* items_;
 
-		PrimePolicy policy_;
+		Pow2Policy policy_;
 
 		c_size size_;
 
@@ -383,7 +233,7 @@ namespace ayr
 
 		Table(c_size capacity) : policy_(), items_(nullptr), size_(0)
 		{
-			items_ = ayr_alloc<TableItem_t>(policy_.adapt(capacity));
+			items_ = ayr_alloc<TableItem_t>(policy_.adapt_at_least(capacity));
 			for (c_size i = 0, n = this->capacity(); i < n; ++i)
 				ayr_construct(items_ + i);
 		}
@@ -439,7 +289,6 @@ namespace ayr
 
 				++move_dist;
 				j = policy_.next_index(j);
-
 			};
 		}
 
@@ -540,10 +389,10 @@ namespace ayr
 		// 扩容
 		void try_expand()
 		{
-			if (size_ < policy_.load_threshold) return;
+			if (size_ < policy_.load_threshold()) return;
 
 			c_size n = policy_.capacity();
-			self new_table(policy_.next());
+			self new_table(policy_.expand_capacity());
 			for (c_size i = 0; i < n; ++i)
 				if (items_[i].used())
 					new_table.insert_value_on_rehash(items_[i].hashv, std::move(items_[i].value()));
@@ -551,27 +400,6 @@ namespace ayr
 			ayr_delloc(items_);
 			items_ = new_table.items_;
 			new_table.items_ = nullptr;
-		}
-
-		CString __str__() const
-		{
-			DynArray<CString> strs;
-			for (c_size i = 0, n = capacity(); i < n; ++i)
-				strs.append(cstr(items_[i]));
-			return cstr("\n").join(strs);
-		}
-
-		void __repr__(Buffer& buffer) const
-		{
-			for (c_size i = 0, n = capacity(); i < n; ++i)
-				buffer << items_[i];
-		}
-
-		void __swap__(self& other)
-		{
-			swap(items_, other.items_);
-			policy_.__swap__(other.policy_);
-			swap(size_, other.size_);
 		}
 
 		void insert_value_on_rehash(hash_t hashv, Value_t&& value)
@@ -593,6 +421,27 @@ namespace ayr
 				j = policy_.next_index(j);
 				++move_dist;
 			}
+		}
+
+		CString __str__() const
+		{
+			DynArray<CString> strs;
+			for (c_size i = 0, n = capacity(); i < n; ++i)
+				strs.append(cstr(items_[i]));
+			return cstr("\n").join(strs);
+		}
+
+		void __repr__(Buffer& buffer) const
+		{
+			for (c_size i = 0, n = capacity(); i < n; ++i)
+				buffer << items_[i];
+		}
+
+		void __swap__(self& other)
+		{
+			swap(items_, other.items_);
+			policy_.__swap__(other.policy_);
+			swap(size_, other.size_);
 		}
 
 		template<bool IsConst>
