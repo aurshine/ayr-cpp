@@ -94,7 +94,7 @@ namespace ayr
 	}
 
 	template<typename B>
-	constexpr def highbit(const B& x) { return x >> highbit_index(x); }
+	constexpr def highbit(const B& x) { return 1 << highbit_index(x); }
 
 	// 判断二进制数是否全为1
 	template<typename B>
