@@ -19,14 +19,14 @@ namespace ayr
 		{
 			Buffer buffer(128);
 			write_buffer(buffer, object, args...);
-			std::fprintf(output_file_, buffer.data());
+			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
 		}
 
 		void operator()() const
 		{
 			Buffer buffer(128);
 			write_buffer(buffer);
-			std::fprintf(output_file_, buffer.data());
+			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
 		}
 
 		void flush() const { std::fflush(output_file_); }
@@ -94,7 +94,7 @@ namespace ayr
 			buffer << color_;
 			super::write_buffer(buffer, args...);
 			buffer << Color::CLOSE;
-			std::fprintf(output_file_, buffer.data());
+			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
 		}
 
 		void setcolor(CString color) { color_ = std::move(color); }
