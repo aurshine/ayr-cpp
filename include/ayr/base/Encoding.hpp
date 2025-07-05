@@ -3,7 +3,6 @@
 
 #include "raise_error.hpp"
 
-
 namespace ayr
 {
 	class Encoding : public Object<Encoding>
@@ -85,20 +84,20 @@ namespace ayr
 			if (code <= 0x7F)
 			{
 				buf[0] = code;
-				return CString(buf, 1);
+				return dstr(buf, 1);
 			}
 			else if (code <= 0x7FF)
 			{
 				buf[0] = 0xC0 | (code >> 6);
 				buf[1] = 0x80 | (code & 0x3F);
-				return CString(buf, 2);
+				return dstr(buf, 2);
 			}
 			else if (code <= 0xFFFF)
 			{
 				buf[0] = 0xE0 | (code >> 12);
 				buf[1] = 0x80 | ((code >> 6) & 0x3F);
 				buf[2] = 0x80 | (code & 0x3F);
-				return CString(buf, 3);
+				return dstr(buf, 3);
 			}
 			else if (code <= 0x10FFFF)
 			{
@@ -106,7 +105,7 @@ namespace ayr
 				buf[1] = 0x80 | ((code >> 12) & 0x3F);
 				buf[2] = 0x80 | ((code >> 6) & 0x3F);
 				buf[3] = 0x80 | (code & 0x3F);
-				return CString(buf, 4);
+				return dstr(buf, 4);
 			}
 
 			EncodingError("Invalid AChar");
@@ -169,7 +168,7 @@ namespace ayr
 			{
 				buf[0] = code >> 8;
 				buf[1] = code & 0xFF;
-				return CString(buf, 2);
+				return dstr(buf, 2);
 			}
 			else if (code <= 0x10FFFF)
 			{
@@ -178,7 +177,7 @@ namespace ayr
 				buf[1] = 0xDC | ((code >> 10) & 0x3F);
 				buf[2] = 0xDC | (code & 0x3F);
 				buf[3] = 0xDC | ((code >> 22) & 0x3F);
-				return CString(buf, 4);
+				return dstr(buf, 4);
 			}
 
 			EncodingError("Invalid AChar");
@@ -214,7 +213,7 @@ namespace ayr
 			buf[1] = (code >> 16) & 0xFF;
 			buf[2] = (code >> 8) & 0xFF;
 			buf[3] = code & 0xFF;
-			return CString(buf, 4);
+			return dstr(buf, 4);
 		}
 	};
 

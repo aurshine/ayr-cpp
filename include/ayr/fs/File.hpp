@@ -21,7 +21,7 @@ namespace ayr
 			constexpr static FD INVALID_FD = -1;
 #endif
 		public:
-			AyrFile(const char* filename, CString mode) : fh_(INVALID_FD)
+			AyrFile(const CString& filename, const CString& mode) : fh_(INVALID_FD)
 			{
 #if defined(AYR_WIN)
 				int dwDesiredAccess = 0, dwCreationDisposition = 0;
@@ -44,7 +44,7 @@ namespace ayr
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
 
 				fh_ = CreateFileA(
-					filename,
+					filename.data(),
 					dwDesiredAccess,
 					FILE_SHARE_READ,
 					nullptr,
@@ -103,12 +103,12 @@ namespace ayr
 				}
 			}
 
-			void write(const char* data, c_size size = -1) const
+			void write(const CString& data, c_size size = -1) const
 			{
-				if (size == -1) size = strlen(data);
+				if (size == -1) size = data.size();
 #if defined(AYR_WIN)
 				DWORD written_bytes = 0;
-				BOOL ok = WriteFile(fh_, data, size, &written_bytes, nullptr);
+				BOOL ok = WriteFile(fh_, data.data(), size, &written_bytes, nullptr);
 				if (!ok || written_bytes != size)
 					SystemError("Failed to write from file");
 #elif defined(AYR_LINUX)
@@ -126,25 +126,24 @@ namespace ayr
 			CString read() const
 			{
 				c_size buffer_size = file_size();
-				CString buffer{ buffer_size };
+				char* buffer = ayr_alloc<char>(buffer_size);
 #if defined(AYR_WIN)
 				DWORD read_bytes = 0;
-				BOOL ok = ReadFile(fh_, buffer.data(), buffer_size, &read_bytes, nullptr);
+				BOOL ok = ReadFile(fh_, buffer, buffer_size, &read_bytes, nullptr);
 				if (!ok || read_bytes != buffer_size)
 					SystemError("Failed to read from file");
 
-				return buffer;
 #elif defined(AYR_LINUX)
 				c_size num_read = 0;
 				while (num_read < buffer_size)
 				{
-					c_size read_bytes = ::read(fh_, buffer.data() + num_read, buffer_size - num_read);
+					c_size read_bytes = ::read(fh_, buffer + num_read, buffer_size - num_read);
 					if (read_bytes == -1)
 						SystemError("Failed to read from file");
 					num_read += read_bytes;
 				}
 #endif 
-				return buffer;
+				return ostr(buffer, buffer_size);
 			}
 
 			c_size file_size() const

@@ -11,69 +11,110 @@
 
 namespace ayr
 {
+	constexpr c_size strlen(const char* str)
+	{
+		c_size len = 0;
+		while (str[len]) ++len;
+		return len;
+	}
+
+	template<size_t N>
+	constexpr c_size strlen(const char(&str)[N]) { return N - 1; }
+
 	class CString
 	{
 		using self = CString;
+
+		const char* str;
+
+		// 最高位1字节记录是否占有内存，0表示内存不属于该对象，1表示内存属于该对象
+		// 剩余的63位记录字符串长度
+		c_size length_and_owner_flag;
+
+		// 最高位字节为1，x & OWNER_MASK == 1 表示内存属于该对象
+		static constexpr c_size OWNER_MASK = 1ll << 63;
 	public:
 		friend class Buffer;
 
-		CString() : str(ayr_alloc<char>(1)) { std::memset(str, 0, 1); }
+		constexpr CString() : str(""), length_and_owner_flag(OWNER_MASK) {}
 
-		CString(c_size len) : str(ayr_alloc<char>(len + 1)) { std::memset(str, 0, len + 1); }
+		constexpr CString(const char* str_) : str(str_), length_and_owner_flag(strlen(str_)) {}
 
-		CString(const char* str_) : CString(str_, std::strlen(str_)) {}
+		template<size_t N>
+		constexpr CString(const char(&str_)[N]) : str(str_), length_and_owner_flag(N - 1) {}
 
-		CString(const char* str_, c_size len_) : CString(len_) { std::memcpy(data(), str_, len_); }
+		constexpr CString(const char* str_, c_size len_, bool owner = false) : str(str_), length_and_owner_flag(ifelse(owner, len_ | OWNER_MASK, len_)) {}
 
-		CString(const std::basic_string<char>& str_) : CString(str_.c_str(), str_.size()) {}
+		constexpr CString(const self& other) : str(other.str), length_and_owner_flag(other.size()) {}
 
-		CString(const CString& other) : CString(other.data(), other.size()) {}
+		constexpr CString(self&& other) noexcept : str(other.str), length_and_owner_flag(other.length_and_owner_flag)
+		{
+			other.str = nullptr;
+			other.length_and_owner_flag = 0;
+		}
 
-		CString(CString&& other) noexcept : str(other.str) { other.str = nullptr; }
+		~CString()
+		{
+			if (owner())
+				ayr_delloc(const_cast<char*>(str));
+			length_and_owner_flag = 0;
+		}
 
-		~CString() { ayr_delloc(str); }
-
-		CString& operator=(const CString& other)
+		self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			ayr_delloc(str);
+			ayr_destroy(this);
 
 			return *ayr_construct(this, other);
 		}
 
-		CString& operator=(CString&& other) noexcept
+		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_delloc(str);
+			ayr_destroy(this);
 
 			return *ayr_construct(this, std::move(other));
 		}
 
-		operator const char* () const { return data(); }
+		constexpr const char& operator[] (c_size index) const { return str[index]; }
 
-		operator char* () { return data(); }
+		// 判断是否拥有内存
+		constexpr bool owner() const { return length_and_owner_flag & OWNER_MASK; }
 
-		char& operator[] (c_size index) { return str[index]; }
+		// 获得字符串长度
+		constexpr c_size size() const { return length_and_owner_flag & ~OWNER_MASK; }
 
-		const char& operator[] (c_size index) const { return str[index]; }
+		constexpr bool empty() const { return size() == 0; }
 
-		c_size size() const { return std::strlen(data()); }
+		constexpr const char* data() const { return str; }
 
-		bool empty() const { return str == nullptr || str[0] == '\0'; }
-
-		char* data() { return str; }
-
-		const char* data() const { return str; }
-
-		CString __str__() const { return *this; }
-
-		size_t __hash__() const { return bytes_hash(data(), size()); }
+		// 拷贝一个新的 CString 对象，并拥有内存
+		self clone() const
+		{
+			c_size len = size();
+			char* new_str = ayr_alloc<char>(len + 1);
+			std::memcpy(new_str, str, len);
+			new_str[len] = '\0';
+			return self(new_str, len, true);
+		}
 
 		cmp_t __cmp__(const self& other) const { return std::strcmp(data(), other.data()); }
 
 		bool __equals__(const self& other) const { return __cmp__(other) == 0; }
 
 		bool __equals__(const char* other) const { return std::strcmp(data(), other) == 0; }
+
+		size_t __hash__() const { return bytes_hash(data(), size()); }
+
+		void __repr__(Buffer& buffer) const { buffer.append_bytes(data(), size()); }
+
+		self __str__() const { return *this; }
+
+		void __swap__(self& other)
+		{
+			std::swap(str, other.str);
+			std::swap(length_and_owner_flag, other.length_and_owner_flag);
+		}
 
 		bool operator> (const self& other) const { return __cmp__(other) > 0; }
 
@@ -94,10 +135,12 @@ namespace ayr
 		self operator+(const self& other)
 		{
 			c_size s_size = size(), o_size = other.size();
-			self ret(s_size + o_size);
-			std::memcpy(ret.data(), data(), s_size);
-			std::memcpy(ret.data() + s_size, other.data(), o_size);
-			return ret;
+			char* new_str = ayr_alloc<char>(s_size + o_size + 1);
+
+			std::memcpy(new_str, data(), s_size);
+			std::memcpy(new_str + s_size, other.data(), o_size);
+			new_str[s_size + o_size] = '\0';
+			return self(new_str, s_size + o_size, true);
 		}
 
 		self& operator+=(const self& other)
@@ -118,8 +161,8 @@ namespace ayr
 				len += str.size() + s_size;
 			if (len) len -= s_size;
 
-			self ret(len);
-			char* ptr = ret.data();
+			char* new_str = ayr_alloc<char>(len + 1);
+			char* ptr = new_str;
 			for (auto it = elems.begin(); it != elems.end(); ++it)
 			{
 				c_size o_size = it->size();
@@ -131,18 +174,20 @@ namespace ayr
 				std::memcpy(ptr, it->data(), o_size);
 				ptr += o_size;
 			}
-			return ret;
+			*ptr = '\0';
+			return self(new_str, len, true);
 		}
 
-		template<IteratableU<CString> Obj>
-		static CString cjoin(const Obj& elems)
+		template<IteratableU<self> Obj>
+		static self cjoin(const Obj& elems)
 		{
 			c_size length = 0;
-			for (const CString& s : elems)
+			for (const self& s : elems)
 				length += s.size();
-			CString result(length);
-			char* ptr = result.data();
-			for (const CString& s : elems)
+
+			char* new_str = ayr_alloc<char>(length + 1);
+			char* ptr = new_str;
+			for (const self& s : elems)
 			{
 				const char* s_ptr = s.data();
 				while (*s_ptr)
@@ -151,62 +196,112 @@ namespace ayr
 					++ptr, ++s_ptr;
 				}
 			}
-
-			return result;
+			*ptr = '\0';
+			return self(new_str, length, true);
 		}
-	private:
-		char* str;
 	};
 
+	// owner string
+	// 浅拷贝，并拥有str内存
+	def ostr(const char* str, c_size len = -1)
+	{
+		if (len == -1) len = strlen(str);
+		return CString(str, len, true);
+	}
+
+	def ostr(const std::string& str) { return CString(str.c_str(), str.size(), true); }
+
+	def ostr(const std::string_view& str) { return CString(str.data(), str.size(), true); }
+
+	// view string
+	// 浅拷贝，不拥有str内存
+	def vstr(const char* str, c_size len = -1)
+	{
+		if (len == -1) len = strlen(str);
+		return CString(str, len, false);
+	}
+
+	def vstr(const std::string& str) { return CString(str.c_str(), str.size(), false); }
+
+	def vstr(const std::string_view& str) { return CString(str.data(), str.size(), false); }
+
+	// deep string
+	// 深拷贝, 并拥有str内存
+	def dstr(const char* str, c_size len = -1)
+	{
+		if (len == -1) len = strlen(str);
+		char* new_str = ayr_alloc<char>(len + 1);
+		std::memcpy(new_str, str, len);
+		new_str[len] = '\0';
+		return CString(new_str, len, true);
+	}
+
+	def dstr(const std::string& str) { return dstr(str.c_str(), str.size()); }
+
+	def dstr(const std::string_view& str) { return dstr(str.data(), str.size()); }
+
+	// 将任意类型转化为元字面量字符串
 	template<typename T>
-	der(CString) meta_cstr(const T& value)
+	der(CString) cstr_meta(const T& value)
 	{
 		std::string type_name = dtype(value);
 		int s_len = type_name.size() + 22;
-		CString s(s_len);
+		char* s = ayr_alloc<char>(s_len);
 #ifdef _MSC_VER
-		sprintf_s(s.data(), s_len, "<%s 0x%p>", type_name.c_str(), &value);
+		sprintf_s(s, s_len, "<%s 0x%p>", type_name.c_str(), &value);
 #else
-		std::sprintf(s.data(), "<%s 0x%p>", type_name.c_str(), &value);
+		std::sprintf(s, "<%s 0x%p>", type_name.c_str(), &value);
 #endif
-		return s;
+		return ostr(s);
 	}
 
+	// 整型转换为 CString 对象
 	der(CString) cstr_int(c_size value)
 	{
-		CString tmp(32);
-		sprintf_int(tmp.data(), 32, value);
-		return tmp;
+		char* tmp = ayr_alloc<char>(32);
+		sprintf_int(tmp, 32, value);
+		return ostr(tmp);
 	}
 
+	// 浮点型转换为 CString 对象
 	der(CString) cstr_float(double value)
 	{
-		CString tmp(32);
-		sprintf_float(tmp.data(), 32, value);
-		return tmp;
+		char* tmp = ayr_alloc<char>(32);
+		sprintf_float(tmp, 32, value);
+		return ostr(tmp);
 	}
 
+	// 指针转换为 CString 对象
 	der(CString) cstr_pointer(const void* value)
 	{
-		CString tmp(32);
-		sprintf_pointer(tmp.data(), 32, value);
-		return tmp;
+		char* tmp = ayr_alloc<char>(32);
+		sprintf_pointer(tmp, 32, value);
+		return ostr(tmp, 32);
 	}
 
-	der(CString) cstr(bool value) { return ifelse(value, "true", "false"); }
-
-	der(CString) cstr(char value) { return CString(&value, 1); }
-
-	der(CString) cstr(const char* value) { return value; }
-
+	// nullptr 转换为 CString 对象
 	der(CString) cstr(nullptr_t) { return "nullptr"; }
 
-	der(CString) cstr(const std::string& value) { return CString(value.c_str(), value.size()); }
+	// 将bool 转换为 CString 对象
+	der(CString) cstr(bool value) { return ifelse(value, "true", "false"); }
 
-	der(CString) cstr(const std::string_view& value) { return CString(value.data(), value.size()); }
+	// 将char 转换为 CString 对象
+	der(CString) cstr(char value) { return dstr(&value, 1); }
 
-	der(CString) cstr(const CString& value) { return value; }
+	// 将const char* 转换为 CString 对象
+	der(CString) cstr(const char* value, c_size len = -1)
+	{
+		if (len == -1) len = strlen(value);
+		return dstr(value, len);
+	}
 
+	// 将std::string 转换为 CString 对象
+	der(CString) cstr(const std::string& value) { return dstr(value); }
+
+	// 将std::string_view 转换为 CString 对象
+	der(CString) cstr(const std::string_view& value) { return dstr(value); }
+
+	// 将任意类型转换为 CString 对象
 	template<typename T>
 	der(CString) cstr(const T& value)
 	{
@@ -216,7 +311,7 @@ namespace ayr
 		{
 			Buffer buf;
 			value.__repr__(buf);
-			return CString(buf.data(), buf.size());
+			return dstr(buf.data(), buf.size());
 		}
 		else if constexpr (std::is_integral_v<T>)
 			return cstr_int(value);
@@ -225,7 +320,7 @@ namespace ayr
 		else if constexpr (std::is_pointer_v<T>)
 			return cstr_pointer(value);
 		else
-			return meta_cstr(value);
+			return cstr_meta(value);
 	}
 
 	Buffer& operator<< (Buffer& buffer, const CString& value)
@@ -235,7 +330,7 @@ namespace ayr
 	}
 }
 
-der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os << str.data(); }
+der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os.write(str.data(), str.size()); }
 
 template<>
 struct std::formatter<ayr::CString> : std::formatter<const char*>

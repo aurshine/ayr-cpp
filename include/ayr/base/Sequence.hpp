@@ -169,20 +169,6 @@ namespace ayr
 			return super::derived().__cmp__(other) == 0;
 		}
 
-		CString __str__() const
-		{
-			std::stringstream ss;
-			ss << "[";
-			for (auto it = super::derived().begin(), end_ = super::derived().end(); it != end_; ++it)
-			{
-				ss << *it;
-				if (std::next(it) != end_)
-					ss << ", ";
-			}
-			ss << "]";
-			return ss.str();
-		}
-
 		void __repr__(Buffer& buffer) const
 		{
 			buffer << "[";

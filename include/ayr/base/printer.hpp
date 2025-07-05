@@ -109,12 +109,13 @@ namespace ayr
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 }
 
-template<ayr::AyrPrintable Ayr>
+template<ayr::AyrObject Ayr>
 struct std::formatter<Ayr> : std::formatter<const char*>
 {
 	auto format(const Ayr& value, std::format_context& ctx) const
 	{
-		return std::formatter<const char*>::format(static_cast<const char*>(value.__str__()), ctx);
+		ayr::CString str = cstr(value);
+		return std::formatter<const char*>::format(str.data(), ctx);
 	}
 };
 

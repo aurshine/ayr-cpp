@@ -87,7 +87,7 @@ namespace ayr
 		}
 
 		// 连接到ip:port
-		void connect(const char* ip, int port) const
+		void connect(const CString& ip, int port) const
 		{
 			SockAddrIn addr(ip, port);
 
@@ -96,19 +96,13 @@ namespace ayr
 		}
 
 		// 发送data，返回已经发送的字节数
-		int send(const char* data, int size = -1, int flags = 0) const
+		int send(const CString& data, int size = -1, int flags = 0) const
 		{
-			if (size == -1) size = strlen(data);
-			int num_send = ::send(socket_, data, size, flags);
+			if (size == -1) size = data.size();
+			int num_send = ::send(socket_, data.data(), size, flags);
 			if (num_send == -1)
 				RuntimeError(get_error_msg());
 			return num_send;
-		}
-
-		// 参数为CString的重载
-		int send(const CString& data, int flags = 0) const
-		{
-			return send(data.data(), data.size(), flags);
 		}
 
 		// 参数为Atring的重载
@@ -118,12 +112,13 @@ namespace ayr
 		}
 
 		// 将所有数据连续发送出去，直到发送完毕或出现错误
-		void sendall(const char* data, int size, int flags = 0) const
+		void sendall(const CString& data, int size, int flags = 0) const
 		{
 			// 已经发送出的字节数
 			int num_sent = 0;
+			const char* ptr = data.data();
 			while (num_sent < size)
-				num_sent += send(data + num_sent, size - num_sent, flags);
+				num_sent += send(ptr + num_sent, size - num_sent, flags);
 		}
 
 		void sendall(const CString& data, int flags = 0) const
@@ -137,12 +132,12 @@ namespace ayr
 		}
 
 		// 将辅助数据和普通数据一起发送
-		void sendmsg(const char* data, int size, int flags = 0) const
+		void sendmsg(const CString& data, int size, int flags = 0) const
 		{
 			Buffer msg_data(sizeof(u_long) + size);
 			int data_size = htonl(size);
 			msg_data.append_bytes(&data_size, sizeof(u_long));
-			msg_data.append_bytes(data, size);
+			msg_data.append_bytes(data.data(), size);
 			sendall(msg_data.data(), msg_data.size(), flags);
 		}
 
@@ -157,9 +152,9 @@ namespace ayr
 		}
 
 		// 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
-		int sendto(const char* data, size_t size, const SockAddrIn& to, int flags = 0) const
+		int sendto(const CString& data, size_t size, const SockAddrIn& to, int flags = 0) const
 		{
-			int num_send = ::sendto(socket_, data, size, flags, to.get_sockaddr(), to.get_socklen());
+			int num_send = ::sendto(socket_, data.data(), size, flags, to.get_sockaddr(), to.get_socklen());
 			if (num_send == -1)
 				RuntimeError(get_error_msg());
 			return num_send;
@@ -178,13 +173,13 @@ namespace ayr
 		// 接收最多bufsize个字节的数据
 		CString recv(int bufsize, int* length = nullptr, int flags = 0) const
 		{
-			CString data{ bufsize };
-			int recvd = ::recv(socket_, data.data(), bufsize, flags);
+			char* data = ayr_alloc<char>(bufsize);
+			int recvd = ::recv(socket_, data, bufsize, flags);
 			if (recvd == -1 && errno != EAGAIN && errno != EWOULDBLOCK)
 				RuntimeError(get_error_msg());
 
 			if (length) *length = recvd;
-			return data;
+			return ostr(data, recvd);
 		}
 
 		// 接收所有数据，直到接收完毕或出现错误
@@ -200,14 +195,14 @@ namespace ayr
 				datas.append(data);
 			}
 
-			return cstr("").join(datas);
+			return CString::cjoin(datas);
 		}
 
 		// 将普通数据和辅助数据一起接收，并返回普通数据
 		CString recvmsg(int flags = 0) const
 		{
 			CString msg_size = recv(sizeof(u_long), nullptr, flags);
-			u_long* msg_size_l = reinterpret_cast<u_long*>(msg_size.data());
+			auto msg_size_l = reinterpret_cast<const u_long*>(msg_size.data());
 			return recv(ntohl(*msg_size_l), nullptr, flags);
 		}
 
@@ -216,11 +211,11 @@ namespace ayr
 		std::pair<CString, SockAddrIn> recvfrom(int flags = 0) const
 		{
 			SockAddrIn from{};
-			CString data{ 1024 };
+			char* data = ayr_alloc<char>(1024);
 
 			socklen_t addrlen = from.get_socklen();
-			::recvfrom(socket_, data.data(), 1024, flags, from.get_sockaddr(), &addrlen);
-			return { data, from };
+			::recvfrom(socket_, data, 1024, flags, from.get_sockaddr(), &addrlen);
+			return { ostr(data), from };
 		}
 
 		// 设置socket为阻塞或非阻塞模式
@@ -291,7 +286,7 @@ namespace ayr
 			setsockopt(SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 		}
 
-		CString __str__() const { return std::format("Socket({})", socket_); }
+		CString __str__() const { return dstr(std::format("Socket({})", socket_)); }
 
 		cmp_t __cmp__(const self& other) const { return socket_ - other.socket_; }
 

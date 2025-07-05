@@ -6,27 +6,27 @@
 #include "ayr_memory.hpp"
 #include "sprintf.h"
 
-namespace ayr 
+namespace ayr
 {
 	class Buffer
 	{
 		char* data_;
 
 		c_size size_, capacity_;
-		
+
 		constexpr static c_size INITIAL_CAPACITY = 64;
 	public:
-		Buffer(): Buffer(INITIAL_CAPACITY) {}
+		Buffer() : Buffer(INITIAL_CAPACITY) {}
 
 		Buffer(c_size capacity) : data_(ayr_alloc<char>(capacity + 1)), size_(0), capacity_(capacity) {}
-		
+
 		Buffer(const Buffer& other) : Buffer(other.capacity_)
 		{
 			std::memcpy(data_, other.data_, other.size_);
 			size_ = other.size_;
 		}
 
-		Buffer(Buffer&& other) noexcept: data_(other.data_), size_(other.size_), capacity_(other.capacity_)
+		Buffer(Buffer&& other) noexcept : data_(other.data_), size_(other.size_), capacity_(other.capacity_)
 		{
 			other.data_ = nullptr;
 			other.size_ = 0;
@@ -165,12 +165,15 @@ namespace ayr
 	}
 
 	template<typename T>
-	Buffer& operator<< (Buffer& buffer, const T& value) 
-	{ 
+	Buffer& operator<< (Buffer& buffer, const T& value)
+	{
 		if constexpr (hasmethod(T, __repr__, std::declval<Buffer&>()))
 			value.__repr__(buffer);
 		else if constexpr (hasmethod(T, __str__))
-			buffer << value.__str__();
+		{
+			auto str = value.__str__();
+			buffer.append_bytes(str.data(), str.size());
+		}
 		else if constexpr (std::is_integral_v<T>)
 			_repr_int(buffer, value);
 		else if constexpr (std::is_floating_point_v<T>)
@@ -179,7 +182,7 @@ namespace ayr
 			_repr_pointer(buffer, value);
 		else
 			buffer << "<" << dtype(T) << " 0x" << &value << ">";
-		return buffer; 
+		return buffer;
 	}
 }
 #endif // AYR_BASE_META_BUFFER_HPP

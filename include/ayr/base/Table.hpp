@@ -182,7 +182,7 @@ namespace ayr
 		CString __str__() const
 		{
 			if (!used()) return "[unused]";
-			return std::format("[hashv:{} dist:{} value:{}]", hashv, dist, value());
+			return dstr(std::format("[hashv:{} dist:{} value:{}]", hashv, dist, value()));
 		}
 
 		void __repr__(Buffer& buffer) const
@@ -428,7 +428,7 @@ namespace ayr
 			DynArray<CString> strs;
 			for (c_size i = 0, n = capacity(); i < n; ++i)
 				strs.append(cstr(items_[i]));
-			return cstr("\n").join(strs);
+			return vstr("\n").join(strs);
 		}
 
 		void __repr__(Buffer& buffer) const

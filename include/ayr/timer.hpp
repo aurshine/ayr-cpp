@@ -62,7 +62,7 @@ namespace ayr
 		// 返回当前是周几
 		CString week_str() const { return WEEK_STR[week()]; }
 
-		CString __str__() const { return std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_); }
+		CString __str__() const { return dstr(std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_)); }
 
 		cmp_t __cmp__(const Date& date) const
 		{

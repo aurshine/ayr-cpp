@@ -7,7 +7,6 @@ namespace ayr
 {
 	namespace json
 	{
-
 		class Json : public Object<Json>
 		{
 			using self = Json;
@@ -364,7 +363,7 @@ namespace ayr
 				jmc.for_int([&](const JsonInt& obj) { return cstr(obj); });
 				jmc.for_float([&](const JsonFloat& obj) { return cstr(obj); });
 				jmc.for_bool([&](const JsonBool& obj) { return cstr(obj); });
-				jmc.for_str([&](const JsonStr& obj) { return cstr(""as.join(Array<JsonStr>({ "\""as, obj, "\""as }))); });
+				jmc.for_str([&](const JsonStr& obj) { return CString::cjoin(arr("\"", cstr(obj), "\"")); });
 				jmc.for_array([&](const JsonArray& obj) { return cstr(obj); });
 				jmc.for_dict([&](const JsonDict& obj) { return cstr(obj); });
 				return jmc(*this);

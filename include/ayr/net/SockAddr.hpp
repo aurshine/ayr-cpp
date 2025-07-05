@@ -11,7 +11,7 @@ namespace ayr
 
 		SockAddrIn(const sockaddr_in& addr) : addr_(addr) {}
 
-		SockAddrIn(const char* ip, int port, int family = AF_INET) : SockAddrIn()
+		SockAddrIn(const CString& ip, int port, int family = AF_INET) : SockAddrIn()
 		{
 			addr_.sin_family = family;
 			addr_.sin_port = htons(port);
@@ -20,7 +20,7 @@ namespace ayr
 				addr_.sin_addr.s_addr = INADDR_ANY;
 			else
 			{
-				int ret = inet_pton(AF_INET, ip, &addr_.sin_addr);
+				int ret = inet_pton(AF_INET, ip.data(), &addr_.sin_addr);
 				switch (ret)
 				{
 				case 0:
@@ -49,15 +49,15 @@ namespace ayr
 
 		CString get_ip(int family = AF_INET) const
 		{
-			CString ip{ 16 };
-			if (inet_ntop(family, &addr_.sin_addr, ip.data(), 16) == nullptr)
+			char* ip = ayr_alloc<char>(16);
+			if (inet_ntop(family, &addr_.sin_addr, ip, 16) == nullptr)
 				RuntimeError(get_error_msg());
-			return ip;
+			return ostr(ip);
 		}
 
 		int get_port() const { return ntohs(addr_.sin_port); }
 
-		CString __str__() const { return std::format("{}:{}", get_ip(), get_port()); }
+		CString __str__() const { return dstr(std::format("{}:{}", get_ip(), get_port())); }
 
 		void __repr__(Buffer& buffer) const { buffer << get_ip() << ":" << get_port(); }
 	private:

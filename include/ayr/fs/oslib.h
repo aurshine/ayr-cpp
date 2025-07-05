@@ -1,6 +1,7 @@
 #ifndef AYR_FS_OSLIB_H
 #define AYR_FS_OSLIB_H
 
+#include "../base/ExTask.hpp"
 #include "../base/Object.hpp"
 #include "../base/raise_error.hpp"
 
@@ -41,24 +42,25 @@ namespace ayr
 	CString errorno2str(int errorno)
 	{
 #if defined(AYR_WIN)
-		CString error_msg{ 216 }, res{ 256 };
+		char error_msg[256];
+		char* res = ayr_alloc<char>(256);
+
 		FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM,
 			nullptr,
 			errorno,
 			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			error_msg.data(),
-			216,
+			error_msg,
+			256,
 			nullptr
 		);
 
-		std::snprintf(res.data(), 256, "errno %d: %s\n", errorno, error_msg.data());
-		return res;
+		std::snprintf(res, 256, "errno %d: %s\n", errorno, error_msg);
+
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-		CString res(256);
-		std::snprintf(res.data(), 256, "errno %d: %s\n", errorno, strerror(errorno));
-		return res;
+		std::snprintf(res, 256, "errno %d: %s\n", errorno, strerror(errorno));
 #endif // 平台判断
+		return ostr(res);
 	}
 
 	CString get_error_msg()

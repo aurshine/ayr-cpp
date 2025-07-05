@@ -59,7 +59,7 @@ namespace ayr
 			return size;
 		}
 
-		CString __str__() const { return CString(byte_code_, size()); }
+		CString __str__() const { return dstr(byte_code_, size()); }
 
 		void __repr__(Buffer& buffer) const { buffer.append_bytes(byte_code_, size()); }
 
