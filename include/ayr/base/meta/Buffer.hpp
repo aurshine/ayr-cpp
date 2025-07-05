@@ -62,7 +62,6 @@ namespace ayr
 				expand(size + size_);
 			std::memcpy(data_ + size_, bytes, size);
 			size_ += size;
-			data_[size_] = '\0';
 		}
 
 		void __swap__(Buffer& other)
