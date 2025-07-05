@@ -13,10 +13,17 @@ namespace ayr
 		using self = Array<T>;
 
 		using super = Sequence<self, T>;
+
+		T* arr_;
+
+		c_size size_;
+
+		template<typename... Ts>
+		friend def arr(Ts&&... values);
 	public:
 		using Value_t = T;
 
-		Array(c_size size): size_(size), arr_(ayr_alloc<T>(size)) 
+		Array(c_size size) : size_(size), arr_(ayr_alloc<T>(size))
 		{
 			for (c_size i = 0; i < size; ++i)
 				ayr_construct(data() + i);
@@ -77,12 +84,6 @@ namespace ayr
 
 		c_size size() const { return size_; }
 
-		void __swap__(self& other)
-		{
-			ayr::swap(arr_, other.arr_);
-			swap(size_, other.size_);
-		}
-
 		// 重新分配内存，不保留原有数据
 		void resize(c_size new_size)
 		{
@@ -102,13 +103,30 @@ namespace ayr
 			size_ = 0;
 			return result;
 		}
-	private:
-		T* arr_;
 
-		c_size size_;
+		void __swap__(self& other)
+		{
+			std::swap(arr_, other.arr_);
+			std::swap(size_, other.size_);
+		}
 	};
 
+	// 通过初始化列表构造数组
 	template<typename T>
 	def arr(std::initializer_list<T>&& init_list) { return Array<T>(std::move(init_list)); }
+
+	// 通过变参模板构造数组
+	template<typename... Ts>
+	def arr(Ts&&... values)
+	{
+		using Type = std::common_type_t<Ts...>;
+		Array<Type> res(0);
+		res.size_ = sizeof...(values);
+		res.arr_ = ayr_alloc<Type>(res.size_);
+
+		c_size i = 0;
+		(ayr_construct(res.arr_ + i++, std::forward<Ts>(values)), ...);
+		return res;
+	}
 }
 #endif
