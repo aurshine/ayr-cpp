@@ -14,7 +14,7 @@ namespace ayr
 		hints.ai_socktype = SOCK_STREAM;
 		hints.ai_protocol = IPPROTO_TCP;
 
-		if (getaddrinfo(host.data(), port.data(), &hints, &res) == 0)
+		if (getaddrinfo(host.c_str().c_str(), port.c_str().c_str(), &hints, &res) == 0)
 		{
 			ExTask exit([&res] { freeaddrinfo(res); });
 

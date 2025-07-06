@@ -64,7 +64,7 @@ namespace ayr
 		static void print_logevent(const LogEvent& evt, const char* msg, const Date& date, const char* file, int line)
 		{
 			fprintf(evt.output_, "%s %s%-5s%s %s:%d ",
-				cstr(date).data(),
+				cstr(date).c_str().c_str(),
 				LogLevel::LEVEL_COLORS[evt.level_],
 				LogLevel::LEVEL_NAMES[evt.level_],
 				Color::CLOSE,

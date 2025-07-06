@@ -44,7 +44,7 @@ namespace ayr
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
 
 				fh_ = CreateFileA(
-					filename.data(),
+					filename.c_str().c_str(),
 					dwDesiredAccess,
 					FILE_SHARE_READ,
 					nullptr,
