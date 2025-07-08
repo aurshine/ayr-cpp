@@ -150,6 +150,34 @@ namespace ayr
 				});
 		}
 
+		// 字符串切片，[start, end)，浅拷贝
+		self vslice(c_size start, c_size end) const { return self(data() + start, end - start, false); }
+
+		// 字符串切片，[start, size())，浅拷贝
+		self vslice(c_size start) const { return vslice(start, size()); }
+
+		// 字符串切片，[start, end)，深拷贝
+		self slice(c_size start, c_size end) const { return vslice(start, end).clone(); }
+
+		// 字符串切片，[start, size())，深拷贝
+		self slice(c_size start) const { return slice(start, size()); }
+
+		// 判断是否以prefix开头
+		bool startswith(const self& preifx) const 
+		{
+			c_size m_size = size(), p_size = preifx.size();
+			if (p_size > m_size) return false;
+			return std::memcmp(data(), preifx.data(), p_size) == 0;
+		}
+
+		// 判断是否以suffix结尾
+		bool endswith(const self& suffix) const
+		{
+			c_size m_size = size(), s_size = suffix.size();
+			if (s_size > m_size) return false;
+			return std::memcmp(data() + m_size - s_size, suffix.data(), s_size) == 0;
+		}
+
 		// 通过*this，连接可迭代对象中的字符串
 		template<IteratableU<self> Obj>
 		self join(const Obj& elems) const
@@ -196,6 +224,10 @@ namespace ayr
 				}
 				});
 		}
+
+		const char* begin() const { return data(); }
+
+		const char* end() const { return data() + size(); }
 
 		cmp_t __cmp__(const self& other) const
 		{
