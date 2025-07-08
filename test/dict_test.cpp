@@ -192,7 +192,7 @@ void set_test()
 
 int main()
 {
-	// dict_test();
-	set_test();
+	dict_run_speed_test();
+	set_run_speed_test();
 	return 0;
 }

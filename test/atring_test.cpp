@@ -17,7 +17,7 @@ int main()
 	tlog(str1.strip("你"));
 	tlog(str1.startswith("你"));
 	tlog(str1.endswith("你"));
-	tlog("*"as.join(Array<const char*>{ "我", "爱", "你" }));
+	tlog("*"as.join(arr({ "我", "爱", "你" })));
 	tlog("adhaf{{这是内容}}ahfiaf{{dadf}}"as.match("{{", "}}"));
 	tlog(*str1.encoding());
 	tlog("123"as.to_int());

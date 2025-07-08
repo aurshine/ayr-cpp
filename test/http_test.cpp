@@ -14,8 +14,11 @@ int main()
 
 	while (true)
 	{
-		Atring req_str(client_fd.recv(1024));
-		auto req = parser(req_str);
+		HttpRequest req;
+		Atring req_str;
+		do {
+			req_str = client_fd.recv(1024);
+		} while (!parser(req, req_str));
 
 		print(req.text());
 

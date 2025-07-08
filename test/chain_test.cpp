@@ -7,7 +7,7 @@
 using namespace ayr;
 
 
-int main() 
+int main()
 {
 	Timer_ms timer;
 	Chain<CString> bichain;

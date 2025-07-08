@@ -6,13 +6,12 @@
 #include <ayr/json.hpp>
 #include <ayr/filesystem.hpp>
 #include <ayr/Timer.hpp>
+#include <ayr/net.hpp>
 
 using namespace ayr;
 
-
 int main()
 {
-	Array<int> arr = { 1, 2, 3, 4, 5 };
-	print(arr);
+	std::string_view str = "Hello, world!";
 	return 0;
 }
