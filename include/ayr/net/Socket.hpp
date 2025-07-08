@@ -63,7 +63,7 @@ namespace ayr
 		void close() const { closesocket(socket_); }
 
 		// 绑定ip:port
-		void bind(const char* ip, int port) const
+		void bind(const CString& ip, int port) const
 		{
 			SockAddrIn addr(ip, port);
 			if (::bind(socket_, addr.get_sockaddr(), addr.get_socklen()) != 0)
