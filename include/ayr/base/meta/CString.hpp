@@ -163,7 +163,7 @@ namespace ayr
 		self slice(c_size start) const { return slice(start, size()); }
 
 		// 判断是否以prefix开头
-		bool startswith(const self& preifx) const 
+		bool startswith(const self& preifx) const
 		{
 			c_size m_size = size(), p_size = preifx.size();
 			if (p_size > m_size) return false;
@@ -452,7 +452,7 @@ namespace ayr
 		buffer.append_bytes(value.data(), value.size());
 		return buffer;
 	}
-	}
+}
 
 der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os.write(str.data(), str.size()); }
 
