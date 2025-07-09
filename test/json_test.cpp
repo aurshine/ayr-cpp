@@ -5,7 +5,7 @@ using namespace ayr;
 int main()
 {
 	auto parser = json::JsonParser();
-
+	print.setend("\n\n");
 	tlog(parser("123"));
 	tlog(parser("true"));
 	tlog(parser("false"));
@@ -29,5 +29,72 @@ int main()
 	for (auto& item : json_obj["array"as].as_array())
 		tlog(item);
 
+
+	auto j1 = parser(R"({
+			  "name": "Alice",
+			  "age": 30,
+			  "married": true
+			})");
+
+	tlog(j1);
+
+	auto j2 = parser(R"({
+  "user": {
+	"id": 101,
+	"info": {
+	  "first_name": "Bob",
+	  "last_name": "Smith"
+	}
+  },
+  "active": false
+})");
+
+	tlog(j2);
+
+	auto j3 = parser(R"({
+  "tags": ["json", "test", "parser"],
+  "scores": [100, 98.5, 76],
+  "valid": [true, false, true],
+  "misc": [42, "hello", null]
+})");
+	tlog(j3);
+
+	auto j4 = parser(R"({
+  "company": {
+	"name": "OpenAI",
+	"departments": [
+	  {
+		"name": "Research",
+		"employees": [
+		  {"name": "Alice", "id": 1},
+		  {"name": "Bob", "id": 2}
+		]
+	  },
+	  {
+		"name": "Engineering",
+		"employees": []
+	  }
+	]
+  }
+})");
+	tlog(j4);
+
+	auto j5 = parser(R"({
+  "quote": "He said, \"Hello, world!\"",
+  "path": "C:\\Users\\test\\file.txt",
+  "unicode": "你好，世界"
+})");
+
+	tlog(j5);
+
+	json::Json j6 = parser(R"({
+  "empty_object": {},
+  "empty_array": [],
+  "null_value": null,
+  "large_number": 9223372036854775807,
+  "float_precision": 3.141592653589793
+})");
+
+	tlog(j6);
 	return 0;
 }
