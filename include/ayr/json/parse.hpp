@@ -107,10 +107,16 @@ namespace ayr
 				c_size pos = first_non_space(json_str, 1);
 				json_str = json_str.slice(pos);
 
+				if (json_str.atchar(0) == ']')
+				{
+					json_str = json_str.slice(1);
+					return Json(std::move(arr));
+				}
+
 				while (json_str.atchar(0) != ']')
 				{
 					arr.append(parse_obj(json_str));
-					
+
 					pos = first_non_space(json_str);
 					if (json_str.atchar(pos) == ']')
 					{
@@ -122,7 +128,7 @@ namespace ayr
 						json_str = json_str.slice(first_non_space(json_str, pos + 1));
 						continue;
 					}
-					
+
 					ValueError(std::format("invalid array parse: {}", json_str));
 					return None<Json>;
 				}
@@ -139,24 +145,37 @@ namespace ayr
 				c_size pos = first_non_space(json_str, 1);
 				json_str = json_str.slice(pos);
 
+				// dict为空
+				if (json_str.atchar(0) == '}')
+				{
+					json_str = json_str.slice(1);
+					return Json(std::move(dict));
+				}
+
+				// dict非空
 				while (json_str.atchar(0) != '}')
 				{
+					// 解析到key
 					Json key = parse_obj(json_str);
 					if (!key.is_str())
 					{
 						ValueError(std::format("invalid dict key parse: {}", json_str));
 						return None<Json>;
 					}
+
+					// 找到 ':'
 					pos = first_non_space(json_str);
 					if (json_str.atchar(pos) != ':')
 					{
 						ValueError(std::format("invalid dict parse: {}", json_str));
 						return None<Json>;
 					}
-					json_str = json_str.slice(first_non_space(json_str, pos + 1));
 
+					// 解析value
+					json_str = json_str.slice(first_non_space(json_str, pos + 1));
 					dict[key.as_str()] = parse_obj(json_str);
 
+					// 找到 ','或 '}'
 					pos = first_non_space(json_str);
 					if (json_str.atchar(pos) == '}')
 					{
@@ -178,7 +197,7 @@ namespace ayr
 
 		private:
 			// 从pos开始第一个不是空白符的位置
-			c_size first_non_space(const JsonStr& json_str, c_size pos=0) const
+			c_size first_non_space(const JsonStr& json_str, c_size pos = 0) const
 			{
 				while (pos < json_str.size() && json_str[pos].isspace()) ++pos;
 				return pos;

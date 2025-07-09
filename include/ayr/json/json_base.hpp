@@ -40,6 +40,8 @@ namespace ayr
 		template<typename T>
 		concept JsonTypeConcept = issame<T, JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict>;
 
+		constexpr int8_t INVALID_JSON_TYPE_ID = -1;
+
 		template<typename T>
 		def json_invalid_error() { RuntimeError(std::format("Invalid json type: {}", dtype(T))); }
 	}
