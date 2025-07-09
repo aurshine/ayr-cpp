@@ -35,7 +35,7 @@ namespace ayr
 
 		self& operator=(self&& other) noexcept
 		{
-			if (this == &other) return;
+			if (this == &other) return *this;
 			task_ = std::move(other.task_);
 			return *this;
 		}
