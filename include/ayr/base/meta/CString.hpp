@@ -215,12 +215,9 @@ namespace ayr
 			return sso_assign(len, [&](char*& ptr) {
 				for (const self& s : elems)
 				{
-					const char* s_ptr = s.data();
-					while (*s_ptr)
-					{
-						*ptr = *s_ptr;
-						++ptr, ++s_ptr;
-					}
+					c_size s_size = s.size();
+					std::memcpy(ptr, s.data(), s_size);
+					ptr += s_size;
 				}
 				});
 		}
