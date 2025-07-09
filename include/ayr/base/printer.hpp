@@ -110,12 +110,12 @@ namespace ayr
 }
 
 template<ayr::AyrObject Ayr>
-struct std::formatter<Ayr> : std::formatter<const char*>
+struct std::formatter<Ayr> : std::formatter<ayr::CString>
 {
 	auto format(const Ayr& value, std::format_context& ctx) const
 	{
-		ayr::CString str = cstr(value);
-		return std::formatter<const char*>::format(str.data(), ctx);
+		ayr::CString str = ayr::cstr(value);
+		return std::formatter<ayr::CString>::format(str, ctx);
 	}
 };
 
