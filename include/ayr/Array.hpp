@@ -215,7 +215,7 @@ namespace ayr
 	template<Iteratable Obj, typename F>
 	def all(Obj&& elems, F&& f) -> bool
 	{
-		for (bool elem : elems)
+		for (auto&& elem : elems)
 			if (!f(elem))
 				return false;
 		return true;
@@ -235,7 +235,7 @@ namespace ayr
 	template<Iteratable Obj, typename F>
 	def any(Obj&& elems, F&& f) -> bool
 	{
-		for (bool elem : elems)
+		for (auto&& elem : elems)
 			if (f(elem))
 				return true;
 		return false;
