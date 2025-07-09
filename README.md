@@ -1,4 +1,4 @@
-﻿# c++开发库(开发中)
+# c++开发库(开发中)
 
 ##  关于
 这个库志于使用c++20实现一些易用简洁的组件用于日常工具，包括但不限于:
@@ -9,6 +9,123 @@
 5. 字符编码
 6. 文件操作
 7. 网络通讯
+
+----
+## CString
+C风格字符串的封装，可以构造独占内存的字符串或字符串视图
+
+**成员函数**:
+
+* `owner`: 是否拥有内存
+* `sso`: 是否使用sso优化
+* `size`: 字符串长度
+* `empty`: 是否为空字符串
+* `data`: 字符串指针
+* `c_str`: c风格字符串指针
+* `clone`: 深拷贝CString
+* `vslice`: 视图切片
+* `slice`: 深拷贝切片
+* `startswith`: 是否以指定字符串开头
+* `endswidth`: 是否以指定字符串结尾
+* `join`: 连接字符串数组
+* `cjoin`: 连接字符串数组
+
+**辅助函数**
+
+* `ostr`: 占有内存构造CString
+* `vstr`: 作为视图构造CString
+* `dstr`: 深拷贝构造CString
+* `cstr`: 将任意类型转化为CString
+
+----
+## Buffer
+提供一个动态缓冲区，可以动态扩容，支持任意类型
+
+**成员函数**:
+- `size`: 当前缓冲区大小
+- `capacity`: 缓冲区最大容量
+- `clear`: 清空缓冲区
+- `data`: 缓冲区指针
+- `append_bytes`: 追加字节
+
+**辅助函数**
+- Buffer& operator<< (Buffer&, const T&): 可以通过定义__repr__(Buffer&)成员函数获得支持
+
+----
+## AChar
+utf编码的字符类型，支持utf8, utf16, utf32编码
+
+**成员函数**:
+- `size`: 字符长度
+- `ord`: 字符的unicode码
+- `upper`: 转换为大写
+- `lower`: 转换为小写
+- `isspace`: 是否为空白字符
+- `isalpha`: 是否为字母
+- `isdigit`: 是否为数字
+- `isupper`: 是否为大写字母
+- `islower`: 是否为小写字母
+- `isasciii`: 是否为ascii字符
+
+**辅助函数**
+- `get_cps`: 获得字符串的所有unicode码
+
+----
+## Array
+数组的封装，支持任意类型
+
+**成员函数**:
+- `size`: 数组大小
+- `data`: 数组指针
+- `at`: 访问数组元素
+- `resize`: 调整数组大小
+- `separate`: 从数组中分离数组指针
+
+**辅助函数**
+- `arr`: 更简单的构造Array，支持可迭代对象或可变参数模板
+
+----
+## ExTask
+RAII封装，用于安全释放资源
+
+**成员函数**
+- `cancel`: 取消任务
+- `run`: 运行任务
+- `set`: 设置任务
+
+----
+## Object
+所有类的基类，提供一些不显示声明时默认的功能
+
+----
+## Optional
+可选类型，用于避免空指针异常
+
+**成员函数**
+- `has_value`: 是否有值
+- `reset`: 重置值
+- `value`: 值
+- `emplace`: 构造值
+- `value_or`: 值或默认值
+- `map`: 传入函数返回值不是Optional
+- `and_then`: 传入函数返回值是Optional
+- `transform`: 传入函数是不是Optional都可
+- `or_else`: 有值返回值，否则返回函数调用值
+- `filter`: 有值且函数调用为true，返回值，否则返回空Optional
+
+----
+## Print
+打印类，支持任意类型
+
+**成员函数**
+- `operator()`: 打印任意类型
+- `flush`: 刷新缓冲区
+- `setend`: 设置结束符
+- `setsep`: 设置分隔符
+
+**辅助函数**
+- `__repr__`: 类实现成员函数，可以自定义输出形式(优先使用)
+- `__str__`: 类实现成员函数，可以自定义输出形式
 
 ## Atring字符串
 提供比std::string更加高效，操作更加丰富的字符串
