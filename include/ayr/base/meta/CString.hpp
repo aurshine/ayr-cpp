@@ -83,7 +83,7 @@ namespace ayr
 		constexpr CString(const char(&str_)[N], bool owner = false) : CString(str_, N - 1, owner) {}
 
 		// 浅拷贝，不占有内存，不使用sso优化
-		constexpr CString(const self& other) : CString(other.long_str, other.size(), false) {}
+		constexpr CString(const self& other) : CString(other.data(), other.size(), false) {}
 
 		constexpr CString(self&& other) noexcept
 		{
