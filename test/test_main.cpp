@@ -12,6 +12,10 @@ using namespace ayr;
 
 int main()
 {
-	std::string_view str = "Hello, world!";
+	auto a1 = arr(dstr("呢哈哈嗲花"), dstr("发我忘记哦分环卫工"));
+	auto a2 = a1;
+
+	print(a1);
+	print(a2);
 	return 0;
 }

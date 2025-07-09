@@ -33,11 +33,44 @@ coro::Generator<NoDefaultConstructor> no_default_constructor()
 
 }
 
+struct GenTest
+{
+	GenTest() { print("GenTest()"); }
+
+	//GenTest(GenTest&) { print("GenTest(GenTest&)"); }
+
+	GenTest(GenTest&&) { print("GenTest(GenTest&&)"); }
+
+	~GenTest() { print("~GenTest()"); }
+
+	//GenTest& operator=(GenTest&) { print("GenTest& operator=(GenTest&)"); }
+
+	GenTest& operator=(GenTest&&) { print("GenTest& operator=(GenTest&&)"); }
+};
+
+coro::Generator<GenTest> gen_test()
+{
+	print("--- gen_test() begin");
+	for (int i = 0; i < 2; i++)
+	{
+		print("+++ gen_test() yield");
+		co_yield GenTest();
+		print("*** gen_test() yield end");
+	}
+}
+
 int main()
 {
-	for (int i : numbers(10))
+	/*for (int i : numbers(10))
 		print(i);
 
-	for (auto& obj : no_default_constructor())
-		print(obj);
+	for (auto obj : no_default_constructor())
+		print(obj);*/
+
+	auto gen = gen_test();
+	print("gen");
+	for (auto& obj : gen)
+	{
+		print("loop\n");
+	}
 }

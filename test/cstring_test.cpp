@@ -33,5 +33,13 @@ int main()
 	swap(s1, s3);
 	print_info(s1, "s1 after swap");
 	print_info(s3, "s3 after swap");
+	print_info(s1.slice(0, 6), "s1.slice(0, 6)");
+	print_info(s3.slice(0, 5), "s3.slice(0, 5)");
+	print_info(s1.vslice(0, 6), "s1.vslice(0, 6)");
+	print_info(s3.vslice(0, 5), "s3.vslice(0, 5)");
+	print_info(s1.slice(9), "s1.slice(9)");
+	print_info(s3.slice(7), "s3.slice(7)");
+	print_info(s1.vslice(9), "s1.vslice(9)");
+	print_info(s3.vslice(7), "s3.vslice(7)");
 	return 0;
 }
