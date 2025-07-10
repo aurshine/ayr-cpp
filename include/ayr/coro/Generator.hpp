@@ -4,7 +4,7 @@
 #include <coroutine>
 
 #include "../base/IteratorInfo.hpp"
-#include "../base/Optional.hpp"
+#include "../Optional.hpp"
 
 namespace ayr
 {

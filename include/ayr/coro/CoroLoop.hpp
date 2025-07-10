@@ -39,7 +39,7 @@ namespace ayr
 			{
 				ready_coroutines.push_back(coro);
 				if constexpr (std::is_void_v<P>)
-					return;
+					return coro;
 				else
 					return coro.promise();
 			}

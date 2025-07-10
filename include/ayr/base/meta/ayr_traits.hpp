@@ -78,6 +78,15 @@ namespace ayr
 	template<bool cond, typename T>
 	using add_const_t = typename AddConstIf<cond, T>::type;
 
+	template<typename T>
+	struct VoidOrRef : std::type_identity<std::remove_reference_t<T>&> {};
+
+	template<>
+	struct VoidOrRef<void> : std::type_identity<void> {};
+
+	template<typename T>
+	using void_or_ref_t = typename VoidOrRef<T>::type;
+
 	// 万能引用时，根据T1类型转发T2类型
 	// T1为左值则T2转发为左值
 	// T1为右值则T2转发为右值

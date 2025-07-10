@@ -1,7 +1,7 @@
 #ifndef AYR_OPTIONAL_HPP
 #define AYR_OPTIONAL_HPP
 
-#include "raise_error.hpp"
+#include "base/raise_error.hpp"
 
 namespace ayr
 {
