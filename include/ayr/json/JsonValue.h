@@ -474,35 +474,6 @@ namespace ayr
 
 			void __repr__(Buffer& buffer) const { fmt_buf(buffer, 0, "    "); }
 
-			// 转换为字符串
-			CString __str__() const
-			{
-				JsonMethodsC<CString> jmc;
-				jmc.for_null([&](const JsonNull&) { return "null"; });
-				jmc.for_int([&](const JsonInt& obj) { return cstr(obj); });
-				jmc.for_float([&](const JsonFloat& obj) { return cstr(obj); });
-				jmc.for_bool([&](const JsonBool& obj) { return cstr(obj); });
-				jmc.for_str([&](const JsonStr& obj) { return CString::cjoin(arr("\"", cstr(obj), "\"")); });
-				jmc.for_array([&](const JsonArray& obj) { return cstr(obj); });
-				jmc.for_dict([&](const JsonDict& obj)
-					{
-						DynArray<CString> strs;
-						strs.append("{");
-						for (auto& [key, value] : obj.items())
-						{
-							strs.append(CString::cjoin(arr("\"", cstr(key), "\"")));
-							strs.append(": ");
-							strs.append(cstr(value));
-							strs.append(", ");
-						}
-						if (obj.size() > 0) strs.pop_back();
-
-						strs.append("}");
-						return CString::cjoin(strs);
-					});
-				return jmc(*this);
-			}
-
 			bool __equals__(const Json& other) const
 			{
 				if (this == &other) return true;

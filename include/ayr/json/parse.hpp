@@ -29,7 +29,7 @@ namespace ayr
 						return Json(std::move(str_part));
 					}
 
-				RuntimeError("invalid str parse: {}", json_str);
+				RuntimeError(std::format("invalid str parse: {}", json_str));
 				return None<Json>;
 			}
 
