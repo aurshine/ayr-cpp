@@ -221,6 +221,7 @@ namespace ayr
 			template<JsonTypeConcept T>
 			self& operator=(const T& value)
 			{
+				if (json_item_ == &value) return *this;
 				ayr_destroy(this);
 				return *ayr_construct(this, value);
 			}
@@ -228,6 +229,7 @@ namespace ayr
 			template<JsonTypeConcept T>
 			self& operator=(T&& value)
 			{
+				if (json_item_ == &value) return *this;
 				ayr_destroy(this);
 				return *ayr_construct(this, std::move(value));
 			}
