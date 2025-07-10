@@ -107,7 +107,7 @@ namespace ayr
 
 					JSON_TYPE_INVALID_ERROR;
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 			private:
 				R null_fn(NullArgT obj) const
@@ -115,7 +115,7 @@ namespace ayr
 					if (for_null_) return for_null_(obj);
 					json_invalid_error<JsonNull>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R int_fn(IntArgT obj) const
@@ -123,7 +123,7 @@ namespace ayr
 					if (for_int_) return for_int_(obj);
 					json_invalid_error<JsonInt>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R float_fn(FloatArgT obj) const
@@ -131,7 +131,7 @@ namespace ayr
 					if (for_float_) return for_float_(obj);
 					json_invalid_error<JsonFloat>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R bool_fn(BoolArgT obj) const
@@ -139,7 +139,7 @@ namespace ayr
 					if (for_bool_) return for_bool_(obj);
 					json_invalid_error<JsonBool>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R str_fn(StrArgT obj) const
@@ -147,7 +147,7 @@ namespace ayr
 					if (for_str_) return for_str_(obj);
 					json_invalid_error<JsonStr>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R array_fn(ArrayArgT obj) const
@@ -155,7 +155,7 @@ namespace ayr
 					if (for_array_) return for_array_(obj);
 					json_invalid_error<JsonArray>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 
 				R dict_fn(DictArgT obj) const
@@ -163,7 +163,7 @@ namespace ayr
 					if (for_dict_) return for_dict_(obj);
 					json_invalid_error<JsonDict>();
 					if constexpr (Not<issame<R, void>>)
-						return None<R>;
+						return None;
 				}
 			};
 

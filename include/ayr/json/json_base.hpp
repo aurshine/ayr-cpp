@@ -4,9 +4,8 @@
 #include "../DynArray.hpp"
 #include "../Dict.hpp"
 #include "../Atring.hpp"
-#include "../base/Void.hpp"
 
-namespace ayr 
+namespace ayr
 {
 	namespace json
 	{
@@ -14,7 +13,7 @@ namespace ayr
 
 		class Json;
 
-		using JsonNull = Void;
+		using JsonNull = _None;
 
 		using JsonInt = long long;
 

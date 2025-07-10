@@ -190,7 +190,7 @@ namespace ayr
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
 			key_not_found_error(key);
-			return None<Value_t>;
+			return None;
 		}
 
 		Value_t& get(const Key_t& key)
@@ -198,7 +198,7 @@ namespace ayr
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
 			key_not_found_error(key);
-			return None<Value_t>;
+			return None;
 		}
 
 		const Value_t& get(const Key_t& key, const Value_t& default_value) const
@@ -222,7 +222,7 @@ namespace ayr
 			auto [index, move_dist] = htable_.try_get(ayrhash(key));
 			if (htable_.items_[index].used() && htable_.items_[index].hashv == ayrhash(key))
 				return htable_.items_[index].value()->value.second;
-			
+
 			auto kv_node = kv_chain_.append(key, Value_t{});
 			htable_.insert_value_on_index(index, ayrhash(key), move_dist, kv_node);
 			return kv_node->value.second;

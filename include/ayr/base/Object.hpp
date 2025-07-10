@@ -8,6 +8,7 @@
 #include "meta/Buffer.hpp"
 #include "meta/CString.hpp"
 #include "meta/hash.hpp"
+#include "meta/None.hpp"
 
 namespace ayr
 {
@@ -32,7 +33,7 @@ namespace ayr
 		const Derived& derived() const { return static_cast<const Derived&>(*this); }
 
 		// hash 编码
-		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None<hash_t>; }
+		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
 		cmp_t __cmp__(const Derived& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
@@ -68,18 +69,18 @@ namespace ayr
 	}
 
 	template<AyrObject T, typename U>
-	bool operator==(const T& a, const U& b) 
-	{ 
+	bool operator==(const T& a, const U& b)
+	{
 		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
-			return a.__equals__(b); 
+			return a.__equals__(b);
 		return a.__cmp__(b) == 0;
 	}
 
 	template<AyrObject T, typename U>
-	bool operator!=(const T& a, const U& b) 
+	bool operator!=(const T& a, const U& b)
 	{
 		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
-			return !a.__equals__(b); 
+			return !a.__equals__(b);
 		return a.__cmp__(b) != 0;
 	}
 

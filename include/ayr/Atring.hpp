@@ -473,7 +473,7 @@ namespace ayr
 			}
 
 			ValueError("Unmatched parentheses, too many left parentheses");
-			return None<self>;
+			return None;
 		}
 
 		c_size to_int() const

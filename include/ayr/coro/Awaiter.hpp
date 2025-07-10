@@ -2,7 +2,6 @@
 #define AYR_CORO_AWAITER_HPP
 
 #include "Promise.hpp"
-#include "../base/Void.hpp"
 
 namespace ayr
 {
@@ -72,7 +71,7 @@ namespace ayr
 
 			co_type await_suspend(Coroutine coroutine) const noexcept { return coro_; }
 
-			Void await_resume() const noexcept { return {}; }
+			_None await_resume() const noexcept { return {}; }
 
 		protected:
 			co_type coro_;
@@ -95,7 +94,9 @@ namespace ayr
 
 			//using co_type = typename A::co_type;
 
-			using result_type = Voo<std::remove_reference_t<decltype(std::declval<A>().await_resume())>>;
+			using T = std::remove_reference_t<decltype(std::declval<A>().await_resume())>;
+
+			using result_type = std::conditional_t<std::is_void_v<T>, _None, T>;
 		};
 	}
 }

@@ -30,7 +30,7 @@ namespace ayr
 					}
 
 				RuntimeError(std::format("invalid str parse: {}", json_str));
-				return None<Json>;
+				return None;
 			}
 
 			// 解析 number, bool, null
@@ -79,7 +79,7 @@ namespace ayr
 				}
 
 				ValueError(std::format("invalid simple parse: {}", json_str));
-				return None<Json>;
+				return None;
 			}
 
 			// 返回一个可以被实际解析为Json对象的字符串
@@ -130,7 +130,7 @@ namespace ayr
 					}
 
 					ValueError(std::format("invalid array parse: {}", json_str));
-					return None<Json>;
+					return None;
 				}
 
 				return Json(std::move(arr));
@@ -160,7 +160,7 @@ namespace ayr
 					if (!key.is_str())
 					{
 						ValueError(std::format("invalid dict key parse: {}", json_str));
-						return None<Json>;
+						return None;
 					}
 
 					// 找到 ':'
@@ -168,7 +168,7 @@ namespace ayr
 					if (json_str.atchar(pos) != ':')
 					{
 						ValueError(std::format("invalid dict parse: {}", json_str));
-						return None<Json>;
+						return None;
 					}
 
 					// 解析value
@@ -189,7 +189,7 @@ namespace ayr
 					}
 
 					ValueError(std::format("invalid dict parse: {}", json_str));
-					return None<Json>;
+					return None;
 				}
 
 				return Json(std::move(dict));
