@@ -1,10 +1,6 @@
 #ifndef AYR_FS_OSLIB_H
 #define AYR_FS_OSLIB_H
 
-#include "../base/ExTask.hpp"
-#include "../base/Object.hpp"
-#include "../base/raise_error.hpp"
-
 #if defined(_WIN32) || defined(_WIN64)
 #define AYR_WIN
 
@@ -22,13 +18,13 @@
 #define AYR_LINUX
 
 #include <arpa/inet.h>
-#include <netinet/in.h>
+#include <dirent.h>
 #include <errno.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
-
 #include <unistd.h>
 
 #elif defined(__APPLE__)
@@ -36,14 +32,18 @@
 
 #endif // 平台判断
 
+#include "../base/ExTask.hpp"
+#include "../base/raise_error.hpp"
+
+
 namespace ayr
 {
 	// 错误码转化为字符串
 	CString errorno2str(int errorno)
 	{
+		char* res = ayr_alloc<char>(256);
 #if defined(AYR_WIN)
 		char error_msg[256];
-		char* res = ayr_alloc<char>(256);
 
 		FormatMessageA(
 			FORMAT_MESSAGE_FROM_SYSTEM,

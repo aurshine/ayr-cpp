@@ -21,7 +21,7 @@ namespace ayr
 			constexpr static FD INVALID_FD = -1;
 #endif
 		public:
-			AyrFile(const CString& filename, const CString& mode) : fh_(INVALID_FD)
+			AyrFile(const CString& filename, const CString& mode) : fd_(INVALID_FD)
 			{
 #if defined(AYR_WIN)
 				int dwDesiredAccess = 0, dwCreationDisposition = 0;
@@ -43,7 +43,7 @@ namespace ayr
 				else
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
 
-				fh_ = CreateFileA(
+				fd_ = CreateFileA(
 					filename.c_str().c_str(),
 					dwDesiredAccess,
 					FILE_SHARE_READ,
@@ -53,10 +53,10 @@ namespace ayr
 					nullptr
 				);
 
-				if (fh_ == INVALID_HANDLE_VALUE)
+				if (fd_ == INVALID_HANDLE_VALUE)
 					SystemError("Invalid HANDLE value, Failed to create or open file");
 
-				if (mode == "a") SetFilePointer(fh_, 0, nullptr, FILE_END);
+				if (mode == "a") SetFilePointer(fd_, 0, nullptr, FILE_END);
 #else
 
 				int flags = 0;
@@ -69,22 +69,22 @@ namespace ayr
 				else
 					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
 
-				fh_ = ::open(filename, flags, 0666);
+				fd_ = ::open(filename.c_str().c_str(), flags, 0666);
 
-				if (fh_ == -1)
+				if (fd_ == -1)
 					SystemError("Failed to create or open file");
 #endif
 			}
 
-			AyrFile(FD fh) : fh_(fh) {}
+			AyrFile(FD fd) : fd_(fd) {}
 
-			AyrFile(self&& file) noexcept : fh_(file.fh_) { file.fh_ = INVALID_FD; }
+			AyrFile(self&& file) noexcept : fd_(file.fd_) { file.fd_ = INVALID_FD; }
 
 			self& operator=(self&& file) noexcept
 			{
 				close();
-				fh_ = file.fh_;
-				file.fh_ = INVALID_FD;
+				fd_ = file.fd_;
+				file.fd_ = INVALID_FD;
 				return *this;
 			}
 
@@ -92,14 +92,14 @@ namespace ayr
 
 			void close()
 			{
-				if (fh_ != INVALID_FD)
+				if (fd_ != INVALID_FD)
 				{
 #if defined(AYR_WIN)
-					CloseHandle(fh_);
+					CloseHandle(fd_);
 #elif defined(AYR_LINUX)
-					::close(fh_);
+					::close(fd_);
 #endif
-					fh_ = INVALID_FD;
+					fd_ = INVALID_FD;
 				}
 			}
 
@@ -108,14 +108,14 @@ namespace ayr
 				if (size == -1) size = data.size();
 #if defined(AYR_WIN)
 				DWORD written_bytes = 0;
-				BOOL ok = WriteFile(fh_, data.data(), size, &written_bytes, nullptr);
+				BOOL ok = WriteFile(fd_, data.data(), size, &written_bytes, nullptr);
 				if (!ok || written_bytes != size)
 					SystemError("Failed to write from file");
 #elif defined(AYR_LINUX)
 				c_size num_written = 0;
 				while (num_written < size)
 				{
-					c_size written_bytes = ::write(fh_, data + num_written, size - num_written);
+					c_size written_bytes = ::write(fd_, data.data() + num_written, size - num_written);
 					if (written_bytes == -1)
 						SystemError("Failed to write from file");
 					num_written += written_bytes;
@@ -129,7 +129,7 @@ namespace ayr
 				char* buffer = ayr_alloc<char>(buffer_size);
 #if defined(AYR_WIN)
 				DWORD read_bytes = 0;
-				BOOL ok = ReadFile(fh_, buffer, buffer_size, &read_bytes, nullptr);
+				BOOL ok = ReadFile(fd_, buffer, buffer_size, &read_bytes, nullptr);
 				if (!ok || read_bytes != buffer_size)
 					SystemError("Failed to read from file");
 
@@ -137,7 +137,7 @@ namespace ayr
 				c_size num_read = 0;
 				while (num_read < buffer_size)
 				{
-					c_size read_bytes = ::read(fh_, buffer + num_read, buffer_size - num_read);
+					c_size read_bytes = ::read(fd_, buffer + num_read, buffer_size - num_read);
 					if (read_bytes == -1)
 						SystemError("Failed to read from file");
 					num_read += read_bytes;
@@ -149,16 +149,16 @@ namespace ayr
 			c_size file_size() const
 			{
 #if defined(AYR_WIN)
-				return GetFileSize(fh_, nullptr);
+				return GetFileSize(fd_, nullptr);
 #elif defined(AYR_LINUX)
 				struct stat st;
-				if (::fstat(fh_, &st) == -1)
+				if (::fstat(fd_, &st) == -1)
 					SystemError("Failed to get file size");
 				return st.st_size;
 #endif
 			}
 		private:
-			FD fh_;
+			FD fd_;
 		};
 	}
 }
