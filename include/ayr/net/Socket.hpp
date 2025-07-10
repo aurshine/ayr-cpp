@@ -5,6 +5,7 @@
 
 #include "SockAddr.hpp"
 #include "startsocket.hpp"
+#include "../base/ExTask.hpp"
 #include "../Atring.hpp"
 
 namespace ayr
@@ -21,9 +22,8 @@ namespace ayr
 
 	class Socket : public Object<Socket>
 	{
-	public:
 		using self = Socket;
-
+	public:
 		Socket() : socket_(INVALID_SOCKET) {}
 
 		Socket(int family, int type)
@@ -58,11 +58,22 @@ namespace ayr
 
 		operator int() const { return socket_; }
 
+		// 判断socket是否有效
+		bool valid() const { return socket_ != INVALID_SOCKET; }
+
+		// 返回文件描述符
 		int fd() const { return socket_; }
 
+		// 关闭socket
 		void close() const { closesocket(socket_); }
 
-		// 绑定ip:port
+		/*
+		* @brief 绑定ip:port
+		*
+		* @param ip 绑定的ip地址
+		*
+		* @param port 绑定的端口
+		*/
 		void bind(const CString& ip, int port) const
 		{
 			SockAddrIn addr(ip, port);
@@ -70,14 +81,24 @@ namespace ayr
 				RuntimeError(get_error_msg());
 		}
 
-		// 监听端口
+		/*
+		* @brief 监听socket
+		*
+		* @param backlog 最大连接数
+		*/
 		void listen(int backlog = SOMAXCONN) const
 		{
 			if (::listen(socket_, backlog) != 0)
 				RuntimeError(get_error_msg());
 		}
 
-		// 接受一个连接
+		/*
+		* @brief 接受连接
+		*
+		* @return 返回一个新的Socket对象，用于与客户端通信
+		*
+		* @note 非阻塞模式下可能会返回INVALID_SOCKET
+		*/
 		Socket accept() const
 		{
 			int accsock = ::accept(socket_, nullptr, nullptr);
@@ -86,7 +107,13 @@ namespace ayr
 			return accsock;
 		}
 
-		// 连接到ip:port
+		/*
+		* @brief 连接到ip:port
+		*
+		* @param ip 要连接的ip地址
+		*
+		* @param port 要连接的端口
+		*/
 		void connect(const CString& ip, int port) const
 		{
 			SockAddrIn addr(ip, port);
@@ -95,7 +122,17 @@ namespace ayr
 				RuntimeError(get_error_msg());
 		}
 
-		// 发送data，返回已经发送的字节数
+		/*
+		* @brief 发送数据到socket
+		*
+		* @param data 要发送的数据
+		*
+		* @param size 要发送的数据长度，默认为-1，表示发送整个data
+		*
+		* @param flags 发送标志, 默认为0
+		*
+		* @return 实际发送的字节数
+		*/
 		int send(const CString& data, int size = -1, int flags = 0) const
 		{
 			if (size == -1) size = data.size();
@@ -105,15 +142,18 @@ namespace ayr
 			return num_send;
 		}
 
-		// 参数为Atring的重载
-		int send(const Atring& data, int flags = 0) const
+		/*
+		* @brief 将所有数据连续发送出去，直到发送完毕或出现错误
+		*
+		* @param data 要发送的数据
+		*
+		* @param size 要发送的数据长度, 默认为-1，表示发送整个data
+		*
+		* @param flags 发送标志, 默认为0
+		*/
+		void sendall(const CString& data, int size = -1, int flags = 0) const
 		{
-			return send(cstr(data), data.byte_size(), flags);
-		}
-
-		// 将所有数据连续发送出去，直到发送完毕或出现错误
-		void sendall(const CString& data, int size, int flags = 0) const
-		{
+			if (size == -1) size = data.size();
 			// 已经发送出的字节数
 			int num_sent = 0;
 			const char* ptr = data.data();
@@ -121,57 +161,63 @@ namespace ayr
 				num_sent += send(ptr + num_sent, size - num_sent, flags);
 		}
 
-		void sendall(const CString& data, int flags = 0) const
+		/*
+		* @brief 将辅助数据和普通数据一起发送
+		*
+		* @detail 发送的前四个字节是数据大小，后面是数据
+		*
+		* @param data 要发送的数据
+		*
+		* @param size 要发送的数据长度, 默认为-1，表示发送整个data
+		*
+		* @param flags 发送标志, 默认为0
+		*
+		* @note 可以使用recvmsg接收数据
+		*/
+		void sendmsg(const CString& data, int size = -1, int flags = 0) const
 		{
-			return sendall(data.data(), data.size(), flags);
-		}
-
-		void sendall(const Atring& data, int flags = 0) const
-		{
-			return sendall(cstr(data), data.byte_size(), flags);
-		}
-
-		// 将辅助数据和普通数据一起发送
-		void sendmsg(const CString& data, int size, int flags = 0) const
-		{
-			Buffer msg_data(sizeof(u_long) + size);
+			if (size == -1) size = data.size();
+			Buffer msg_data(4 + size);
 			int data_size = htonl(size);
-			msg_data.append_bytes(&data_size, sizeof(u_long));
+			msg_data.append_bytes(&data_size, 4);
 			msg_data.append_bytes(data.data(), size);
 			sendall(msg_data.data(), msg_data.size(), flags);
 		}
 
-		void sendmsg(const CString& data, int flags = 0) const
+		/*
+		* @brief 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
+		*
+		* @param data 要发送的数据
+		*
+		* @param size 要发送的数据长度
+		*
+		* @param to 要发送到的地址
+		*
+		* @param flags 发送标志, 默认为0
+		*
+		* @return 实际发送的字节数
+		*/
+		int sendto(const CString& data, size_t size = -1, const SockAddrIn& to, int flags = 0) const
 		{
-			sendmsg(data.data(), data.size(), flags);
-		}
-
-		void sendmsg(const Atring& data, int flags = 0) const
-		{
-			sendmsg(cstr(data), data.byte_size(), flags);
-		}
-
-		// 发送size个字节的数据到to，数据头部包含了数据大小，需要用recvfrom接收
-		int sendto(const CString& data, size_t size, const SockAddrIn& to, int flags = 0) const
-		{
+			if (size == -1) size = data.size();
 			int num_send = ::sendto(socket_, data.data(), size, flags, to.get_sockaddr(), to.get_socklen());
 			if (num_send == -1)
 				RuntimeError(get_error_msg());
 			return num_send;
 		}
 
-		int sendto(const CString& data, const SockAddrIn& to, int flags = 0) const
-		{
-			return sendto(data.data(), data.size(), to, flags);
-		}
-
-		int sendto(const Atring& data, const SockAddrIn& to, int flags = 0) const
-		{
-			return sendto(cstr(data), data.byte_size(), to, flags);
-		}
-
-		// 接收最多bufsize个字节的数据
-		CString recv(int bufsize, int* length = nullptr, int flags = 0) const
+		/*
+		* @brief 接收最多bufsize个字节的数据
+		*
+		* @param bufsize 要接收的最大字节数
+		*
+		* @param length 实际接收的字节数，如果为nullptr则不写入
+		*
+		* @param flags 接收标志, 默认为0
+		*
+		* @return 接收到的数据
+		*/
+		CString recv(int bufsize = 1024, int* length = nullptr, int flags = 0) const
 		{
 			char* data = ayr_alloc<char>(bufsize);
 			int recvd = ::recv(socket_, data, bufsize, flags);
@@ -182,8 +228,17 @@ namespace ayr
 			return ostr(data, recvd);
 		}
 
-		// 接收所有数据，直到接收完毕或出现错误
-		// 只能在非阻塞模式下使用
+		/*
+		* @brief 接收所有数据，直到接收完毕或出现错误
+		*
+		* @param bufsize 要接收的最大字节数
+		*
+		* @param flags 接收标志, 默认为0
+		*
+		* @return 接收到的数据
+		*
+		* @note 阻塞模式会阻塞直到断开连接
+		*/
 		CString recvall(int bufsize = 1024, int flags = 0) const
 		{
 			int length = 0;
@@ -192,29 +247,51 @@ namespace ayr
 			{
 				CString data = recv(bufsize, &length, flags);
 				if (length == 0) break;
-				datas.append(data);
+				datas.append(std::move(data));
 			}
 
 			return CString::cjoin(datas);
 		}
 
-		// 将普通数据和辅助数据一起接收，并返回普通数据
+		/*
+		* @brief 将普通数据和辅助数据一起接收，并返回普通数据
+		*
+		* @param flags 接收标志, 默认为0
+		*/
 		CString recvmsg(int flags = 0) const
 		{
-			CString msg_size = recv(sizeof(u_long), nullptr, flags);
-			auto msg_size_l = reinterpret_cast<const u_long*>(msg_size.data());
+			// 需要接收到的字节数
+			int num_need = 4;
+			char msg_size[4];
+			char* ptr = msg_size;
+			while (num_need)
+			{
+				int length = 0;
+				CString tmp = recv(num_need, &length, flags);
+				std::memcpy(ptr, tmp.data(), length);
+				num_need -= length;
+				ptr += length;
+			}
+			auto msg_size_l = reinterpret_cast<const u_long*>(msg_size);
 			return recv(ntohl(*msg_size_l), nullptr, flags);
 		}
 
-		// 接收sendto发送的数据，如果断开连接，返回空字符串
-		// 返回值：数据，来源地址
-		std::pair<CString, SockAddrIn> recvfrom(int flags = 0) const
+		/*
+		* @brief 接收sendto发送的数据
+		*
+		* @param bufsize 要接收的最大字节数
+		*
+		* @param flags 接收标志, 默认为0
+		*
+		* @return 接收到的数据和来源地址
+		*/
+		std::pair<CString, SockAddrIn> recvfrom(int bufsize = 1024, int flags = 0) const
 		{
 			SockAddrIn from{};
-			char* data = ayr_alloc<char>(1024);
+			char* data = ayr_alloc<char>(bufsize);
 
 			socklen_t addrlen = from.get_socklen();
-			::recvfrom(socket_, data, 1024, flags, from.get_sockaddr(), &addrlen);
+			::recvfrom(socket_, data, bufsize, flags, from.get_sockaddr(), &addrlen);
 			return { ostr(data), from };
 		}
 
@@ -238,6 +315,17 @@ namespace ayr
 #endif
 		}
 
+		/*
+		* @brief 设置socket选项
+		*
+		* @param level 选项级别
+		*
+		* @param optname 选项名称
+		*
+		* @param optval 选项值
+		*
+		* @param optlen 选项长度
+		*/
 		int setsockopt(int level, int optname, const void* optval, socklen_t optlen) const
 		{
 #if defined(AYR_WIN)
@@ -247,6 +335,17 @@ namespace ayr
 #endif
 		}
 
+		/*
+		* @brief 获取socket选项
+		*
+		* @param level 选项级别
+		*
+		* @param optname 选项名称
+		*
+		* @param optval 选项值
+		*
+		* @param optlen 选项长度
+		*/
 		int getsockopt(int level, int optname, void* optval, socklen_t* optlen) const
 		{
 #if defined(AYR_WIN)
@@ -256,7 +355,14 @@ namespace ayr
 #endif
 		}
 
-		void setbuffer(int size, CString mode) const
+		/*
+		* @brief 设置缓冲区大小
+		*
+		* @param size 缓冲区大小
+		*
+		* @param mode 缓冲区模式，'r'表示接收缓冲区，'w'表示发送缓冲区
+		*/
+		void setbuffer(int size, const CString& mode) const
 		{
 			if (mode == "r")
 				setsockopt(SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
@@ -298,6 +404,42 @@ namespace ayr
 	private:
 		int socket_;
 	};
+
+
+	/*
+	* @brief 提供主机地址和端口，连接到服务器
+	*
+	* @param host 主机域名或IP地址
+	*
+	* @param port 端口号
+	*
+	* @return 返回连接成功的字符串，否则抛出异常
+	*/
+	def host_connect(const CString& host, const CString& port)
+	{
+		addrinfo hints, * res = nullptr;
+		memset(&hints, 0, sizeof(hints));
+
+		// 尝试IPv4和IPv6
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+
+		if (getaddrinfo(host.c_str().c_str(), port.c_str().c_str(), &hints, &res) == 0)
+		{
+			ExTask exit([&res] { freeaddrinfo(res); });
+
+			for (addrinfo* p = res; p; p = p->ai_next)
+			{
+				Socket sock(p->ai_family, p->ai_socktype);
+				if (::connect(sock.fd(), p->ai_addr, p->ai_addrlen) == 0)
+					return sock;
+				sock.close();
+			}
+		}
+
+		RuntimeError("Failed to connect to server.");
+	}
 
 	def tcpv4() { return Socket(AF_INET, SOCK_STREAM); }
 
