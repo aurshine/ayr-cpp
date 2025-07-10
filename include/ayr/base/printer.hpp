@@ -36,6 +36,9 @@ namespace ayr
 
 		// 设置输出分隔符
 		void setsep(CString sw) { sw_ = std::move(sw); }
+
+		FILE* file() const { return output_file_; }
+
 	protected:
 		template<typename First, typename... Args>
 		void write_buffer(Buffer& buffer, First&& first, Args&&... args) const
