@@ -44,16 +44,6 @@ namespace ayr
 	template<bool B>
 	constexpr bool Not = !B;
 
-	// 用于判断是否为void，如果是void则返回void，否则返回T&
-	template<typename T>
-	struct VoidOrRef : std::type_identity<T&> {};
-
-	template<>
-	struct VoidOrRef<void> : std::type_identity<void> {};
-
-	template<typename T>
-	using void_or_ref_t = typename VoidOrRef<T>::type;
-
 	// 可迭代对象对内部迭代器类型萃取
 	template<typename T>
 	struct inner_iterator_type : std::type_identity<decltype(std::declval<T>().begin())> {};

@@ -61,16 +61,16 @@ namespace ayr
 			FILE* output_;
 		};
 
-		static void print_logevent(const LogEvent& evt, const char* msg, const Date& date, const char* file, int line)
+		static void print_logevent(const LogEvent& evt, const CString& msg, const Date& date, const CString& file, int line)
 		{
 			fprintf(evt.output_, "%s %s%-5s%s %s:%d ",
 				cstr(date).c_str().c_str(),
 				LogLevel::LEVEL_COLORS[evt.level_],
 				LogLevel::LEVEL_NAMES[evt.level_],
 				Color::CLOSE,
-				file,
+				file.c_str().c_str(),
 				line);
-			fprintf(evt.output_, msg);
+			fwrite(msg, 1, msg.size(), evt.output_);
 			fprintf(evt.output_, "\n");
 			fflush(evt.output_);
 		}
@@ -85,31 +85,24 @@ namespace ayr
 
 		static void add_log(int level, const char* filename) { add_log(level, std::fopen(filename, "w")); }
 
-		template<ConveribleToCstr Str>
-		static void log(const Str& msg, int level, const Str& file, int line, Date date = Date{})
+		static void log(const CString& msg, int level, const CString& file, int line, Date date = Date{})
 		{
 			for (int i = 0; i < event_count; ++i)
 				if (events[i].level_ <= level)
 					print_logevent(events[i], msg, date, file, line);
 		}
 
-		template<ConveribleToCstr Str>
-		static void trace(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::TRACE, loc.file_name(), loc.line()); }
+		static void trace(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::TRACE, loc.file_name(), loc.line()); }
 
-		template<ConveribleToCstr Str>
-		static void debug(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::DEBUG, loc.file_name(), loc.line()); }
+		static void debug(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::DEBUG, loc.file_name(), loc.line()); }
 
-		template<ConveribleToCstr Str>
-		static void info(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::INFO, loc.file_name(), loc.line()); }
+		static void info(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::INFO, loc.file_name(), loc.line()); }
 
-		template<ConveribleToCstr Str>
-		static void warn(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
+		static void warn(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
 
-		template<ConveribleToCstr Str>
-		static void error(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
+		static void error(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
 
-		template<ConveribleToCstr Str>
-		static void fatal(const Str& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
+		static void fatal(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
 
 	private:
 		constexpr static int MAX_LOG_SIZE = 64;
