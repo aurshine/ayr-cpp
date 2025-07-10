@@ -17,16 +17,16 @@ namespace ayr
 		template<typename T0, typename... Args>
 		void operator()(const T0& object, const Args&... args) const
 		{
-			Buffer buffer(128);
+			Buffer buffer(BUFFER_SIZE);
 			write_buffer(buffer, object, args...);
-			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
+			write_from_buffer(buffer);
 		}
 
 		void operator()() const
 		{
-			Buffer buffer(128);
+			Buffer buffer(BUFFER_SIZE);
 			write_buffer(buffer);
-			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
+			write_from_buffer(buffer);
 		}
 
 		void flush() const { std::fflush(output_file_); }
@@ -39,7 +39,15 @@ namespace ayr
 
 		FILE* file() const { return output_file_; }
 
+		void write_from_buffer(const Buffer& buffer) const
+		{
+			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
+		}
+
+		static void set_buffer_size(c_size size) { if (size > 0) BUFFER_SIZE = size; }
 	protected:
+		static c_size BUFFER_SIZE;
+
 		template<typename First, typename... Args>
 		void write_buffer(Buffer& buffer, First&& first, Args&&... args) const
 		{
@@ -58,6 +66,7 @@ namespace ayr
 		std::FILE* output_file_;
 	};
 
+	c_size Printer::BUFFER_SIZE = 128;
 
 	class Color : public Object<Color>
 	{
@@ -93,11 +102,11 @@ namespace ayr
 		template<typename... Args>
 		void operator()(const Args&... args) const
 		{
-			Buffer buffer(128);
+			Buffer buffer(BUFFER_SIZE);
 			buffer << color_;
 			super::write_buffer(buffer, args...);
 			buffer << Color::CLOSE;
-			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
+			write_from_buffer(buffer);
 		}
 
 		void setcolor(CString color) { color_ = std::move(color); }
