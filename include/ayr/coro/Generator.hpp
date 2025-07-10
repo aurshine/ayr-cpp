@@ -98,7 +98,20 @@ namespace ayr
 
 				using ItInfo = IteratorInfo<GeneratorIterator, Generator<T>, std::forward_iterator_tag, T>;
 
-				GeneratorIterator(ItInfo::container_type* gen, _GenStatus::status_type status = _GenStatus::YIELD) : gen_(gen), status_(status) {}
+				GeneratorIterator(ItInfo::container_type* gen) : gen_(gen)
+				{
+					if (gen->coro_.done())
+					{
+						if (gen->coro_.promise().has_return)
+							status_ = _GenStatus::RETURN;
+						else
+							status_ = _GenStatus::DONE;
+					}
+					else
+						status_ = _GenStatus::YIELD;
+				}
+
+				GeneratorIterator(ItInfo::container_type* gen, _GenStatus::status_type status) : gen_(gen), status_(status) {}
 
 				GeneratorIterator(self&& other) : gen_(other.gen_) { other.gen_ = nullptr; }
 
