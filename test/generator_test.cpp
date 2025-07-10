@@ -59,6 +59,16 @@ coro::Generator<GenTest> gen_test()
 	}
 }
 
+coro::Generator<int> no_yield()
+{
+	if (false) co_yield 1;
+}
+
+coro::Generator<int> only_return()
+{
+	co_return 1;
+}
+
 int main()
 {
 	/*for (int i : numbers(10))
@@ -73,4 +83,11 @@ int main()
 	{
 		print("loop\n");
 	}
+
+	for (auto& i : no_yield())
+		print(i);
+	for (auto& i : only_return())
+		print(i);
+
+	return 0;
 }

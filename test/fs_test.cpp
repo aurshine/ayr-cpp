@@ -38,9 +38,13 @@ int main()
 	tlog(fs::split("a.txt"));
 	tlog(fs::split("abc"));
 	tlog(fs::getcwd());
-	tlog(fs::listdir(fs::getcwd()));
 
-	print("{");
+	print("\n[");
+	for (auto& p : fs::listdir(fs::getcwd()))
+		print(p);
+	print("]");
+
+	print("\n{");
 	for (auto& [root, dirs, files] : fs::walk(fs::getcwd()))
 	{
 		tlog(root);
