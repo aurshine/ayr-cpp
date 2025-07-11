@@ -192,7 +192,6 @@ namespace ayr
 				jmc.for_array([&](const JsonArray& obj) { ayr_construct(this, obj); });
 				jmc.for_dict([&](const JsonDict& obj) { ayr_construct(this, obj); });
 				jmc(other);
-				json_type_id_ = other.json_type_id_;
 			}
 
 			Json(Json&& other) noexcept : json_item_(other.json_item_), json_type_id_(other.json_type_id_)
@@ -495,6 +494,46 @@ namespace ayr
 				swap(json_type_id_, other.json_type_id_);
 			}
 
+			/*
+			* @brief 根据匹配模式设置Json对象的值
+			* 
+			* @detail
+			* - pattern 为空串时，直接设置当前Json对象的值为v
+			* - pattern 为a.b.c，以abc为key，在当前Json对象中查找，若不存在，则创建
+			* - pattern 为[n]，以n为下标，在当前Json对象中查找，若不存在，则创建
+			* - pattern 为a.b[n]，以ab为key，在当前Json对象中查找，若不存在，则创建
+			* 
+			* @param pattern 匹配模式
+			* 
+			* @param v 待设置的值
+			* 
+			* @return Json& 当前Json对象
+			*/
+			Json& pattern_set(Atring pattern, Json v)
+			{
+				// 空串
+				if (pattern == "") return *this = v;
+
+				// 数组
+				if (pattern.startswith("["))
+				{
+					c_size r = pattern.find("]");
+					if (r == -1) RuntimeError("Invalid partner for '['");
+					auto index = pattern.slice(1, r).to_int();
+					
+					while (index >= size()) append(Json());
+					return (*this)[index].pattern_set(pattern.slice(r + 1), v);
+				}
+				else // 字典
+				{
+					pattern = pattern.lstrip(".");
+					c_size r = 0;
+					while (r < pattern.size() && pattern[r] != "." && pattern[r] != "[")
+						++r;
+					Atring key = pattern.slice(0, r);
+					return (*this)[key].pattern_set(pattern.slice(r), v);
+				}
+			}
 		private:
 			// 格式化输出json对象
 			void fmt_buf(Buffer& buffer, int depth, const CString& indent) const
