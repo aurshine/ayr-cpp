@@ -15,7 +15,7 @@ namespace ayr
 			socket_.bind(ip, port);
 		}
 
-		void send(const char* data, int size, const SockAddrIn& to, int flags = 0) const { socket_.sendto(data, size, to, flags); }
+		void send(const char* data, const SockAddrIn& to, int size = -1, int flags = 0) const { socket_.sendto(data, to, size, flags); }
 
 		std::pair<CString, SockAddrIn> recv(int flags = 0) const { return socket_.recvfrom(flags); }
 	private:
@@ -30,7 +30,7 @@ namespace ayr
 		UdpClient(const char* server_ip, int server_port, int famliy = AF_INET) :
 			socket_(famliy, SOCK_DGRAM), server_addr_(server_ip, server_port) {}
 
-		void send(const char* data, int size, int flags = 0) const { socket_.sendto(data, size, server_addr_, flags); }
+		void send(const char* data, int size, int flags = 0) const { socket_.sendto(data, server_addr_, size, flags); }
 
 		std::pair<CString, SockAddrIn> recv(int flags = 0) const { return socket_.recvfrom(flags); }
 

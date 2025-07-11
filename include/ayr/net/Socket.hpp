@@ -197,7 +197,7 @@ namespace ayr
 		*
 		* @return 实际发送的字节数
 		*/
-		int sendto(const CString& data, size_t size = -1, const SockAddrIn& to, int flags = 0) const
+		int sendto(const CString& data, const SockAddrIn& to, size_t size, int flags = 0) const
 		{
 			if (size == -1) size = data.size();
 			int num_send = ::sendto(socket_, data.data(), size, flags, to.get_sockaddr(), to.get_socklen());
