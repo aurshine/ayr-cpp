@@ -10,6 +10,19 @@
 
 namespace ayr
 {
+	/*
+	* @brief 字典类
+	*
+	* @tparam K key类型，必须是可哈希的对象
+	*
+	* @tparam V value类型
+	*
+	* Dict使用robin算法哈希实现
+	*
+	* 字典的实现采用了哈希表(HashTable)和链表(Chain)的组合实现。
+	*
+	* 保证key-value的顺序性，key-value的迭代顺序为插入顺序。
+	*/
 	template<Hashable K, typename V>
 	class Dict : public Object<Dict<K, V>>
 	{
@@ -25,119 +38,9 @@ namespace ayr
 
 		using TableValue_t = typename Chain<KV_t>::Node_t*;
 
-		struct _KeyIterator : public IteratorInfo<_KeyIterator, self, std::bidirectional_iterator_tag, const Key_t>
-		{
-			using ItInfo = IteratorInfo<_KeyIterator, self, std::bidirectional_iterator_tag, const Key_t>;
+		using Iterator = typename Chain<KV_t>::Iterator;
 
-			using KV_IT = Chain<KV_t>::ConstIterator;
-
-			KV_IT it;
-
-			_KeyIterator() : it() {}
-
-			_KeyIterator(const KV_IT& it) : it(it) {}
-
-			_KeyIterator(const typename ItInfo::iterator_type& other) : it(other.it) {}
-
-			typename ItInfo::iterator_type& operator=(const typename ItInfo::iterator_type& other)
-			{
-				it = other.it;
-				return *this;
-			}
-
-			ItInfo::reference operator*() const { return it->first; }
-
-			ItInfo::pointer operator->() const { return &it->first; }
-
-			typename ItInfo::iterator_type& operator++()
-			{
-				++it;
-				return *this;
-			}
-
-			typename ItInfo::iterator_type operator++(int)
-			{
-				auto ret = *this;
-				++it;
-				return ret;
-			}
-
-			typename ItInfo::iterator_type& operator--()
-			{
-				--it;
-				return *this;
-			}
-
-			typename ItInfo::iterator_type operator--(int)
-			{
-				auto ret = *this;
-				--it;
-				return ret;
-			}
-
-			bool __equals__(const typename ItInfo::iterator_type& other) const { return it == other.it; }
-		};
-
-		template<bool IsConst>
-		struct _ValueIterator : public IteratorInfo<_ValueIterator<IsConst>, self, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>
-		{
-			using ItInfo = IteratorInfo<_ValueIterator<IsConst>, self, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>;
-
-			using KV_IT = std::conditional_t<IsConst, typename Chain<KV_t>::ConstIterator, typename Chain<KV_t>::Iterator>;
-
-			KV_IT it;
-
-			_ValueIterator() : it() {}
-
-			_ValueIterator(const KV_IT& it) : it(it) {}
-
-			_ValueIterator(const typename ItInfo::iterator_type& other) : it(other.it) {}
-
-			typename ItInfo::iterator_type& operator=(const typename ItInfo::iterator_type& other)
-			{
-				it = other.it;
-				return *this;
-			}
-
-			ItInfo::reference operator*() const { return it->second; }
-
-			ItInfo::pointer operator->() const { return &it->second; }
-
-			typename ItInfo::iterator_type& operator++()
-			{
-				++it;
-				return *this;
-			}
-
-			typename ItInfo::iterator_type operator++(int)
-			{
-				auto ret = *this;
-				++it;
-				return ret;
-			}
-
-			typename ItInfo::iterator_type& operator--()
-			{
-				--it;
-				return *this;
-			}
-
-			typename ItInfo::iterator_type operator--(int)
-			{
-				auto ret = *this;
-				--it;
-				return ret;
-			}
-
-			bool __equals__(const typename ItInfo::iterator_type& other) const { return it == other.it; }
-		};
-
-		using Iterator = _KeyIterator;
-		using ConstIterator = _KeyIterator;
-		using KeyIterator = _KeyIterator;
-		using ConstKeyIterator = _KeyIterator;
-		using ValueIterator = _ValueIterator<false>;
-		using ConstValueIterator = _ValueIterator<true>;
+		using ConstIterator = typename Chain<KV_t>::ConstIterator;
 
 		Dict() : htable_(), kv_chain_() {}
 
@@ -168,39 +71,68 @@ namespace ayr
 		}
 
 		// key-value对的数量
-		c_size size() const { return kv_chain_.size(); }
+		c_size size() const { return htable_.size(); }
 
-		// 桶容量
+		// 表容量
 		c_size capacity() const { return htable_.capacity(); }
 
+		// 判断是否包含key
 		bool contains(const Key_t& key) const { return htable_.contains(ayrhash(key)); }
 
-		auto keys() const { return std::ranges::subrange(key_begin(), key_end()); }
+		// key的迭代对象
+		auto keys() const { return std::views::keys(kv_chain_); }
 
-		auto values() { return std::ranges::subrange(value_begin(), value_end()); }
+		// value的迭代对象
+		auto values() { return std::views::values(kv_chain_); }
 
-		auto values() const { return std::ranges::subrange(value_begin(), value_end()); }
+		// value的迭代对象
+		auto values() const { return std::views::values(kv_chain_); }
 
+		// key-value对的迭代对象
 		auto items() { return std::ranges::subrange(kv_chain_.begin(), kv_chain_.end()); }
 
+		// key-value对的迭代对象
 		auto items() const { return std::ranges::subrange(kv_chain_.begin(), kv_chain_.end()); }
 
+		/*
+		* @brief 根据key获取value, 若key不存在, 抛出异常
+		*
+		* @param key 要获取的key
+		*
+		* @return const Value_t& 要获取的value
+		*/
 		const Value_t& get(const Key_t& key) const
 		{
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
-			key_not_found_error(key);
+			RuntimeError(std::format("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 
+		/*
+		* @brief 根据key获取value, 若key不存在, 抛出异常
+		*
+		* @param key 要获取的key
+		*
+		* @return const Value_t& 要获取的value
+		*/
 		Value_t& get(const Key_t& key)
 		{
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
-			key_not_found_error(key);
+			RuntimeError(std::format("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 
+		/*
+		* @brief 根据key获取value, 若key不存在, 返回default_value
+		*
+		* @param key 要获取的key
+		*
+		* @param default_value 默认值
+		*
+		* @return const Value_t& 要获取的value
+		*/
 		const Value_t& get(const Key_t& key, const Value_t& default_value) const
 		{
 			TableValue_t item = get_impl(ayrhash(key));
@@ -208,6 +140,15 @@ namespace ayr
 			return default_value;
 		}
 
+		/*
+		* @brief 根据key获取value, 若key不存在, 返回default_value
+		*
+		* @param key 要获取的key
+		*
+		* @param default_value 默认值
+		*
+		* @return Value_t& 要获取的value
+		*/
 		Value_t& get(const Key_t& key, Value_t& default_value)
 		{
 			TableValue_t item = get_impl(ayrhash(key));
@@ -217,79 +158,125 @@ namespace ayr
 
 		const Value_t& operator[](const Key_t& key) const { return get(key); }
 
+		/*
+		* @brief 根据key获取value, 若key不存在, 生成默认值
+		*
+		* @param key 要获取的key
+		*
+		* @return Value_t& 要获取的value
+		*/
 		Value_t& operator[](const Key_t& key)
 		{
-			auto [index, move_dist] = htable_.try_get(ayrhash(key));
-			if (htable_.items_[index].used() && htable_.items_[index].hashv == ayrhash(key))
+			hash_t hashv = ayrhash(key);
+
+			auto [index, move_dist] = htable_.try_get(hashv);
+
+			// 当前表中已有该key
+			if (index_hashv_has_value(index, hashv))
 				return htable_.items_[index].value()->value.second;
 
 			auto kv_node = kv_chain_.append(key, Value_t{});
-			htable_.insert_value_on_index(index, ayrhash(key), move_dist, kv_node);
+
+			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
 			return kv_node->value.second;
 		}
 
-		// 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
+		/*
+		* @brief 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
+		*
+		* @param key 要插入的key
+		*
+		* @param value 要插入的value
+		*
+		* @return Value_t& 被插入的value
+		*/
 		template<typename _K, typename _V>
 		Value_t& insert(_K&& key, _V&& value)
 		{
 			return insert(std::forward<_K>(key),
 				std::forward<_V>(value),
-				ayrhash(key)
+				ayrhash(Key_t{ key })
 			);
 		}
 
+		/*
+		* @brief 向字典中插入一个key-value对, 若key已经存在, 则覆盖原有值
+		*
+		* @param key 要插入的key
+		*
+		* @param value 要插入的value
+		*
+		* @param hashv 待插入的key的hash值
+		*
+		* @return Value_t& 被插入的value
+		*/
 		template<typename _K, typename _V>
 		Value_t& insert(_K&& key, _V&& value, hash_t hashv)
 		{
-			htable_.try_expand();
 			auto [index, move_dist] = htable_.try_get(hashv);
 
-			if (htable_.items_[index].used())
-				if (htable_.items_[index].hashv == hashv)
-					htable_.items_[index].value()->value.second = std::forward<_V>(value);
-				else
-				{
-					htable_.insert_value_on_index(index, hashv, move_dist, kv_chain_.append(std::forward<_K>(key), std::forward<_V>(value)));
-					++htable_.size_;
-				}
-			else
-			{
-				htable_.items_[index].set_empty_value(hashv, move_dist, kv_chain_.append(std::forward<_K>(key), std::forward<_V>(value)));
-				++htable_.size_;
-			}
+			if (index_hashv_has_value(index, hashv))
+				return htable_.items_[index].value()->value.second = std::forward<_V>(value);
 
-			return htable_.items_[index].value()->value.second;
+			auto kv_node = kv_chain_.append(std::forward<_K>(key), std::forward<_V>(value));
+			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
+
+			return kv_node->value.second;
 		}
 
-		void setdefault(const Key_t& key, const Value_t& default_value)
+		/*
+		* @brief 向字典插入一个key-value对, 若key已经存在, 则无事发生
+		*
+		* @param key 要插入的key
+		*
+		* @param value 要插入的value
+		*
+		* @return key位置上的value
+		*/
+		Value_t& setdefault(const Key_t& key, Value_t default_value)
 		{
 			hash_t hashv = ayrhash(key);
 			auto [index, move_dist] = htable_.try_get(hashv);
-			if (!htable_.items_[index].used() || htable_.items_[index].hashv != hashv)
-				htable_.insert_value_on_index(index, hashv, move_dist, kv_chain_.append(key, default_value));
+			if (index_hashv_has_value(index, hashv))
+				return htable_.items_[index].value()->value.second;
+
+			auto kv_node = kv_chain_.append(key, std::move(default_value));
+			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
 		}
 
-		void pop(const Key_t& key)
+		/*
+		* @brief 根据key删除key-value
+		*
+		* @param key 要删除的key
+		*
+		* @return bool 是否成功删除
+		*/
+		bool pop(const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
 			auto [index, move_dist] = htable_.try_get(hashv);
-			if (htable_.items_[index].used() && htable_.items_[index].hashv == hashv)
+			if (index_hashv_has_value(index, hashv))
 			{
 				kv_chain_.pop(htable_.items_[index].value());
 				htable_.pop_value_on_index(index, hashv, move_dist);
-				return;
+				return true;
 			}
 
-			key_not_found_error(key);
+			return false;
 		}
 
-		void clear()
-		{
-			htable_.clear();
-			kv_chain_.clear();
-		}
+		// 清空字典
+		void clear() { htable_.clear(); kv_chain_.clear(); }
 
-		// 根据key都存在，取this的value
+		/*
+		* @brief 字典的并集
+		*
+		* @detail 两个字典都有的key，取当前字典的value
+		*
+		* @param other 另一个字典
+		*
+		* @return self 并集字典
+		*/
 		self operator&(const self& other) const
 		{
 			if (this == &other) return *this;
@@ -303,7 +290,15 @@ namespace ayr
 
 		self& operator&=(const self& other) { return *this = *this & other; }
 
-		// 根据key有一方存在，都存在的取this的value
+		/*
+		* @brief 字典的交集
+		*
+		* @detail 根据key有一方存在，都存在的取当前字典的value
+		*
+		* @param other 另一个字典
+		*
+		* @return self 交集字典
+		*/
 		self operator|(const self& other) const
 		{
 			if (this == &other) return *this;
@@ -315,14 +310,22 @@ namespace ayr
 			return result;
 		}
 
-		// 根据key有一方存在，都存在的取this的value
+		/*
+		* @brief 字典的交集
+		*
+		* @detail 根据key有一方存在，都存在的取当前字典的value
+		*
+		* @param other 另一个字典
+		*
+		* @return self 交集字典
+		*/
 		self operator|(self&& other) const
 		{
 			if (this == &other) return *this;
 			self result(*this);
 			for (auto& [key, value] : other.items())
 				if (!result.contains(key))
-					result.insert(std::move(key), std::move(value));
+					result.insert(key, std::move(value));
 			return result;
 		}
 
@@ -330,6 +333,15 @@ namespace ayr
 
 		self& operator|=(self&& other) { return *this = *this | std::move(other); }
 
+		/*
+		* @brief 字典的差集
+		*
+		* @detail 只有一个字典有key，且另一个字典没有key，有key的value
+		*
+		* @param other 另一个字典
+		*
+		* @return self 差集字典
+		*/
 		self operator^(const self& other) const
 		{
 			if (this == &other) return self();
@@ -344,6 +356,15 @@ namespace ayr
 			return result;
 		}
 
+		/*
+		* @brief 字典的差集
+		*
+		* @detail 只有一个字典有key，且另一个字典没有key，有key的value
+		*
+		* @param other 另一个字典
+		*
+		* @return self 差集字典
+		*/
 		self operator^(self&& other) const
 		{
 			if (this == &other) return self();
@@ -362,37 +383,17 @@ namespace ayr
 
 		self& operator^= (self&& other) { return *this = *this ^ std::move(other); }
 
-		CString __str__() const
-		{
-			DynArray<CString> strs;
-			strs.append("{");
-			for (auto& [key, value] : items())
-			{
-				strs.append(cstr(key));
-				strs.append(": ");
-				strs.append(cstr(value));
-				strs.append(", ");
-			}
-			if (size() > 0) strs.pop_back();
-
-			strs.append("}");
-			return CString::cjoin(strs);
-		}
-
 		void __repr__(Buffer& buffer) const
 		{
 			buffer << "{";
-			bool first = true;
+			bool flag = false;
 			for (auto& [key, value] : items())
 			{
-				if (first)
-					first = false;
-				else
+				if (flag)
 					buffer << ", ";
-
-				buffer << cstr(key);
-				buffer << ": ";
-				buffer << cstr(value);
+				else
+					flag = true;
+				buffer << key << ": " << value;
 			}
 			buffer << "}";
 		}
@@ -413,37 +414,42 @@ namespace ayr
 			ayr::swap(kv_chain_, other.kv_chain_);
 		}
 
-		Iterator begin() { return Iterator(kv_chain_.begin()); }
+		Iterator begin() { return kv_chain_.begin(); }
 
-		Iterator end() { return Iterator(kv_chain_.end()); }
+		Iterator end() { return kv_chain_.end(); }
 
-		ConstIterator begin() const { return ConstIterator(kv_chain_.begin()); }
+		ConstIterator begin() const { return kv_chain_.begin(); }
 
-		ConstIterator end() const { return ConstIterator(kv_chain_.end()); }
-
-		ConstKeyIterator key_begin() const { return ConstKeyIterator(kv_chain_.begin()); }
-
-		ConstKeyIterator key_end() const { return ConstKeyIterator(kv_chain_.end()); }
-
-		ValueIterator value_begin() { return ValueIterator(kv_chain_.begin()); }
-
-		ValueIterator value_end() { return ValueIterator(kv_chain_.end()); }
-
-		ConstValueIterator value_begin() const { return ConstValueIterator(kv_chain_.begin()); }
-
-		ConstValueIterator value_end() const { return ConstValueIterator(kv_chain_.end()); }
+		ConstIterator end() const { return kv_chain_.end(); }
 	private:
+		/*
+		* @brief 尝试获得hahv对应的值
+		*
+		* @param hashv 待查找的hash值
+		*
+		* @return node*
+		*/
 		TableValue_t get_impl(hash_t hashv) const
 		{
 			auto [index, move_dist] = htable_.try_get(hashv);
 
-			if (htable_.items_[index].used() && htable_.items_[index].hashv == hashv)
+			if (index_hashv_has_value(index, hashv))
 				return htable_.items_[index].value();
 			else
 				return nullptr;
 		}
 
-		void key_not_found_error(const Key_t& key) const { RuntimeError(std::format("Key '{}' not found in dictionary.", key)); }
+		/*
+		* @brief 根据index和hahv判断是否有预期值
+		*
+		* @param index 索引
+		*
+		* @param hashv 待查找的hash值
+		*/
+		bool index_hashv_has_value(c_size index, hash_t hashv) const
+		{
+			return htable_.items_[index].used() && htable_.items_[index].hashv == hashv;
+		}
 
 		Table_t htable_;
 
