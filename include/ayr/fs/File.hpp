@@ -20,6 +20,7 @@ namespace ayr
 
 			constexpr static FD INVALID_FD = -1;
 #endif
+			FD fd_;
 		public:
 			AyrFile(const CString& filename, const CString& mode) : fd_(INVALID_FD)
 			{
@@ -76,9 +77,9 @@ namespace ayr
 #endif
 			}
 
-			AyrFile(FD fd) : fd_(fd) {}
+			constexpr AyrFile(FD fd) : fd_(fd) {}
 
-			AyrFile(self&& file) noexcept : fd_(file.fd_) { file.fd_ = INVALID_FD; }
+			constexpr AyrFile(self&& file) noexcept : fd_(file.fd_) { file.fd_ = INVALID_FD; }
 
 			self& operator=(self&& file) noexcept
 			{
@@ -157,8 +158,6 @@ namespace ayr
 				return st.st_size;
 #endif
 			}
-		private:
-			FD fd_;
 		};
 	}
 }
