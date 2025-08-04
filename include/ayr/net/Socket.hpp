@@ -10,16 +10,6 @@
 
 namespace ayr
 {
-#if defined(AYR_WIN)
-
-#elif defined(AYR_LINUX)
-
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR 0
-
-	def closesocket(int socket) { ::close(socket); }
-#endif
-
 	class Socket : public Object<Socket>
 	{
 		using self = Socket;
@@ -65,7 +55,14 @@ namespace ayr
 		int fd() const { return socket_; }
 
 		// 关闭socket
-		void close() const { closesocket(socket_); }
+		void close() const 
+		{ 
+#if defined(AYR_WIN)
+			closesocket(socket_);
+#elif defined(AYR_LINUX)
+			::close(socket_);
+#endif
+		}
 
 		/*
 		* @brief 绑定ip:port

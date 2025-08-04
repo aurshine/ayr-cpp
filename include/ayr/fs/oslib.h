@@ -20,12 +20,16 @@
 #include <arpa/inet.h>
 #include <dirent.h>
 #include <errno.h>
+#include <netdb.h>
 #include <netinet/in.h>
 #include <string.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#define INVALID_SOCKET -1
+#define SOCKET_ERROR 0
 
 #elif defined(__APPLE__)
 #define AYR_MAC
