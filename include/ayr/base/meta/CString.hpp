@@ -432,7 +432,7 @@ namespace ayr
 		{
 			Buffer buf;
 			value.__repr__(buf);
-			return dstr(buf.data(), buf.size());
+			return dstr(buf.peek(), buf.readable_size());
 		}
 		else if constexpr (std::is_integral_v<T>)
 			return cstr_int(value);

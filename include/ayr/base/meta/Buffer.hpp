@@ -10,76 +10,124 @@ namespace ayr
 {
 	class Buffer
 	{
-		char* data_;
-
-		c_size size_, capacity_;
+		char* data_, *read_ptr_, *write_ptr_, *end_ptr_;
 
 		constexpr static c_size INITIAL_CAPACITY = 64;
 	public:
 		Buffer() : Buffer(INITIAL_CAPACITY) {}
 
-		Buffer(c_size capacity) : data_(ayr_alloc<char>(capacity + 1)), size_(0), capacity_(capacity) {}
+		Buffer(c_size capacity) : 
+			data_(ayr_alloc<char>(capacity)), 
+			read_ptr_(data_),
+			write_ptr_(data_),
+			end_ptr_(data_ + capacity) {}
 
-		Buffer(const Buffer& other) : Buffer(other.capacity_)
+		Buffer(const Buffer& other) : Buffer(other.capacity()) { append_bytes(other.peek(), other.readable_size()); }
+
+		Buffer(Buffer&& other) noexcept : 
+			data_(std::exchange(other.data_, nullptr)), 
+			read_ptr_(std::exchange(other.read_ptr_, nullptr)),
+			write_ptr_(std::exchange(other.write_ptr_, nullptr)),
+			end_ptr_(std::exchange(other.end_ptr_, nullptr)) {}
+
+		~Buffer() { ayr_desloc(data_, capacity()); }
+
+		Buffer& operator=(const Buffer& other)
 		{
-			std::memcpy(data_, other.data_, other.size_);
-			size_ = other.size_;
-		}
+			if (this == &other) return *this;
+			ayr_destroy(this);
 
-		Buffer(Buffer&& other) noexcept : data_(other.data_), size_(other.size_), capacity_(other.capacity_)
-		{
-			other.data_ = nullptr;
-			other.size_ = 0;
-			other.capacity_ = 0;
+			return *ayr_construct(this, other);
 		}
-
-		~Buffer() { ayr_desloc(data_, size_); }
 
 		Buffer& operator=(Buffer&& other) noexcept
 		{
 			if (this == &other) return *this;
-			ayr_desloc(data_, size_);
-			data_ = other.data_;
-			size_ = other.size_;
-			capacity_ = other.capacity_;
-			other.data_ = nullptr;
-			other.size_ = 0;
-			other.capacity_ = 0;
-			return *this;
+			ayr_destroy(this);
+
+			return *ayr_construct(this, std::move(other));
 		}
 
-		c_size size() const { return size_; }
+		// 读缓冲区的大小
+		c_size readable_size() const { return write_ptr_ - read_ptr_; }
 
-		c_size capacity() const { return capacity_; }
+		// 写缓冲区的大小
+		c_size writeable_size() const { return end_ptr_ - write_ptr_; }
 
-		c_size clear() { return size_ = 0; }
+		// 缓冲区的容量
+		c_size capacity() const { return end_ptr_ - data_; }
 
-		const char* data() const { return data_; }
+		// 清空缓冲区
+		void clear() { read_ptr_ = write_ptr_ = data_; }
 
+		// 读缓冲区起始位置
+		const char* peek() const { return read_ptr_; }
+		/*
+		* @brief 从缓冲区中取出指定数量的字节
+		* 
+		* @param size 要取出的字节数
+		* 
+		* @note 如果取出的字节数大于缓冲区中可读字节数，则清空缓冲区
+		*/
+		void retrieve(c_size size)
+		{
+			if (size >= readable_size())
+				clear();
+			else
+				read_ptr_ += size;
+		}
+
+		// 返回 '\n' 位置
+		c_size find_eol() { return find("\n"); }
+
+		// 返回 '\r\n' 位置
+		c_size find_crlf() { return find("\r\n"); }
+
+		// 返回指定字符串的位置
+		c_size find(const char* pattern) 
+		{
+			c_size pattern_size = std::strlen(pattern);
+			for (const char* ptr = read_ptr_; ptr < write_ptr_; ++ptr)
+				if (std::memcmp(ptr, pattern, pattern_size) == 0)
+					return ptr - read_ptr_;
+			return -1;
+		}
+
+		// 追加字节
 		void append_bytes(const void* bytes, c_size size)
 		{
-			if (size + size_ > capacity_)
-				expand(size + size_);
-			std::memcpy(data_ + size_, bytes, size);
-			size_ += size;
+			if (size > writeable_size()) expand_util(size);
+			std::memcpy(write_ptr_, bytes, size);
+			write_ptr_ += size;
 		}
 
 		void __swap__(Buffer& other)
 		{
 			std::swap(data_, other.data_);
-			std::swap(size_, other.size_);
-			std::swap(capacity_, other.capacity_);
+			std::swap(read_ptr_, other.read_ptr_);
+			std::swap(write_ptr_, other.write_ptr_);
+			std::swap(end_ptr_, other.end_ptr_);
 		}
 
-		void expand(c_size min_capacity)
+	private:
+		/*
+		* @brief 扩容写缓冲区到至少min_capacity大小
+		* 
+		* @param min_capacity 期望最小容量
+		*/
+		void expand_util(c_size min_write_size)
 		{
-			while (capacity_ < min_capacity)
-				capacity_ = ifelse(capacity_ < INITIAL_CAPACITY, INITIAL_CAPACITY, capacity_ * 2);
+			c_size capacity = this->capacity() * 2, read_size = readable_size();
+			while (capacity < read_size + min_write_size) capacity *= 2;
 
-			char* tmp = ayr_alloc<char>(capacity_);
-			std::memcpy(tmp, data_, size_);
-			ayr_desloc(data_, size_);
+			char* tmp = ayr_alloc<char>(capacity);
+			std::memcpy(tmp, peek(), readable_size());
+			ayr_desloc(data_, this->capacity());
+
 			data_ = tmp;
+			read_ptr_ = tmp;
+			write_ptr_ = tmp + read_size;
+			end_ptr_ = tmp + capacity;
 		}
 	};
 

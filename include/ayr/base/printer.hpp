@@ -18,14 +18,14 @@ namespace ayr
 		void operator()(const T0& object, const Args&... args) const
 		{
 			Buffer buffer(BUFFER_SIZE);
-			write_buffer(buffer, object, args...);
+			write_in_buffer(buffer, object, args...);
 			write_from_buffer(buffer);
 		}
 
 		void operator()() const
 		{
 			Buffer buffer(BUFFER_SIZE);
-			write_buffer(buffer);
+			write_in_buffer(buffer);
 			write_from_buffer(buffer);
 		}
 
@@ -41,7 +41,7 @@ namespace ayr
 
 		void write_from_buffer(const Buffer& buffer) const
 		{
-			std::fwrite(buffer.data(), 1, buffer.size(), output_file_);
+			std::fwrite(buffer.peek(), 1, buffer.readable_size(), output_file_);
 		}
 
 		static void set_buffer_size(c_size size) { if (size > 0) BUFFER_SIZE = size; }
@@ -49,7 +49,7 @@ namespace ayr
 		static c_size BUFFER_SIZE;
 
 		template<typename First, typename... Args>
-		void write_buffer(Buffer& buffer, First&& first, Args&&... args) const
+		void write_in_buffer(Buffer& buffer, First&& first, Args&&... args) const
 		{
 			buffer << first;
 			if constexpr (sizeof...(args) > 0)
@@ -57,7 +57,7 @@ namespace ayr
 			buffer << ew_;
 		}
 
-		void write_buffer(Buffer& buffer) const { buffer << ew_; }
+		void write_in_buffer(Buffer& buffer) const { buffer << ew_; }
 
 		CString ew_; // 结束符
 
@@ -104,7 +104,7 @@ namespace ayr
 		{
 			Buffer buffer(BUFFER_SIZE);
 			buffer << color_;
-			super::write_buffer(buffer, args...);
+			super::write_in_buffer(buffer, args...);
 			buffer << Color::CLOSE;
 			write_from_buffer(buffer);
 		}
