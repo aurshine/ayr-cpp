@@ -445,5 +445,24 @@ namespace ayr
 	def udpv4() { return Socket(AF_INET, SOCK_DGRAM); }
 
 	def udpv6() { return Socket(AF_INET6, SOCK_DGRAM); }
+
+#if defined(AYR_WIN)
+	class _StartSocket : public Object<_StartSocket>
+	{
+	public:
+
+		_StartSocket()
+		{
+			WSADATA wsaData;
+			if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+				RuntimeError("WSAStartup failed");
+		}
+
+		~_StartSocket() { WSACleanup(); }
+
+	};
+
+	static const _StartSocket __startsocket;
+#endif // AYR_WIN
 }
-#endif
+#endif // AYR_NET_SOCKET_HPP
