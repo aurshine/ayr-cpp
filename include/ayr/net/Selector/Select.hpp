@@ -1,12 +1,15 @@
 #ifndef AYR_NET_SELECTOR_SELECT_HPP
 #define AYR_NET_SELECTOR_SELECT_HPP
 
-#include <sys/select.h>
-
 #include <map>
 
 #include "IoEvent.hpp"
+#include "../../Array.hpp"
 #include "../../fs/oslib.h"
+
+#if defined(AYR_LINUX)
+#include <sys/select.h>
+#endif // AYR_LINUX
 
 namespace ayr
 {
@@ -107,7 +110,7 @@ namespace ayr
 
 			int n = wait_select(&tmp_fds[0], &tmp_fds[1], &tmp_fds[2], timeout_ms);
 			Array<IoEvent> results(n);
-			for (int i = 0, fd = 0; fd < FD_SETSIZE && i < n; ++fd)
+			for (int i = 0, fd = 0, FD_SIZE = max_fd() + 1; fd < FD_SIZE && i < n; ++fd)
 			{
 				IoEvent::Flag events = IoEvent::NONE;
 				if (FD_ISSET(fd, &tmp_fds[0]))
@@ -115,7 +118,7 @@ namespace ayr
 				if (FD_ISSET(fd, &tmp_fds[1]))
 					events |= IoEvent::WRITABLE;
 				if (FD_ISSET(fd, &tmp_fds[2]))
-					events |= IoEvent::ERROR;
+					events |= IoEvent::ERRORABLE;
 
 				if (events != IoEvent::NONE)
 				{
@@ -127,6 +130,8 @@ namespace ayr
 			return results;
 		}
 	private:
+		int max_fd() const { return fd_events.rbegin()->first; }
+
 		/*
 		* @brief 等待事件发生
 		*
@@ -139,7 +144,7 @@ namespace ayr
 			timeval timeout{ timeout_ms / 1000, (timeout_ms % 1000) * 1000 };
 
 			int n;
-			while ((n = select(FD_SETSIZE, read_set, write_set, error_set, &timeout)) < 0)
+			while ((n = select(max_fd() + 1, read_set, write_set, error_set, &timeout)) < 0)
 			{
 				if (errno == EINTR)
 					continue;

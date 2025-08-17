@@ -107,7 +107,7 @@ namespace ayr
 					events |= IoEvent::WRITABLE;
 				// 记录错误事件
 				if (evs[i].events & EPOLLERR)
-					events |= IoEvent::ERROR;
+					events |= IoEvent::ERRORABLE;
 				results[i].set_events(events);
 			}
 

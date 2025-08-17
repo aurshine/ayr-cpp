@@ -27,7 +27,7 @@ namespace ayr
 
 		constexpr static Flag WRITABLE = 2;
 
-		constexpr static Flag ERROR = 4;
+		constexpr static Flag ERRORABLE = 4;
 	private:
 		using self = IoEvent;
 
