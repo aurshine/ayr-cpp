@@ -55,8 +55,8 @@ namespace ayr
 		int fd() const { return socket_; }
 
 		// 关闭socket
-		void close() const 
-		{ 
+		void close() const
+		{
 #if defined(AYR_WIN)
 			closesocket(socket_);
 #elif defined(AYR_LINUX)
@@ -178,7 +178,7 @@ namespace ayr
 			int data_size = htonl(size);
 			msg_data.append_bytes(&data_size, 4);
 			msg_data.append_bytes(data.data(), size);
-			sendall(msg_data.data(), msg_data.size(), flags);
+			sendall(msg_data.peek(), msg_data.readable_size(), flags);
 		}
 
 		/*

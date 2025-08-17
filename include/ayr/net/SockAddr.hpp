@@ -16,21 +16,17 @@ namespace ayr
 			addr_.sin_family = family;
 			addr_.sin_port = htons(port);
 
-			if (ip == nullptr)
-				addr_.sin_addr.s_addr = INADDR_ANY;
-			else
+			int ret = inet_pton(AF_INET, ip.data(), &addr_.sin_addr);
+			switch (ret)
 			{
-				int ret = inet_pton(AF_INET, ip.data(), &addr_.sin_addr);
-				switch (ret)
-				{
-				case 0:
-					RuntimeError(std::format("Invalid IP address: {}", ip));
-					break;
-				case -1:
-					RuntimeError(get_error_msg());
-					break;
-				}
+			case 0:
+				RuntimeError(std::format("Invalid IP address: {}", ip));
+				break;
+			case -1:
+				RuntimeError(get_error_msg());
+				break;
 			}
+
 		}
 
 		SockAddrIn(const SockAddrIn& other) : addr_(other.addr_) {}

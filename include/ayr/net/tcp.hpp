@@ -2,7 +2,6 @@
 #define AYR_NET_TCP_HPP
 
 #include "EventLoopThread.hpp"
-#include "Select.hpp"
 #include "../base/View.hpp"
 
 namespace ayr
