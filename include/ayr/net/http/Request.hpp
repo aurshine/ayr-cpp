@@ -17,6 +17,8 @@ namespace ayr
 	public:
 		Atring method, uri, version;
 
+		Dict<Atring, Atring> quries;
+
 		Dict<Atring, Atring> headers;
 
 		Atring body;
