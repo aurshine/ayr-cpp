@@ -5,6 +5,13 @@
 
 namespace ayr
 {
+	/*
+	* @brief 视图类型，内部保存各种类型的引用
+	* 
+	* @detail View对象可以直接使用==和!=运算符进行比较，内部会自动转化为相应的类型进行比较。
+	* 
+	* @note 构造的对象必须是左值引用或View类型对象
+	*/
 	class View : public Object<View>
 	{
 		using self = View;
@@ -39,8 +46,6 @@ namespace ayr
 			return *ayr_construct(this, std::forward<U>(obj));
 		}
 
-		void* data() const { return view_ptr_; }
-
 		template<typename T>
 		T& get() { return *static_cast<T*>(view_ptr_); }
 
@@ -54,7 +59,7 @@ namespace ayr
 		operator const T& () const { return get<T>(); }
 
 		template<typename T>
-		bool __equals__(const T& other) const { return data() == &other || get<T>() == other; }
+		bool __equals__(const T& other) const { return view_ptr_ == &other || get<T>() == other; }
 	};
 
 	// T类型的只读视图
@@ -103,7 +108,7 @@ namespace ayr
 
 		const Value_t& get() const { return view_.get<const Value_t>(); }
 
-		const Value_t* operator->() const { return static_cast<const Value_t*>(view_.data()); }
+		const Value_t* operator->() const { return static_cast<const Value_t*>(view_.view_ptr_); }
 
 		template<typename... Args>
 		auto operator()(Args&&... args) const
