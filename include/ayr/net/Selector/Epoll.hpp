@@ -3,6 +3,8 @@
 
 #include <sys/epoll.h>
 
+#include <chrono>
+
 #include "IoEvent.hpp"
 #include "../../fs/oslib.h"
 #include "../../Dict.hpp"
@@ -86,6 +88,13 @@ namespace ayr
 			::close(fd);
 		}
 
+		/*
+		* @brief 等待epoll事件
+		* 
+		* @param timeout_ms 超时时间，单位毫秒
+		* 
+		* @return 发生的事件列表
+		*/
 		Array<IoEvent> wait(int timeout_ms)
 		{
 			Array<epoll_event> evs(size());
@@ -112,6 +121,21 @@ namespace ayr
 			}
 
 			return results;
+		}
+
+		/*
+		* @brief 等待epoll事件直到到达指定时间
+		* 
+		* @details 超时时间为距离time_point的毫秒数，如果已经超时则立刻返回
+		* 
+		* @param time_point 超时时间点
+		* 
+		* @return 发生的事件列表
+		*/
+		Array<IoEvent> wait_until(std::chrono::steady_clock::time_point time_point)
+		{
+			int timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_point - std::chrono::steady_clock::now()).count();
+			return wait(std::max(timeout_ms, 0));
 		}
 	};
 }

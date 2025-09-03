@@ -2,6 +2,7 @@
 #define AYR_NET_SELECTOR_SELECT_HPP
 
 #include <map>
+#include <chrono>
 
 #include "IoEvent.hpp"
 #include "../../Array.hpp"
@@ -129,6 +130,22 @@ namespace ayr
 			}
 			return results;
 		}
+
+		/*
+		* @brief 等待epoll事件直到到达指定时间
+		*
+		* @details 超时时间为距离time_point的毫秒数，如果已经超时则立刻返回
+		*
+		* @param time_point 超时时间点
+		*
+		* @return 发生的事件列表
+		*/
+		Array<IoEvent> wait_until(std::chrono::steady_clock::time_point time_point)
+		{
+			int timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_point - std::chrono::steady_clock::now()).count();
+			return wait(std::max(timeout_ms, 0));
+		}
+
 	private:
 		int max_fd() const { return fd_events.rbegin()->first; }
 
