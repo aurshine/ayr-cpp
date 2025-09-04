@@ -10,25 +10,29 @@ namespace ayr
 {
 	class Buffer
 	{
-		char* data_, *read_ptr_, *write_ptr_, *end_ptr_;
+		char* data_, * read_ptr_, * write_ptr_, * end_ptr_;
 
 		constexpr static c_size INITIAL_CAPACITY = 64;
 	public:
+		friend CString from_buffer(Buffer&& buffer);
+
 		Buffer() : Buffer(INITIAL_CAPACITY) {}
 
-		Buffer(c_size capacity) : 
-			data_(ayr_alloc<char>(capacity)), 
+		Buffer(c_size capacity) :
+			data_(ayr_alloc<char>(capacity)),
 			read_ptr_(data_),
 			write_ptr_(data_),
-			end_ptr_(data_ + capacity) {}
+			end_ptr_(data_ + capacity) {
+		}
 
 		Buffer(const Buffer& other) : Buffer(other.capacity()) { append_bytes(other.peek(), other.readable_size()); }
 
-		Buffer(Buffer&& other) noexcept : 
-			data_(std::exchange(other.data_, nullptr)), 
+		Buffer(Buffer&& other) noexcept :
+			data_(std::exchange(other.data_, nullptr)),
 			read_ptr_(std::exchange(other.read_ptr_, nullptr)),
 			write_ptr_(std::exchange(other.write_ptr_, nullptr)),
-			end_ptr_(std::exchange(other.end_ptr_, nullptr)) {}
+			end_ptr_(std::exchange(other.end_ptr_, nullptr)) {
+		}
 
 		~Buffer() { ayr_desloc(data_, capacity()); }
 
@@ -62,11 +66,30 @@ namespace ayr
 
 		// 读缓冲区起始位置
 		const char* peek() const { return read_ptr_; }
+
+		// 写缓冲区起始位置
+		char* write_ptr() { return write_ptr_; }
+
+		// 缓冲区起始位置
+		char* begin() { return data_; }
+
+		// 缓冲区结束位置
+		char* end() { return end_ptr_; }
+
+		// 已经写过的字节数
+		void written(c_size size)
+		{
+			if (size <= writeable_size())
+				write_ptr_ += size;
+			else
+				write_ptr_ = end_ptr_;
+		}
+
 		/*
 		* @brief 从缓冲区中取出指定数量的字节
-		* 
+		*
 		* @param size 要取出的字节数
-		* 
+		*
 		* @note 如果取出的字节数大于缓冲区中可读字节数，则清空缓冲区
 		*/
 		void retrieve(c_size size)
@@ -84,7 +107,7 @@ namespace ayr
 		c_size find_crlf() { return find("\r\n"); }
 
 		// 返回指定字符串的位置
-		c_size find(const char* pattern) 
+		c_size find(const char* pattern)
 		{
 			c_size pattern_size = std::strlen(pattern);
 			for (const char* ptr = read_ptr_; ptr < write_ptr_; ++ptr)
@@ -98,7 +121,7 @@ namespace ayr
 		{
 			if (size > writeable_size()) expand_util(size);
 			std::memcpy(write_ptr_, bytes, size);
-			write_ptr_ += size;
+			written(size);
 		}
 
 		void __swap__(Buffer& other)
@@ -108,11 +131,10 @@ namespace ayr
 			std::swap(write_ptr_, other.write_ptr_);
 			std::swap(end_ptr_, other.end_ptr_);
 		}
-
 	private:
 		/*
 		* @brief 扩容写缓冲区到至少min_capacity大小
-		* 
+		*
 		* @param min_capacity 期望最小容量
 		*/
 		void expand_util(c_size min_write_size)
@@ -128,6 +150,15 @@ namespace ayr
 			read_ptr_ = tmp;
 			write_ptr_ = tmp + read_size;
 			end_ptr_ = tmp + capacity;
+		}
+
+		// 分离数据
+		std::pair<char*, c_size> separate()
+		{
+			char* tmp = begin();
+			c_size size = capacity();
+			data_ = write_ptr_ = read_ptr_ = end_ptr_ = nullptr;
+			return { tmp, size };
 		}
 	};
 
