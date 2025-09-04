@@ -50,14 +50,20 @@ namespace ayr
 		// 监听的fd数量
 		c_size size() const { return fd_events.size(); }
 
+		// 是否为空
+		bool empty() const { return fd_events.empty(); }
+
+		// 是否包含fd
+		bool contains(int fd) const { return fd_events.find(fd) != fd_events.end(); }
+
 		/*
-		* @brief 添加fd的事件
+		* @brief 添加fd的事件，如果fd已经存在，则更新事件
 		*
 		* @param fd 要设置的fd
 		*
 		* @param io_event 要设置的事件
 		*/
-		void add(int fd, const IoEvent& io_event)
+		void insert(int fd, const IoEvent& io_event)
 		{
 			if (io_event.registered_events() & IoEvent::READABLE)
 				FD_SET(fd, read_set());

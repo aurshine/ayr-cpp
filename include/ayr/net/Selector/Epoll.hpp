@@ -42,29 +42,37 @@ namespace ayr
 		// 监听的fd数量
 		c_size size() const { return fd_events.size(); }
 
+		// 是否为空
+		bool empty() const { return size() == 0; }
+
+		// 是否包含fd
+		bool contains(int fd) const { return fd_events.contains(fd); }
+
 		/*
-		* @brief 注册一个socket到epoll中
+		* @brief 添加一个fd事件到epoll中，如果fd已经存在，则更新事件
 		*
 		* @param fd 要注册的socket的文件描述符
 		*
 		* @param events 要注册的事件
 		*
-		* @note fd 必须是没添加到epoll中的
 		*/
-		void add(int fd, const IoEvent& io_event)
+		void insert(int fd, const IoEvent& io_event)
 		{
 			struct epoll_event ev;
 			ev.data.ptr = (void*)&fd_events.insert(fd, io_event);
 			// 默认监听错误事件，挂起连接
 			ev.events = EPOLLERR | EPOLLHUP | EPOLLRDHUP;
-			// 读事件，ET模式
+			// 读事件，LT模式
 			if (io_event.registered_events() & IoEvent::READABLE)
-				ev.events |= EPOLLIN | EPOLLET;
+				ev.events |= EPOLLIN;
 			// 写事件
 			if (io_event.registered_events() & IoEvent::WRITABLE)
 				ev.events |= EPOLLOUT;
 
-			::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
+			if (contains(fd))
+				::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev)
+			else
+				::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
 		}
 
 		/*
