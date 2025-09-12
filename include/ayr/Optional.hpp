@@ -252,16 +252,6 @@ namespace ayr
 			return "None";
 		}
 
-		void __swap__(self& other)
-		{
-			if (has_value() && other.has_value())
-				swap(*get_ptr(), *other.get_ptr());
-			else if (has_value())
-				other = std::move(*this);
-			else if (other.has_value())
-				*this = std::move(other);
-		}
-
 		template<typename U>
 		struct is_optional : std::false_type {};
 

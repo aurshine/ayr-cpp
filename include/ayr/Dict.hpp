@@ -408,12 +408,6 @@ namespace ayr
 			return true;
 		}
 
-		void __swap__(self& other) noexcept
-		{
-			ayr::swap(htable_, other.htable_);
-			ayr::swap(kv_chain_, other.kv_chain_);
-		}
-
 		Iterator begin() { return kv_chain_.begin(); }
 
 		Iterator end() { return kv_chain_.end(); }

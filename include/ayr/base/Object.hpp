@@ -40,15 +40,6 @@ namespace ayr
 
 		// 返回true或false表示是否相等
 		bool __equals__(const Derived& other) const { return derived().__cmp__(other) == 0; }
-
-		// 交换两个对象
-		void __swap__(Derived& other)
-		{
-			if constexpr (std::is_swappable_v<Derived>)
-				std::swap(derived(), other);
-			else
-				throw std::runtime_error("not implemented");
-		}
 	};
 
 	template<typename T>
@@ -95,16 +86,5 @@ namespace ayr
 
 	template<AyrObject T, typename U>
 	bool operator<=(const T& a, const U& b) { return a.__cmp__(b) <= 0; }
-
-	template<typename T>
-	void swap(T& a, T& b)
-	{
-		if constexpr (hasmethod(T, __swap__, std::declval<T&>()))
-			a.__swap__(b);
-		else if constexpr (std::swappable<T>)
-			std::swap(a, b);
-		else
-			throw std::runtime_error(std::format("type {} is not swappable", dtype(T)));
-	}
 }
 #endif

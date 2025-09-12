@@ -103,12 +103,6 @@ namespace ayr
 			size_ = 0;
 			return result;
 		}
-
-		void __swap__(self& other)
-		{
-			std::swap(arr_, other.arr_);
-			std::swap(size_, other.size_);
-		}
 	};
 
 	// 通过初始化列表构造数组

@@ -488,25 +488,19 @@ namespace ayr
 				return jmc(*this);
 			}
 
-			void __swap__(self& other)
-			{
-				swap(json_item_, other.json_item_);
-				swap(json_type_id_, other.json_type_id_);
-			}
-
 			/*
 			* @brief 根据匹配模式设置Json对象的值
-			* 
+			*
 			* @detail
 			* - pattern 为空串时，直接设置当前Json对象的值为v
 			* - pattern 为a.b.c，以abc为key，在当前Json对象中查找，若不存在，则创建
 			* - pattern 为[n]，以n为下标，在当前Json对象中查找，若不存在，则创建
 			* - pattern 为a.b[n]，以ab为key，在当前Json对象中查找，若不存在，则创建
-			* 
+			*
 			* @param pattern 匹配模式
-			* 
+			*
 			* @param v 待设置的值
-			* 
+			*
 			* @return Json& 当前Json对象
 			*/
 			Json& pattern_set(Atring pattern, Json v)
@@ -520,7 +514,7 @@ namespace ayr
 					c_size r = pattern.find("]");
 					if (r == -1) RuntimeError("Invalid partner for '['");
 					auto index = pattern.slice(1, r).to_int();
-					
+
 					while (index >= size()) append(Json());
 					return (*this)[index].pattern_set(pattern.slice(r + 1), v);
 				}

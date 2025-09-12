@@ -223,14 +223,6 @@ namespace ayr
 			else
 				buffer << "[hashv:" << hashv << " dist:" << dist << " value:" << value() << "]";
 		}
-
-		void __swap__(self& other)
-		{
-			if (used() && other.used())
-				swap_elements(other.hashv, other.dist, other.value());
-			else
-				RuntimeError("some element is unused");
-		}
 	};
 
 	template<typename T>
@@ -514,13 +506,6 @@ namespace ayr
 		{
 			for (c_size i = 0, n = capacity(); i < n; ++i)
 				buffer << items_[i];
-		}
-
-		void __swap__(self& other)
-		{
-			swap(items_, other.items_);
-			policy_.__swap__(other.policy_);
-			swap(size_, other.size_);
 		}
 	};
 }

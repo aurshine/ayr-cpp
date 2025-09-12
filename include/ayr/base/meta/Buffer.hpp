@@ -123,14 +123,6 @@ namespace ayr
 			std::memcpy(write_ptr_, bytes, size);
 			written(size);
 		}
-
-		void __swap__(Buffer& other)
-		{
-			std::swap(data_, other.data_);
-			std::swap(read_ptr_, other.read_ptr_);
-			std::swap(write_ptr_, other.write_ptr_);
-			std::swap(end_ptr_, other.end_ptr_);
-		}
 	private:
 		/*
 		* @brief 扩容写缓冲区到至少min_capacity大小

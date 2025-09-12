@@ -15,6 +15,8 @@ namespace ayr
 	{
 		using self = AtringOrigin;
 
+		using super = Object<AtringOrigin>;
+
 		AChar* shared_head_;
 
 		c_size length_;
@@ -24,7 +26,16 @@ namespace ayr
 		AtringOrigin(Encoding* encoding) : AtringOrigin(nullptr, 0, encoding) {}
 
 		AtringOrigin(AChar* shared_head, c_size length, Encoding* encoding) :
-			shared_head_(shared_head), length_(length), encoding_(encoding) {}
+			shared_head_(shared_head), length_(length), encoding_(encoding) {
+		}
+
+		AtringOrigin(const self& other) : AtringOrigin(other.shared_head_, other.length_, other.encoding_) {}
+
+		self& operator= (const self& other)
+		{
+			if (this == &other) return *this;
+			return *ayr_construct(this, other);
+		}
 
 		~AtringOrigin() { reset(nullptr, 0); }
 
@@ -38,13 +49,6 @@ namespace ayr
 			shared_head_ = shared_head;
 			length_ = length;
 		}
-
-		void __swap__(self& other)
-		{
-			swap(shared_head_, other.shared_head_);
-			swap(length_, other.length_);
-			swap(encoding_, other.encoding_);
-		}
 	};
 
 	class Atring : public Object<Atring>
@@ -52,7 +56,8 @@ namespace ayr
 		using self = Atring;
 
 		Atring(AChar* achars, c_size length, const std::shared_ptr<AtringOrigin>& origin) :
-			achars_(achars), length_(length), origin_(origin) {}
+			achars_(achars), length_(length), origin_(origin) {
+		}
 
 		Atring(size_t n, Encoding* encoding) :
 			Atring(ayr_alloc<AChar>(n), n, std::make_shared<AtringOrigin>(encoding))
@@ -171,13 +176,6 @@ namespace ayr
 				if (atchar(i) != other.atchar(i))
 					return false;
 			return true;
-		}
-
-		void __swap__(self& other)
-		{
-			swap(achars_, other.achars_);
-			swap(length_, other.length_);
-			swap(origin_, other.origin_);
 		}
 
 		c_size find(const self& pattern, c_size pos = 0) const

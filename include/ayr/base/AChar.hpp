@@ -77,14 +77,6 @@ namespace ayr
 			return byte_code_[0] - c;
 		}
 
-		void __swap__(self& other)
-		{
-			char temp[4];
-			std::memcpy(temp, byte_code_, sizeof(byte_code_));
-			std::memcpy(byte_code_, other.byte_code_, sizeof(byte_code_));
-			std::memcpy(other.byte_code_, temp, sizeof(byte_code_));
-		}
-
 		operator char() const
 		{
 			if (!isasciii())

@@ -7,9 +7,9 @@ namespace ayr
 {
 	/*
 	* @brief 视图类型，内部保存各种类型的引用
-	* 
+	*
 	* @detail View对象可以直接使用==和!=运算符进行比较，内部会自动转化为相应的类型进行比较。
-	* 
+	*
 	* @note 构造的对象必须是左值引用或View类型对象
 	*/
 	class View : public Object<View>
@@ -123,10 +123,6 @@ namespace ayr
 		void __repr__(Buffer& buffer) const { buffer << get(); }
 
 		bool __equals__(const Value_t& other) const { return view_.__equals__(other); }
-
-		void __swap__(ViewOF<Value_t>& other) { swap(view_, other.view_); }
-
-		void __swap__(ViewOF<const Value_t>& other) { swap(view_, other.view_); }
 	};
 
 	template<typename T>

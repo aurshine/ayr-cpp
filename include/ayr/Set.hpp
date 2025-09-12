@@ -221,12 +221,6 @@ namespace ayr
 			return true;
 		}
 
-		void __swap__(self& other)
-		{
-			ayr::swap(htable_, other.htable_);
-			ayr::swap(chain_, other.chain_);
-		}
-
 		Iterator begin() { return chain_.begin(); }
 
 		Iterator end() { return chain_.end(); }

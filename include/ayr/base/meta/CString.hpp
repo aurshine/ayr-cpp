@@ -254,20 +254,6 @@ namespace ayr
 
 		self __str__() const { return this->clone(); }
 
-		void __swap__(self& other)
-		{
-			if (sso())
-			{
-				char tmp[SSO_SIZE];
-				memcpy(tmp, short_str, SSO_SIZE);
-				memcpy(short_str, other.short_str, SSO_SIZE);
-				memcpy(other.short_str, tmp, SSO_SIZE);
-			}
-			else
-				std::swap(long_str, other.long_str);
-			std::swap(owner_sso_length_flag, other.owner_sso_length_flag);
-		}
-
 		bool operator> (const self& other) const { return __cmp__(other) > 0; }
 
 		bool operator< (const self& other) const { return __cmp__(other) < 0; }
