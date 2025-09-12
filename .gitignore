@@ -2,3 +2,4 @@
 build
 out
 CMakeSettings.json
+**/maybe_unused/
