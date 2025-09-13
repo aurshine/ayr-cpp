@@ -28,9 +28,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#define INVALID_SOCKET -1
-#define SOCKET_ERROR 0
-
 #elif defined(__APPLE__)
 #define AYR_MAC
 
