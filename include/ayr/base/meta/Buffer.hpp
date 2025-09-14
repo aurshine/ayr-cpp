@@ -94,7 +94,9 @@ namespace ayr
 		*/
 		void retrieve(c_size size)
 		{
-			if (size >= readable_size())
+			if (size <= 0)
+				return;
+			else if (size >= readable_size())
 				clear();
 			else
 				read_ptr_ += size;
