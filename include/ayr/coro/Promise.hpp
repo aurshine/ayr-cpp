@@ -2,7 +2,7 @@
 #define AYR_CORO_PROMISE_HPP_
 
 #include "co_utils.hpp"
-#include "../base/raise_error.hpp"
+#include "../Optional.hpp"
 
 
 namespace ayr
@@ -28,11 +28,9 @@ namespace ayr
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 
-			T& result() noexcept { return value_; }
+			T result() noexcept { return std::move(*value_); }
 
-			const T& result() const noexcept { return value_; }
-
-			T value_;
+			Optional<T> value_;
 		};
 
 		template<>
@@ -64,11 +62,16 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<self>;
 
-			CoroAwaiter final_suspend() const noexcept { return CoroAwaiter(previous_coro_); }
+			/*
+			* @brief 最终挂起的协程
+			*
+			* @details 如果continuation 不为空，则恢复continuation
+			*/
+			CoroAwaiter final_suspend() const noexcept { return CoroAwaiter(continuation); }
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 
-			Coroutine previous_coro_ = nullptr;
+			Coroutine continuation = nullptr;
 		};
 	}
 }

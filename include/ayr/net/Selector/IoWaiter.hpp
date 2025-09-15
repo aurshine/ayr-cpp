@@ -1,19 +1,25 @@
 #ifndef AYR_NET_SELECTOR_IOWAITER_HPP
 #define AYR_NET_SELECTOR_IOWAITER_HPP
 
-#include "../fs/oslib.h"
+#include "../../fs/oslib.h"
 
 #if defined(AYR_WIN)
-#include "Selector/Select.hpp"
+#include "Select.hpp"
 namespace ayr
 {
-	using IoWaiter = Select;
+	namespace net
+	{
+		using IoWaiter = Select;
+	}
 }
 #elif defined(AYR_LINUX)
-#include "Selector/Epoll.hpp"
+#include "Epoll.hpp"
 namespace ayr
 {
-	using IoWaiter = Epoll;
+	namespace net
+	{
+		using IoWaiter = Epoll;
+	}
 }
 #else
 #error "Unsupported platform"

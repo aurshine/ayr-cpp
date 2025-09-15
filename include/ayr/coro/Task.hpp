@@ -1,44 +1,55 @@
 #ifndef AYR_CORO_TASK_HPP
 #define AYR_CORO_TASK_HPP
 
-#include "Awaiter.hpp"
+#include "Awaitable.hpp"
 
 namespace ayr
 {
 	namespace coro
 	{
 		template<typename T>
-		class Task : public Awaiter<T, Promise<T>>
+		class Task : public Object<Task<T>>
 		{
+		public:
+			using promise_type = Promise<T>;
+
+			using co_type = std::coroutine_handle<promise_type>;
+
+			friend class IoContext;
+		private:
 			using self = Task<T>;
 
-			using super = Awaiter<T, Promise<T>>;
+			using super = Object<self>;
+
+			co_type coro_;
 		public:
-			friend class CoroLoop;
+			Task(co_type coro) : coro_(coro) {}
 
-			using promise_type = super::promise_type;
+			Task(self&& other) noexcept : coro_(std::exchange(other.coro_, nullptr)) {}
 
-			using co_type = super::co_type;
+			~Task() { if (coro_) coro_.destroy(); }
 
-			Task() : super() {}
-
-			Task(co_type coroutine) : super(coroutine) {}
-
-			Task(Task&& other) noexcept : super(std::move(other)) {}
-
-			Task& operator=(Task&& other) noexcept
+			self& operator=(self&& other) noexcept
 			{
-				super::operator=(std::move(other));
+				if (this == &other) return *this;
+				coro_ = std::exchange(other.coro_, nullptr);
 				return *this;
 			}
 
-			Coroutine await_suspend(Coroutine awaiter) noexcept
+			// 当协程对象为空，或协程已经完成，则返回true
+			bool await_ready() const noexcept { return coro_ == nullptr || coro_.done(); }
+
+			co_type await_suspend(Coroutine coro) noexcept
 			{
-				super::coro_.promise().previous_coro_ = awaiter;
-				return super::coro_;
+				coro_.promise().continuation = coro;
+				return coro_;
 			}
 
-			operator Coroutine() const noexcept { return super::coro_; }
+			T await_resume() const noexcept
+			{
+				if constexpr (!std::is_void_v<T>)
+					return coro_.promise().result();
+			}
 		};
 	}
 }
