@@ -102,12 +102,14 @@ namespace ayr
 		{
 			if (has_value()) return *get_ptr();
 			RuntimeError("Optional does not have a value");
+			return None;
 		}
 
 		const T& value() const
 		{
 			if (has_value()) return *get_ptr();
 			RuntimeError("Optional does not have a value");
+			return None;
 		}
 
 		T& value_or(T& default_value)
