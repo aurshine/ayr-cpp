@@ -554,94 +554,68 @@ void sleep_sort_test()
 */
 ```
 
-## tcp服务器
+## tcp echo服务器
 ```cpp
-#include <ayr/net.hpp>
+#include <thread>
 
-class TServer : public ayr::UltraTcpServer<TServer>
+#include <ayr/net/Socket.hpp>
+
+const char* HOST = "127.0.0.1";
+
+constexpr int PORT = 7777;
+
+ayr::coro::Task<void> client_main(ayr::coro::IoContext* io_context)
 {
-	using super = ayr::UltraTcpServer<TServer>;
-public:
-	TServer(const CString& ip, int port, int num_thread, int timeout_s) : super(ip, port, num_thread, timeout_s) {}
+	auto client_fd = co_await ayr::net::open_connect(HOST, PORT, io_context);
+	ayr::print("client connected to server: ", client_fd);
+	co_await client_fd.write("Hello, world!");
+	ayr::print("client sent: Hello, world!");
+	ayr::Buffer buffer(1024);
+	co_await client_fd.read(buffer);
+	ayr::print("client received: ", ayr::vstr(buffer.peek(), buffer.readable_size()));
+}
 
-	// 客户端连接到服务器后调用的回调函数
-	void on_connected(const Socket& client)
-	{
-		++count_in;
-		ayr::print("conected: ", client);
-	}
+void client_thread()
+{
+	ayr::coro::IoContext io_context;
+	ayr::print("client start");
+	io_context.run(client_main(&io_context));
+	ayr::print("client end");
+}
 
-	// 客户端断开连接时调用的回调函数
-	void on_disconnected(const Socket& client)
-	{
-		++count_out;
-		ayr::print("disconnected: ", client);
-	}
+ayr::coro::Task<void> server_main(ayr::coro::IoContext* io_context)
+{
+	ayr::net::Acceptor acceptor(HOST, PORT, io_context);
+	ayr::print("server bind", HOST, ":", PORT);
+	acceptor.listen();
+	ayr::print("server listening");
+	auto fd = co_await acceptor.accept();
+	ayr::print("server accepted client: ", fd);
+	ayr::Buffer buffer(1024);
+	co_await fd.read(buffer);
+	ayr::print("server received: ", ayr::vstr(buffer.peek(), buffer.readable_size()), buffer.readable_size(), "bytes");
+	co_await fd.write(buffer);
+}
 
-	// 读事件产生时的回调函数, 返回读取的数据
-	void on_reading(const Socket& client)
-	{
-		print("from: ", client, "recv: ", client.recv(1024));
-		client.send("hello, world!");
-	}
-
-	// 写事件产生时的回调函数, 用于发送数据
-	void on_writing(const Socket& client) {}
-
-	void on_timeout()
-	{
-		print("count_in: ", count_in.load(), "count_out: ", count_out.load());
-		stop();
-		print("server stop");
-	}
-
-	std::atomic<int> count_in = 0, count_out = 0;
-};
+void server_thread()
+{
+	ayr::coro::IoContext io_context;
+	ayr::print("server start");
+	io_context.run(server_main(&io_context));
+	ayr::print("server end");
+}
 
 int main()
 {
-	TServer server("127.0.0.1", 5555, 0, 5000);
-	print("server start");
-	server.run();
+	std::thread server_thread_obj(server_thread);
+	std::this_thread::sleep_for(std::chrono::seconds(1));
+	client_thread();
+	server_thread_obj.join();
+	return 0;
 }
 ```
 
 ## 简易http服务器
 ```
-#include <ayr/net/http.hpp>
 
-using namespace ayr;
-
-int main()
-{
-	RequestParser parser;
-
-	Socket http_fd = tcpv4();
-	http_fd.bind("127.0.0.1", 7070);
-	http_fd.listen();
-
-	auto client_fd = http_fd.accept();
-
-	while (true)
-	{
-		HttpRequest req;
-		Atring req_str;
-		do {
-			req_str = client_fd.recv(1024);
-		} while (!parser(req, req_str));
-
-		print(req.text());
-
-		CString msg = "hello world";
-		HttpResponse response("HTTP/1.1", 200, "OK");
-		response.add_header("Content-Type", "text/plain");
-		response.set_body(msg);
-
-		client_fd.send(response.text());
-	}
-
-	client_fd.close();
-	http_fd.close();
-	return 0;
-}
 ```
