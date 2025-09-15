@@ -27,7 +27,7 @@ int main()
 		response.add_header("Content-Type", "text/plain");
 		response.set_body(msg);
 
-		client_fd.send(response.text());
+		client_fd.send(cstr(response.text()));
 	}
 
 	client_fd.close();

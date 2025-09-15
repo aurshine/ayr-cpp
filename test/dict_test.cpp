@@ -20,11 +20,11 @@ void dict_run_speed_test()
 
 	t.into();
 	for (int i = 0; i < N; i++)
-		d.insert(vs[i], vs[i]);
+		d[vs[i]] = vs[i];
 	print("Dict insert time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
-		d[vs[i]];
+		assert(d.contains(vs[i]));
 	print("Dict query time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
@@ -65,6 +65,7 @@ void set_run_speed_test()
 	t.into();
 	for (int i = 0; i < N; i++)
 		assert(s.contains(i));
+
 	print("Set query time: ", t.escape(), "ms");
 	t.into();
 	for (int i = 0; i < N; i++)
@@ -192,7 +193,7 @@ void set_test()
 
 int main()
 {
-	dict_run_speed_test();
+	// dict_run_speed_test();
 	set_run_speed_test();
 	return 0;
 }

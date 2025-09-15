@@ -6,16 +6,17 @@
 #include <ayr/json.hpp>
 #include <ayr/filesystem.hpp>
 #include <ayr/Timer.hpp>
-#include <ayr/net.hpp>
+#include <map>
 
 using namespace ayr;
 
 int main()
 {
-	auto a1 = arr(dstr("呢哈哈嗲花"), dstr("发我忘记哦分环卫工"));
-	auto a2 = a1;
+	std::map<int, int> mp;
+	mp[1] = 2;
+	mp[3] = 4;
+	mp[5] = 6;
 
-	print(a1);
-	print(a2);
+	print(mp.rbegin()->first);
 	return 0;
 }

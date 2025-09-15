@@ -1,10 +1,21 @@
 #include <ayr/json.hpp>
+#include <ayr/timer.hpp>
+#include <ayr/filesystem.hpp>
+#include <fstream>
 
 using namespace ayr;
 
 int main()
 {
 	auto parser = json::JsonParser();
+	Timer_ms tm;
+	auto twitter_file = fs::join(fs::dirname(__FILE__), "twitter.json");
+	Atring a_str = fs::AyrFile(twitter_file, "r").read();
+	
+	tm.into();
+	parser(a_str);
+	auto s = tm.escape();
+	print("Time elapsed: ", s, "us\n");
 	print.setend("\n\n");
 	tlog(parser("123"));
 	tlog(parser("true"));
