@@ -79,7 +79,8 @@ namespace ayr
 		// 已经写过的字节数
 		void written(c_size size)
 		{
-			if (size <= writeable_size())
+			if (size <= 0) return;
+			else if (size <= writeable_size())
 				write_ptr_ += size;
 			else
 				write_ptr_ = end_ptr_;
