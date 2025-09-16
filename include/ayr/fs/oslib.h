@@ -42,7 +42,7 @@ namespace ayr
 	// 错误码转化为字符串
 	CString errorno2str(int errorno)
 	{
-		char* res = ayr_alloc<char>(256);
+		Buffer buf(256);
 #if defined(AYR_WIN)
 		char error_msg[256];
 
@@ -56,12 +56,12 @@ namespace ayr
 			nullptr
 		);
 
-		std::snprintf(res, 256, "errno %d: %s\n", errorno, error_msg);
+		std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, error_msg);
 
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-		std::snprintf(res, 256, "errno %d: %s\n", errorno, strerror(errorno));
+		std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, strerror(errorno));
 #endif // 平台判断
-		return ostr(res);
+		return from_buffer(std::move(buf));
 	}
 
 	CString get_error_msg()
