@@ -1,8 +1,6 @@
 #ifndef AYR_NET_SOCKET_HPP
 #define AYR_NET_SOCKET_HPP
 
-#include <stdlib.h>
-
 #include "utils.hpp"
 #include "../Atring.hpp"
 
@@ -24,36 +22,39 @@ namespace ayr
 
 			using super = Object<Socket>;
 
-			int fd_;
+			int read_fd_, write_fd_;
 
 			coro::EventAwaiter read_awaiter_;
 
 			coro::EventAwaiter write_awaiter_;
 		public:
 			Socket(int fd, coro::IoContext* io_context) :
-				fd_(fd),
-				read_awaiter_(io_context->wait_for_read(fd_)),
-				write_awaiter_(io_context->wait_for_write(fd_))
+				read_fd_(fd),
+				write_fd_(net::dup(fd)),
+				read_awaiter_(io_context->wait_for_read(read_fd_)),
+				write_awaiter_(io_context->wait_for_write(write_fd_))
 			{
-				setblocking(fd_, false);
+				setblocking(fd, false);
 			}
 
-			Socket(int fd) : Socket(fd, &coro::asyncio) {}
-
 			Socket(self&& other) noexcept :
-				fd_(other.fd_),
+				read_fd_(other.read_fd_),
+				write_fd_(other.write_fd_),
 				read_awaiter_(std::move(other.read_awaiter_)),
 				write_awaiter_(std::move(other.write_awaiter_))
 			{
-				other.fd_ = -1;
+				other.read_fd_ = -1;
+				other.write_fd_ = -1;
 			}
 
 			~Socket()
 			{
 				if (valid())
 				{
-					net::close(fd_);
-					fd_ = -1;
+					net::close(read_fd_);
+					net::close(write_fd_);
+					read_fd_ = -1;
+					write_fd_ = -1;
 				}
 			}
 
@@ -63,50 +64,47 @@ namespace ayr
 				return *ayr_construct(this, std::move(other));
 			}
 
-			operator int() const { return fd_; }
-
 			// 判断文件描述符是否有效
-			bool valid() const { return fd_ != -1; }
-
-			// 返回文件描述符
-			int fd() const { return fd_; }
+			bool valid() const { return read_fd_ != -1 || write_fd_ != -1; }
 
 			coro::Task<int> write(const CString& data, int flags = 0)
 			{
-				int num_write = net::write(fd_, data, flags);
+				int num_write = net::write(write_fd_, data, flags);
 				// 调用net::write返回-1表示非阻塞模式下没有空间可写，需要挂起等待
 				if (num_write != -1) co_return num_write;
 				co_await write_awaiter_;
-				co_return net::write(fd_, data, flags);
+				co_return net::write(write_fd_, data, flags);
 			}
 
 			// 协程挂起，直到socket可读
 			coro::Task<int> write(Buffer& buffer, int flags = 0)
 			{
-				int num_write = net::write(fd_, buffer, flags);
+				int num_write = net::write(write_fd_, buffer, flags);
 				// 调用net::write返回-1表示非阻塞模式下没有空间可写，需要挂起等待
 				if (num_write != -1) co_return num_write;
 				co_await write_awaiter_;
-				co_return net::write(fd_, buffer, flags);
+				co_return net::write(write_fd_, buffer, flags);
 			}
 
 			// 协程挂起，直到socket可写
 			coro::Task<int> read(Buffer& buffer, int flags = 0)
 			{
-				int num_read = net::read(fd_, buffer, flags);
+				int num_read = net::read(read_fd_, buffer, flags);
 				// 调用net::read返回-1表示非阻塞模式下没有数据可读，需要挂起等待
 				if (num_read != -1) co_return num_read;
 				co_await read_awaiter_;
-				co_return net::read(fd_, buffer, flags);
+				co_return net::read(read_fd_, buffer, flags);
 			}
 
-			cmp_t __cmp__(const self& other) const { return fd_ - other.fd_; }
+			cmp_t __cmp__(const self& other) const { return arr(read_fd_, write_fd_).__cmp__(arr(other.read_fd_, other.write_fd_)); }
 
-			cmp_t __cmp__(const int& fd) const { return fd_ - fd; }
+			hash_t __hash__() const
+			{
+				int bytes[2] = { read_fd_, write_fd_ };
+				return bytes_hash(reinterpret_cast<const char*>(bytes), sizeof(bytes));
+			}
 
-			hash_t __hash__() const { return fd_; }
-
-			void __repr__(Buffer& buffer) const { buffer << "Socket(" << fd_ << ")"; }
+			void __repr__(Buffer& buffer) const { buffer << "Socket(" << read_fd_ << ")"; }
 		};
 
 
@@ -141,8 +139,6 @@ namespace ayr
 
 				net::setblocking(fd_, false);
 			}
-
-			Acceptor(const CString& ip, int port, bool ipv6 = false) : Acceptor(ip, port, &coro::asyncio, ipv6) {}
 
 			Acceptor(self&& other) noexcept :
 				fd_(other.fd_),
@@ -200,10 +196,8 @@ namespace ayr
 		*
 		* @return 返回连接成功的文件描述符，否则抛出异常
 		*/
-		def open_connect(const CString& host, int port, coro::IoContext* io_context = nullptr) -> coro::Task<Socket>
+		def open_connect(const CString& host, int port, coro::IoContext* io_context) -> coro::Task<Socket>
 		{
-			if (io_context == nullptr)
-				io_context = &coro::asyncio;
 			addrinfo hints, * res = nullptr;
 			memset(&hints, 0, sizeof(hints));
 

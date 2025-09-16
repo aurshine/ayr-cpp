@@ -1,6 +1,8 @@
 #ifndef AYR_NET_UTILS_HPP
 #define AYR_NET_UTILS_HPP
 
+#include <io.h>
+
 #include "../base/ExTask.hpp"
 #include "../coro/IoContext.hpp"
 #include "../fs/oslib.h"
@@ -30,6 +32,31 @@ namespace ayr
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 			int err = errno;
 			return err == EINPROGRESS;
+#endif
+		}
+
+		// 复制文件描述符
+		int dup(int fd)
+		{
+#if defined(AYR_WIN)
+			WSAPROTOCOL_INFO info;
+			// 将 socket 信息复制出来
+			if (WSADuplicateSocket(fd, GetCurrentProcessId(), &info) != 0)
+				RuntimeError(get_error_msg());
+
+			// 创建一个新的 socket，等价于 dup
+			SOCKET new_sock = WSASocket(info.iAddressFamily,
+				info.iSocketType,
+				info.iProtocol,
+				&info,
+				0,
+				WSA_FLAG_OVERLAPPED);
+			if (new_sock == -1)
+				RuntimeError(get_error_msg());
+
+			return new_sock;
+#elif defined(AYR_LINUX) || defined(AYR_MAC)
+			return ::dup(fd);
 #endif
 		}
 
@@ -156,7 +183,11 @@ namespace ayr
 
 		def socket(int domain, int type, int protocol) -> int
 		{
+#if defined(AYR_WIN)
+			int fd = WSASocket(domain, type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
+#elif defined(AYR_LINUX) || defined(AYR_MAC)
 			int fd = ::socket(domain, type, protocol);
+#endif
 			if (fd == -1)
 				RuntimeError(get_error_msg());
 			return fd;

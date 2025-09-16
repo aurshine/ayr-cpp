@@ -18,6 +18,9 @@ namespace ayr
 			net::IoEvent::Flag flags_;
 
 			net::IoWaiter* io_waiter_;
+
+			// 记录最后一个被挂起的协程
+			Coroutine last_coro_ = nullptr;
 		public:
 			EventAwaiter() : fd_(-1), flags_(net::IoEvent::NONE), io_waiter_(nullptr) {}
 
@@ -39,7 +42,13 @@ namespace ayr
 
 			bool await_ready() const noexcept { return fd_ == -1 || io_waiter_ == nullptr; }
 
-			void await_suspend(Coroutine coro) noexcept { io_waiter_->insert(fd_, net::IoEvent(flags_, coro)); }
+			void await_suspend(Coroutine coro) noexcept
+			{
+				if (last_coro_ == coro) return;
+				last_coro_ = coro;
+				// 只在协程发生变化时才重新注册事件
+				io_waiter_->insert(fd_, net::IoEvent(flags_, coro));
+			}
 
 			void await_resume() const noexcept {}
 		};

@@ -156,23 +156,18 @@ namespace ayr
 			EventAwaiter wait_for_write(int fd) { return EventAwaiter(fd, net::IoEvent::WRITABLE, &io_waiter_); }
 		};
 
-		static IoContext asyncio = IoContext();
-
 		/*
 		* @brief 等待时间的协程等代体
 		*/
 		class Sleep : public Object<Sleep>
 		{
 		public:
-			Sleep(const std::chrono::steady_clock::time_point& abs_time, IoContext* io_context = nullptr) :
+			Sleep(const std::chrono::steady_clock::time_point& abs_time, IoContext* io_context) :
 				io_context_(io_context),
-				abs_time_(abs_time)
-			{
-				if (io_context == nullptr)
-					io_context_ = &asyncio;
+				abs_time_(abs_time) {
 			}
 
-			Sleep(const std::chrono::steady_clock::duration& rel_time, IoContext* io_context = nullptr) :
+			Sleep(const std::chrono::steady_clock::duration& rel_time, IoContext* io_context) :
 				Sleep(std::chrono::steady_clock::now() + rel_time, io_context) {
 			}
 
