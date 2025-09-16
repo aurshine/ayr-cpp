@@ -204,9 +204,9 @@ namespace ayr
 		// 原来存在value, 交换value, hashv, dist
 		void swap_elements(hash_t& hashv, Dist_t& dist, T& value)
 		{
-			ayr::swap(this->value(), value);
-			swap(this->hashv, hashv);
-			swap(this->dist, dist);
+			std::swap(this->value(), value);
+			std::swap(this->hashv, hashv);
+			std::swap(this->dist, dist);
 		}
 
 		// 销毁value，value必须有效
