@@ -347,11 +347,20 @@ namespace ayr
 
 	def dstr(const std::string_view& str) { return vstr(str.data(), str.size()).clone(); }
 
-	// 取代buffer的内存构造 CString 对象
+	/*
+	* @brief 尝试取代buffer的内存构造 CString 对象
+	*
+	* @param buffer 待转换的 Buffer 对象
+	*/
 	def from_buffer(Buffer&& buffer) -> CString
 	{
-		auto [data, size] = buffer.separate();
-		return ostr(data, size);
+		if (buffer.begin() == buffer.peek())
+		{
+			CString res = ostr(buffer.peek(), buffer.readable_size());
+			buffer.detach();
+			return res;
+		}
+		return dstr(buffer.peek(), buffer.readable_size());
 	}
 
 	// 将任意类型转化为元字面量字符串

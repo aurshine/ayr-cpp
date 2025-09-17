@@ -113,7 +113,7 @@ namespace ayr
 		c_size find(const char* pattern)
 		{
 			c_size pattern_size = std::strlen(pattern);
-			for (const char* ptr = read_ptr_; ptr < write_ptr_; ++ptr)
+			for (const char* ptr = read_ptr_; ptr + pattern_size < write_ptr_; ++ptr)
 				if (std::memcmp(ptr, pattern, pattern_size) == 0)
 					return ptr - read_ptr_;
 			return -1;
@@ -147,13 +147,16 @@ namespace ayr
 			end_ptr_ = tmp + capacity;
 		}
 
-		// 分离数据
-		std::pair<char*, c_size> separate()
+		/*
+		* @brief 分离缓冲区底部数据
+		* 
+		* @return 底部数据指针和缓冲区总大小
+		*/
+		void detach()
 		{
 			char* tmp = begin();
 			c_size size = capacity();
 			data_ = write_ptr_ = read_ptr_ = end_ptr_ = nullptr;
-			return { tmp, size };
 		}
 	};
 
