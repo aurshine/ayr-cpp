@@ -2,6 +2,7 @@
 #define AYR_FS_FILE_HPP
 
 #include "oslib.h"
+#include "../coro/Generator.hpp"
 
 namespace ayr
 {
@@ -104,6 +105,13 @@ namespace ayr
 				}
 			}
 
+			/*
+			* @brief 写入指定长度数据到文件
+			*
+			* @param data 要写入的数据
+			*
+			* @param size 要写入数据的长度，默认为-1，表示写入整个数据
+			*/
 			void write(const CString& data, c_size size = -1) const
 			{
 				if (size == -1) size = data.size();
@@ -124,29 +132,116 @@ namespace ayr
 #endif 
 			}
 
-			CString read() const
+			/*
+			* @brief 将文件内容读入缓冲区
+			* 
+			* @param buffer 要读入的缓冲区
+			* 
+			* @param size 要读入数据的长度，默认为-1，表示读取整个文件
+			* 
+			* @return 返回缓冲区
+			*/
+			Buffer& read_buffer(Buffer& buffer, c_size size = -1) const
 			{
-				c_size buffer_size = file_size();
-				char* buffer = ayr_alloc<char>(buffer_size);
-#if defined(AYR_WIN)
-				DWORD read_bytes = 0;
-				BOOL ok = ReadFile(fd_, buffer, buffer_size, &read_bytes, nullptr);
-				if (!ok || read_bytes != buffer_size)
-					SystemError("Failed to read from file");
-
-#elif defined(AYR_LINUX)
-				c_size num_read = 0;
-				while (num_read < buffer_size)
+				size = ifelse(size > 0, size, file_size());
+				// buffer容量不够
+				if (size > buffer.writeable_size())
 				{
-					c_size read_bytes = ::read(fd_, buffer + num_read, buffer_size - num_read);
+					Buffer new_buffer(size + buffer.readable_size());
+					new_buffer.append_bytes(buffer.peek(), buffer.readable_size());
+					buffer = std::move(new_buffer);
+				}
+
+				while (buffer.writeable_size() > 0)
+				{
+#if defined(AYR_WIN)
+					DWORD read_bytes = 0;
+					if (!ReadFile(fd_, buffer.write_ptr(), buffer.writeable_size(), &read_bytes, nullptr))
+						SystemError("Failed to read from file");
+#elif defined(AYR_LINUX)
+					c_size read_bytes = ::read(fd_, buffer.write_ptr(), buffer.writeable_size());
 					if (read_bytes == -1)
 						SystemError("Failed to read from file");
-					num_read += read_bytes;
+#endif
+					// 读完了
+					if (read_bytes == 0) break;
+					buffer.written(read_bytes);
 				}
-#endif 
-				return ostr(buffer, buffer_size);
+				return buffer;
 			}
 
+			/*
+			* @brief 将文件内容读入缓冲区
+			* 
+			* @param size 要读入数据的长度，默认为-1，表示读取整个文件
+			* 
+			* @return 返回缓冲区
+			*/
+			Buffer read_buffer(c_size size = -1) const
+			{
+				size = ifelse(size > 0, size, file_size());
+				Buffer buffer(size);
+				return read_buffer(buffer, size);
+			}
+
+			/*
+			* @brief 读取文件指定长度数据
+			*
+			* @param size 要读取数据的长度，默认为-1，表示读取整个文件
+			*
+			* @return 返回读取的数据
+			*/
+			CString read(c_size size = -1) const { return from_buffer(read_buffer(size)); }
+			
+			/*
+			* @brief 按行读取文件内容
+			*
+			* @detail 每行字符串末尾不包含换行符
+			*
+			* @return 返回一个协程生成器
+			*/
+			coro::Generator<CString> readlines() const
+			{
+				constexpr c_size READ_SIZE = 1024;
+				Buffer buffer(READ_SIZE);
+				// 当前读缓冲区的大小
+				c_size read_size = 0;
+				// 调用read_buffer后，读缓冲区的大小
+				c_size after_read_size = 0;
+				// '\n'的位置
+				c_size eol_pos = 0;
+				// 读到文件末尾
+				bool eof = false;
+
+				do {
+					read_buffer(buffer, READ_SIZE);
+					after_read_size = buffer.readable_size();
+					// 判断是否读完了
+					eof = read_size == after_read_size;
+					for (eol_pos = buffer.find_eol(); eol_pos != -1; eol_pos = buffer.find_eol())
+					{
+						co_yield dstr(buffer.peek(), eol_pos);
+						buffer.retrieve(eol_pos + 1);
+					}
+					read_size = buffer.readable_size();
+				} while (buffer.readable_size() > 0 && !eof);
+
+				// 最后一行
+				if (buffer.readable_size() > 0)
+					co_return from_buffer(std::move(buffer));
+			}
+
+			/*
+			* @brief 按行写入文件内容
+			*
+			* @detail 每行字符串末尾包含换行符
+			*
+			* @param obj 要写入的字符串可迭代对象
+			*/
+			template<IteratableV<CString> Obj>
+			void writelines(Obj&& obj) const { write(vstr("\n").join(obj)); }
+
+			// 读取文件大小
 			c_size file_size() const
 			{
 #if defined(AYR_WIN)
