@@ -115,21 +115,27 @@ namespace ayr
 			void write(const CString& data, c_size size = -1) const
 			{
 				if (size == -1) size = data.size();
+				// 已经写入的数据量
+				c_size num_written = 0;
 #if defined(AYR_WIN)
 				DWORD written_bytes = 0;
-				BOOL ok = WriteFile(fd_, data.data(), size, &written_bytes, nullptr);
-				if (!ok || written_bytes != size)
-					SystemError("Failed to write from file");
+				BOOL ok = 0;
 #elif defined(AYR_LINUX)
-				c_size num_written = 0;
+				c_size written_bytes = 0;
+				bool ok = false;
+#endif
+
 				while (num_written < size)
 				{
-					c_size written_bytes = ::write(fd_, data.data() + num_written, size - num_written);
-					if (written_bytes == -1)
+#if defined(AYR_WIN)
+					ok = WriteFile(fd_, data.data() + num_written, size - num_written, &written_bytes, nullptr);
+#elif defined(AYR_LINUX)
+					ok = ::write(fd_, data.data() + num_written, size - num_written) > 0;
+#endif 
+					if (!ok)
 						SystemError("Failed to write from file");
 					num_written += written_bytes;
 				}
-#endif 
 			}
 
 			/*
@@ -152,19 +158,24 @@ namespace ayr
 					buffer = std::move(new_buffer);
 				}
 
+#if defined(AYR_WIN)
+				DWORD read_bytes = 0;
+				BOOL ok = 0;
+#elif defined(AYR_LINUX)
+				c_size read_bytes = 0;
+				bool ok = false;
+#endif
 				while (buffer.writeable_size() > 0)
 				{
 #if defined(AYR_WIN)
-					DWORD read_bytes = 0;
-					if (!ReadFile(fd_, buffer.write_ptr(), buffer.writeable_size(), &read_bytes, nullptr))
-						SystemError("Failed to read from file");
+					ok = ReadFile(fd_, buffer.write_ptr(), buffer.writeable_size(), &read_bytes, nullptr);
 #elif defined(AYR_LINUX)
-					c_size read_bytes = ::read(fd_, buffer.write_ptr(), buffer.writeable_size());
-					if (read_bytes == -1)
-						SystemError("Failed to read from file");
+					ok = ::read(fd_, buffer.write_ptr(), buffer.writeable_size()) >= 0;
 #endif
 					// 读完了
 					if (read_bytes == 0) break;
+					if (!ok)
+						SystemError("Failed to read from file");
 					buffer.written(read_bytes);
 				}
 				return buffer;
@@ -197,34 +208,40 @@ namespace ayr
 			* @brief 按行读取文件内容
 			*
 			* @detail 每行字符串末尾不包含换行符
-			*
+			* 
 			* @return 返回一个协程生成器
 			*/
 			coro::Generator<CString> readlines() const
 			{
-				constexpr c_size READ_SIZE = 1024;
-				Buffer buffer(READ_SIZE);
-				// 当前读缓冲区的大小
-				c_size read_size = 0;
-				// 调用read_buffer后，读缓冲区的大小
-				c_size after_read_size = 0;
-				// '\n'的位置
+				constexpr c_size BLOCK_SIZE = 1024;
+
+				Buffer buffer(BLOCK_SIZE);
+				// 调用read_buffer前, 读缓冲区的大小
+				c_size before_read_size = 0;
+				// sep 的位置
 				c_size eol_pos = 0;
 				// 读到文件末尾
 				bool eof = false;
 
 				do {
-					read_buffer(buffer, READ_SIZE);
-					after_read_size = buffer.readable_size();
+					read_buffer(buffer, BLOCK_SIZE);
 					// 判断是否读完了
-					eof = read_size == after_read_size;
-					for (eol_pos = buffer.find_eol(); eol_pos != -1; eol_pos = buffer.find_eol())
+					eof = before_read_size == buffer.readable_size();
+					
+					/*
+					* 当需要read_buffer时，表示前befor_read_size都没有换行符
+					* 
+					* 第一次获取eol_pos时，从befor_read_size开始查找
+					* 
+					* 后续获取eol_pos时，下标0开始查找
+					*/
+					for (eol_pos = buffer.find_eol(before_read_size); eol_pos != -1; eol_pos = buffer.find_eol())
 					{
 						co_yield dstr(buffer.peek(), eol_pos);
 						buffer.retrieve(eol_pos + 1);
 					}
-					read_size = buffer.readable_size();
-				} while (buffer.readable_size() > 0 && !eof);
+					before_read_size = buffer.readable_size();
+				} while (!eof);
 
 				// 最后一行
 				if (buffer.readable_size() > 0)
