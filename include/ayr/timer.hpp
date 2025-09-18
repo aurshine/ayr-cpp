@@ -49,7 +49,8 @@ namespace ayr
 		}
 
 		Date(int year, int month, int day, int hour, int minute, int second)
-			: year_(year), month_(month), day_(day), week_(calc_week(year, month, day)), hour_(hour), minute_(minute), second_(second) {}
+			: year_(year), month_(month), day_(day), week_(calc_week(year, month, day)), hour_(hour), minute_(minute), second_(second) {
+		}
 
 		int year() const { return year_; }
 
@@ -96,8 +97,8 @@ namespace ayr
 	};
 
 
-	template<typename Duration>
-	class Timer : public Object<Timer<Duration>>
+	template<typename... Duration>
+	class Timer : public Object<Timer<Duration...>>
 	{
 	public:
 		Timer() : is_into(false), start_time() {}
@@ -108,19 +109,20 @@ namespace ayr
 			start_time = std::chrono::steady_clock::now();
 		}
 
-		typename Duration::rep escape()
+		double escape()
 		{
 			if (!is_into)
 				RuntimeError("Timer not call into()");
 
 			auto end_time = std::chrono::steady_clock::now();
-			auto duration = std::chrono::duration_cast<Duration>(end_time - start_time).count();
+
+			auto escape_time = std::chrono::duration<double, Duration...>(end_time - start_time).count();
 			is_into = false;
-			return duration;
+			return escape_time;
 		}
 
 		template<typename F, typename ...Args>
-		typename Duration::rep operator()(F&& call_, Args&&... args)
+		double operator()(F&& call_, Args&&... args)
 		{
 			into();
 			call_(std::forward<Args>(args)...);
@@ -131,9 +133,9 @@ namespace ayr
 		std::chrono::steady_clock::time_point start_time;
 	};
 
-	using Timer_s = Timer<std::chrono::seconds>;
-	using Timer_ms = Timer<std::chrono::milliseconds>;
-	using Timer_us = Timer<std::chrono::microseconds>;
-	using Timer_ns = Timer<std::chrono::nanoseconds>;
+	using Timer_s = Timer<>;
+	using Timer_ms = Timer<std::milli>;
+	using Timer_us = Timer<std::micro>;
+	using Timer_ns = Timer<std::nano>;
 }
 #endif
