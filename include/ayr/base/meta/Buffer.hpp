@@ -68,13 +68,13 @@ namespace ayr
 		const char* peek() const { return read_ptr_; }
 
 		// 写缓冲区起始位置
-		char* write_ptr() { return write_ptr_; }
+		char* write_ptr() const { return write_ptr_; }
 
 		// 缓冲区起始位置
-		char* begin() { return data_; }
+		char* begin() const { return data_; }
 
 		// 缓冲区结束位置
-		char* end() { return end_ptr_; }
+		char* end() const { return end_ptr_; }
 
 		// 已经写过的字节数
 		void written(c_size size)
@@ -104,16 +104,43 @@ namespace ayr
 		}
 
 		// 返回 '\n' 位置
-		c_size find_eol() { return find("\n"); }
+		c_size find_eol(c_size pos = 0) { return find('\n', pos); }
 
 		// 返回 '\r\n' 位置
-		c_size find_crlf() { return find("\r\n"); }
+		c_size find_crlf(c_size pos = 0) { return find("\r\n", pos); }
 
-		// 返回指定字符串的位置
-		c_size find(const char* pattern)
+		/*
+		* @brief 寻找指定字符的位置
+		* 
+		* @param c 要查找的字符
+		* 
+		* @param pos 起始位置
+		* 
+		* @return 字符位置，如果没有找到则返回 -1
+		*/ 
+		c_size find(char c, c_size pos = 0) const
 		{
+			pos = ifelse(pos < 0, 0, pos);
+			for (const char* ptr = read_ptr_ + pos; ptr < write_ptr_; ++ptr)
+				if (*ptr == c)
+					return ptr - read_ptr_;
+			return -1;
+		}
+
+		/*
+		* @brief 寻找指定字符串的位置
+		* 
+		* @param pattern 要查找的字符串
+		* 
+		* @param pos 起始位置
+		* 
+		* @return 字符串位置，如果没有找到则返回 -1
+		*/
+		c_size find(const char* pattern, c_size pos = 0) const
+		{
+			pos = ifelse(pos < 0, 0, pos);
 			c_size pattern_size = std::strlen(pattern);
-			for (const char* ptr = read_ptr_; ptr + pattern_size < write_ptr_; ++ptr)
+			for (const char* ptr = read_ptr_ + pos; ptr + pattern_size < write_ptr_; ++ptr)
 				if (std::memcmp(ptr, pattern, pattern_size) == 0)
 					return ptr - read_ptr_;
 			return -1;
