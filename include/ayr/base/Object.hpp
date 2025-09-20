@@ -48,14 +48,7 @@ namespace ayr
 	template<AyrObject T>
 	std::ostream& operator<<(std::ostream& os, const T& obj)
 	{
-		os << obj.__str__().data();
-		return os;
-	}
-
-	template<typename T> requires(Not<Printable<T>>)
-		std::ostream& operator<<(std::ostream& os, const T& obj)
-	{
-		os << "<" << dtype(T) << " 0x" << std::hex << &obj << ">";
+		os << cstr(obj).data();
 		return os;
 	}
 

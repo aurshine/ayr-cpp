@@ -97,7 +97,8 @@ namespace ayr
 		using super = Printer;
 	public:
 		ColorPrinter(FILE* file_ptr, CString color = Color::WHITE)
-			: Printer(file_ptr), color_(std::move(color)) {}
+			: Printer(file_ptr), color_(std::move(color)) {
+		}
 
 		template<typename... Args>
 		void operator()(const Args&... args) const

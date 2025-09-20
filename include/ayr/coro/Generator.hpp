@@ -77,7 +77,7 @@ namespace ayr
 
 			Generator(co_type coro) : coro_(coro) {}
 
-			Generator(self&& other) : coro_(std::move(other)) { other.coro_ = nullptr; }
+			Generator(self&& other) : coro_(other.coro_) { other.coro_ = nullptr; }
 
 			~Generator() { if (coro_) { coro_.destroy(); coro_ = nullptr; } }
 

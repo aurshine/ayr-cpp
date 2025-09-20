@@ -150,25 +150,6 @@ namespace ayr
 		}
 
 		/*
-		* @brief 设置是否复用端口
-		*
-		* @param fd 要设置复用端口的文件描述符
-		*
-		* @param on 是否复用端口，true为复用端口，false为不复用端口
-		*/
-		def reuse_port(int fd, bool on)
-		{
-#ifdef SO_REUSEPORT
-			int optval = ifelse(on, 1, 0);
-			int ret = setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &optval, sizeof(optval));
-			if (ret != 0)
-				RuntimeError(get_error_msg());
-#else
-			warn_assert(on, "SO_REUSEPORT not supported on this platform.");
-#endif
-		}
-
-		/*
 		* @brief 设置是否复用地址
 		*
 		* @param fd 要设置复用地址的文件描述符

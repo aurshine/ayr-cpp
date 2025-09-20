@@ -16,10 +16,6 @@ namespace ayr
 	template<typename T1, typename T2>
 	concept DecayConvertibleTo = std::convertible_to<std::decay_t<T1>, std::decay_t<T2>>;
 
-	// 可以隐式转换为const char*类型约束概念
-	template<typename S>
-	concept ConveribleToCstr = std::convertible_to<S, const char*>;
-
 	// 基础类型约束概念, 没有析构函数的类型
 	template<typename T>
 	concept BaseType = Or<
@@ -31,23 +27,6 @@ namespace ayr
 		std::is_function_v<T>, // 函数类型
 		std::is_reference_v<T> // 引用类型
 	>;
-
-	// 可输出的类型约束概念
-	template<typename T>
-	concept StdPrintable = Or<
-		std::is_pointer_v<T>,
-		std::is_integral_v<T>,
-		std::is_floating_point_v<T>,
-		issame<T, char*, nullptr_t, std::string>>;
-
-	template<typename T>
-	concept AyrPrintable = requires(T t)
-	{
-		{ t.__str__() } -> std::same_as<CString>;
-	};
-
-	template<typename T>
-	concept Printable = AyrPrintable<T> || StdPrintable<T>;
 
 	// 可哈希类型约束概念
 	template<typename T>
