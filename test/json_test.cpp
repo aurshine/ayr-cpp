@@ -15,7 +15,7 @@ int main()
 	tm.into();
 	parser(a_str);
 	auto s = tm.escape();
-	print("Time elapsed: ", s, "us\n");
+	print("parse twitter.json time elapsed: ", s, "ms\n");
 	print.setend("\n\n");
 	tlog(parser("123"));
 	tlog(parser("true"));

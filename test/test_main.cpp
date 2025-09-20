@@ -12,11 +12,7 @@ using namespace ayr;
 
 int main()
 {
-	std::map<int, int> mp;
-	mp[1] = 2;
-	mp[3] = 4;
-	mp[5] = 6;
+	print(cstr(1));
 
-	print(mp.rbegin()->first);
 	return 0;
 }

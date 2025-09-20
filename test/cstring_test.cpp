@@ -1,11 +1,33 @@
+#include <array>
+
 #include "ayr/base/Array.hpp"
 #include "ayr/base/printer.hpp"
+#include "ayr/timer.hpp"
+
 
 using namespace ayr;
 
 void print_info(const CString& s, const CString& name)
 {
 	print(std::format("owner: {}, sso: {}, size: {}, {}: {}", s.owner(), s.sso(), s.size(), name, s));
+}
+
+void cstr_test()
+{
+	Timer_ms timer;
+	constexpr int N = 1e6;
+	timer.into();
+	for (double i = 0; i < N; ++i)
+		cstr(i);
+	auto t1 = timer.escape();
+
+	timer.into();
+	for (double i = 0; i < N; ++i)
+		std::to_string(i);
+	auto t2 = timer.escape();
+
+	print("cstr:", t1, "ms");
+	print("std::to_string:", t2, "ms");
 }
 
 int main()
@@ -30,7 +52,7 @@ int main()
 	print("s1 == s3: ", s1 == s3);
 	print("s3 == s4: ", s3 == s4);
 
-	swap(s1, s3);
+	std::swap(s1, s3);
 	print_info(s1, "s1 after swap");
 	print_info(s3, "s3 after swap");
 	print_info(s1.slice(0, 6), "s1.slice(0, 6)");
@@ -41,5 +63,16 @@ int main()
 	print_info(s3.slice(7), "s3.slice(7)");
 	print_info(s1.vslice(9), "s1.vslice(9)");
 	print_info(s3.vslice(7), "s3.vslice(7)");
+
+	tlog(cstr(1));
+	tlog(cstr('a'));
+	tlog(cstr(1.0));
+	tlog(cstr(true));
+	tlog(cstr(nullptr));
+	tlog(cstr(std::pair(1, 2)));
+	tlog(cstr(std::tuple(1, 2, 3)));
+	tlog(cstr(std::array<int, 3>{1, 2, 3}));
+
+	cstr_test();
 	return 0;
 }

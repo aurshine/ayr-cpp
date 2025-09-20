@@ -1,9 +1,18 @@
 #include "ayr/filesystem.hpp"
+#include "ayr/Array.hpp"
 
 using namespace ayr;
 
 int main()
 {
+	fs::AyrFile af(__FILE__, "r");
+
+	for (auto line : af.readlines())
+	{
+		print(line);
+		//std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+	return 0;
 	CString file_name = fs::join(fs::dirname(__FILE__), "test.txt");
 	tlog(fs::exists(file_name));
 	fs::AyrFile a(file_name, "w");

@@ -363,50 +363,11 @@ namespace ayr
 		return dstr(buffer.peek(), buffer.readable_size());
 	}
 
-	// 将任意类型转化为元字面量字符串
-	template<typename T>
-	der(CString) cstr_meta(const T& value)
-	{
-		std::string type_name = dtype(value);
-		int s_len = type_name.size() + 22;
-		char* s = ayr_alloc<char>(s_len);
-#ifdef _MSC_VER
-		sprintf_s(s, s_len, "<%s 0x%p>", type_name.c_str(), &value);
-#else
-		std::sprintf(s, "<%s 0x%p>", type_name.c_str(), &value);
-#endif
-		return ostr(s);
-	}
-
-	// 整型转换为 CString 对象
-	der(CString) cstr_int(c_size value)
-	{
-		char* tmp = ayr_alloc<char>(32);
-		sprintf_int(tmp, 32, value);
-		return ostr(tmp);
-	}
-
-	// 浮点型转换为 CString 对象
-	der(CString) cstr_float(double value)
-	{
-		char* tmp = ayr_alloc<char>(32);
-		sprintf_float(tmp, 32, value);
-		return ostr(tmp);
-	}
-
-	// 指针转换为 CString 对象
-	der(CString) cstr_pointer(const void* value)
-	{
-		char* tmp = ayr_alloc<char>(32);
-		sprintf_pointer(tmp, 32, value);
-		return ostr(tmp, 32);
-	}
-
 	// nullptr 转换为 CString 对象
-	der(CString) cstr(nullptr_t) { return "nullptr"; }
+	der(CString) cstr(nullptr_t) { return vstr("nullptr", 7); }
 
 	// 将bool 转换为 CString 对象
-	der(CString) cstr(bool value) { return ifelse(value, "true", "false"); }
+	der(CString) cstr(bool value) { return ifelse(value, vstr("true", 4), vstr("false", 5)); }
 
 	// 将char 转换为 CString 对象
 	der(CString) cstr(char value) { return dstr(&value, 1); }
@@ -430,20 +391,12 @@ namespace ayr
 	{
 		if constexpr (hasmethod(T, __str__))
 			return value.__str__();
-		else if constexpr (hasmethod(T, __repr__, std::declval<Buffer&>()))
-		{
-			Buffer buf;
-			value.__repr__(buf);
-			return dstr(buf.peek(), buf.readable_size());
-		}
-		else if constexpr (std::is_integral_v<T>)
-			return cstr_int(value);
-		else if constexpr (std::is_floating_point_v<T>)
-			return cstr_float(value);
-		else if constexpr (std::is_pointer_v<T>)
-			return cstr_pointer(value);
 		else
-			return cstr_meta(value);
+		{
+			Buffer buffer;
+			buffer << value;
+			return from_buffer(std::move(buffer));
+		}
 	}
 
 	Buffer& operator<< (Buffer& buffer, const CString& value)
