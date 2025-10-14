@@ -349,22 +349,17 @@ namespace ayr
 			self new_str;
 			char* ptr = nullptr;
 			if (len > SSO_SIZE)
-				ptr = ayr_alloc<char>(len);
-			else
-				ptr = new_str.short_str;
-
-			fn(ptr);
-
-			// 无小内存优化
-			if (len > SSO_SIZE)
 			{
-				new_str.long_str = ptr;
+				new_str.long_str = ptr = ayr_alloc<char>(len);
 				new_str.owner_sso_length_flag = len | OWNER_MASK;
 			}
 			else
 			{
+				ptr = new_str.short_str;
 				new_str.owner_sso_length_flag = len | SSO_MASK;
 			}
+
+			fn(ptr);
 			return new_str;
 		}
 	};

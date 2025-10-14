@@ -36,24 +36,17 @@ namespace ayr
 		hash_t __hash__() const { throw std::runtime_error("not implemented"); return None; }
 
 		// 返回值大于0为大于， 小于0为小于，等于0为等于
-		cmp_t __cmp__(const Derived& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
+		constexpr cmp_t __cmp__(const Derived& other) const { return reinterpret_cast<cmp_t>(this) - reinterpret_cast<cmp_t>(&other); }
 
 		// 返回true或false表示是否相等
-		bool __equals__(const Derived& other) const { return derived().__cmp__(other) == 0; }
+		constexpr bool __equals__(const Derived& other) const { return derived().__cmp__(other) == 0; }
 	};
 
 	template<typename T>
 	concept AyrObject = hasattr(T, AyrObjectDerived) && isinstance<T, Object<typename T::AyrObjectDerived>>;
 
-	template<AyrObject T>
-	std::ostream& operator<<(std::ostream& os, const T& obj)
-	{
-		os << cstr(obj).data();
-		return os;
-	}
-
 	template<AyrObject T, typename U>
-	bool operator==(const T& a, const U& b)
+	constexpr bool operator==(const T& a, const U& b)
 	{
 		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
 			return a.__equals__(b);
@@ -61,7 +54,7 @@ namespace ayr
 	}
 
 	template<AyrObject T, typename U>
-	bool operator!=(const T& a, const U& b)
+	constexpr bool operator!=(const T& a, const U& b)
 	{
 		if constexpr (hasmethod(T, __equals__, std::declval<const U&>()))
 			return !a.__equals__(b);
@@ -69,15 +62,15 @@ namespace ayr
 	}
 
 	template<AyrObject T, typename U>
-	bool operator>(const T& a, const U& b) { return a.__cmp__(b) > 0; }
+	constexpr bool operator>(const T& a, const U& b) { return a.__cmp__(b) > 0; }
 
 	template<AyrObject T, typename U>
-	bool operator<(const T& a, const U& b) { return a.__cmp__(b) < 0; }
+	constexpr bool operator<(const T& a, const U& b) { return a.__cmp__(b) < 0; }
 
 	template<AyrObject T, typename U>
-	bool operator>=(const T& a, const U& b) { return a.__cmp__(b) >= 0; }
+	constexpr bool operator>=(const T& a, const U& b) { return a.__cmp__(b) >= 0; }
 
 	template<AyrObject T, typename U>
-	bool operator<=(const T& a, const U& b) { return a.__cmp__(b) <= 0; }
+	constexpr bool operator<=(const T& a, const U& b) { return a.__cmp__(b) <= 0; }
 }
 #endif
