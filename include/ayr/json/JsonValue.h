@@ -506,12 +506,12 @@ namespace ayr
 			Json& pattern_set(Atring pattern, Json v)
 			{
 				// 空串
-				if (pattern == "") return *this = v;
+				if (pattern.empty()) return *this = v;
 
 				// 数组
-				if (pattern.startswith("["))
+				if (pattern.startswith("["as))
 				{
-					c_size r = pattern.find("]");
+					c_size r = pattern.index("]"as);
 					if (r == -1) RuntimeError("Invalid partner for '['");
 					auto index = pattern.slice(1, r).to_int();
 
@@ -520,9 +520,9 @@ namespace ayr
 				}
 				else // 字典
 				{
-					pattern = pattern.lstrip(".");
+					pattern = pattern.lstrip("."as);
 					c_size r = 0;
-					while (r < pattern.size() && pattern[r] != "." && pattern[r] != "[")
+					while (r < pattern.size() && pattern[r] != '.' && pattern[r] != '[')
 						++r;
 					Atring key = pattern.slice(0, r);
 					return (*this)[key].pattern_set(pattern.slice(r), v);

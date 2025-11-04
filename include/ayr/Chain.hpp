@@ -20,9 +20,8 @@ namespace ayr
 	public:
 		Value_t value;
 
-		BidirectionalNode(const Value_t& value) : value(value) {}
-
-		BidirectionalNode(Value_t&& value) : value(std::move(value)) {}
+		template<typename... Args>
+		BidirectionalNode(Args&&... args) : value(std::forward<Args>(args)...) {}
 
 		BidirectionalNode(self&& other) : value(std::move(other.value)), prev_(other.prev_), next_(other.next_)
 		{
@@ -142,7 +141,7 @@ namespace ayr
 		template<typename... Args>
 		Node_t* append(Args&& ...args)
 		{
-			return append_node(ayr_make<Node_t>(Value_t{ std::forward<Args>(args)... }));
+			return append_node(ayr_make<Node_t>(std::forward<Args>(args)...));
 		}
 
 		// 头部插入一个节点，该节点的生命周期由Chain管理
@@ -161,7 +160,7 @@ namespace ayr
 		template<typename... Args>
 		Node_t* prepend(Args&& ...args)
 		{
-			return prepend_node(ayr_make<Node_t>(Value_t{ std::forward<Args>(args)... }));
+			return prepend_node(ayr_make<Node_t>(std::forward<Args>(args)...));
 		}
 
 		// 删除所有元素
