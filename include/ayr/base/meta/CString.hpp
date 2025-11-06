@@ -1,7 +1,6 @@
 ﻿#ifndef AYR_BASE_CSTRING_HPP
 #define AYR_BASE_CSTRING_HPP
 
-#include <functional>
 #include <format>
 #include <sstream>
 #include <string>
@@ -9,31 +8,67 @@
 #include "Buffer.hpp"
 #include "hash.hpp"
 
-
 namespace ayr
 {
+	// 结尾带\0的c风格字符串
+	class StringZero
+	{
+		union {
+			char short_str[16];
+			const char* long_str;
+		};
+
+		// 是否sso优化
+		bool sso;
+	public:
+		constexpr StringZero() :StringZero("", 0) {}
+
+		constexpr StringZero(const char* str, c_size len) : short_str()
+		{
+			if (len < 16)
+			{
+				std::copy(str, str + len, short_str);
+				short_str[len] = 0;
+				sso = true;
+			}
+			else
+			{
+				char* ptr = ayr_alloc<char>(len + 1);
+				std::copy(str, str + len, ptr);
+				ptr[len] = 0;
+				long_str = ptr;
+				sso = false;
+			}
+		}
+
+		constexpr StringZero(const StringZero& other) : StringZero(other.c_str(), other.size()) {}
+
+		constexpr c_size size() const
+		{
+			c_size length = 0;
+			const char* ptr = c_str();
+			while (ptr[length]) ++length;
+			return length;
+		}
+
+		constexpr const char* c_str() const { return ifelse(sso, short_str, long_str); }
+
+		constexpr operator const char* () const { return c_str(); }
+
+		constexpr bool empty() const { return size() == 0; }
+
+		constexpr const char* begin() const { return c_str(); }
+
+		constexpr const char* end() const { return c_str() + size(); }
+
+		void __repe__(Buffer& buffer) const { buffer << c_str(); }
+	};
+
 	constexpr c_size strlen(const char* str)
 	{
 		c_size len = 0;
 		while (str[len]) ++len;
 		return len;
-	}
-
-	template<size_t N>
-	constexpr c_size strlen(const char(&str)[N]) { return N - 1; }
-
-	constexpr void strcpy(char* dst, const char* src, c_size size)
-	{
-		for (c_size i = 0; i < size; ++i)
-			dst[i] = src[i];
-	}
-
-	constexpr int strcmp(const char* str1, const char* str2, c_size min_len)
-	{
-		for (c_size i = 0; i < min_len; ++i)
-			if (str1[i] != str2[i])
-				return str1[i] - str2[i];
-		return 0;
 	}
 
 	/**
@@ -93,7 +128,7 @@ namespace ayr
 		constexpr CString(self&& other) noexcept
 		{
 			if (other.sso())
-				ayr::strcpy(short_str, other.short_str, SSO_SIZE);
+				std::copy(other.begin(), other.end(), short_str);
 			else
 				long_str = other.long_str;
 			owner_sso_length_flag = other.owner_sso_length_flag;
@@ -124,7 +159,7 @@ namespace ayr
 			this->~CString();
 
 			if (other.sso())
-				ayr::strcpy(short_str, other.short_str, SSO_SIZE);
+				std::copy(other.begin(), other.end(), short_str);
 			else
 				long_str = other.long_str;
 			owner_sso_length_flag = other.owner_sso_length_flag;
@@ -132,11 +167,85 @@ namespace ayr
 			return *this;
 		}
 
+		// 字符串拼接
+		constexpr self operator+(const self& other) const
+		{
+			c_size m_size = size(), o_size = other.size();
+			self res;
+
+			char* ptr = res.assign_ptr(m_size + o_size);
+			ptr = std::copy(begin(), end(), ptr);
+			std::copy(other.begin(), other.end(), ptr);
+
+			return res;
+		}
+
+		// 字符串拼接
+		constexpr self operator+(const char& ch) const
+		{
+			c_size m_size = size();
+			self res;
+			char* ptr = res.assign_ptr(m_size + 1);
+			std::copy(begin(), end(), ptr);
+			ptr[m_size] = ch;
+			return res;
+		}
+
+		// 字符串拼接
+		constexpr self& operator+=(const self& other)
+		{
+			c_size m_size = size(), o_size = other.size();
+			if (sso() && m_size + o_size <= SSO_SIZE)
+			{
+				std::copy(other.begin(), other.end(), short_str + m_size);
+				owner_sso_length_flag = (m_size + o_size) | SSO_MASK;
+			}
+			else
+			{
+				self tmp = *this + other;
+				*this = std::move(tmp);
+			}
+			return *this;
+		}
+
+		// 字符串拼接
+		constexpr self& operator+=(const char& ch)
+		{
+			c_size m_size = size();
+			if (sso() && m_size + 1 <= SSO_SIZE)
+			{
+				short_str[m_size] = ch;
+				owner_sso_length_flag = (m_size + 1) | SSO_MASK;
+			}
+			else
+			{
+				self tmp = *this + ch;
+				*this = std::move(tmp);
+			}
+			return *this;
+		}
+
+		// 复制字符串
+		constexpr self operator*(c_size n) const
+		{
+			if (n <= 0 || empty()) return self();
+			c_size m_size = size();
+
+			self res;
+			char* ptr = res.assign_ptr(n * m_size);
+			for (c_size i = 0; i < n; ++i)
+				ptr = std::copy(begin(), end(), ptr);
+			return res;
+		}
+
 		// 判断是否拥有内存
 		constexpr bool owner() const { return owner_sso_length_flag & OWNER_MASK; }
 
 		// 判断是否使用sso优化
 		constexpr bool sso() const { return owner_sso_length_flag & SSO_MASK; }
+
+		// 判断是否只是视图
+		constexpr bool viewer() const { return (owner_sso_length_flag & (OWNER_MASK | SSO_MASK)) == 0; }
 
 		// 获得字符串第index个字符
 		constexpr const char& at(c_size index) const { return *(data() + index); }
@@ -154,127 +263,352 @@ namespace ayr
 		constexpr const char* data() const { return ifelse(sso(), short_str, long_str); }
 
 		// 返回c风格字符串
-		std::string c_str() const { return std::string(data(), size()); }
+		constexpr StringZero c_str() const { return StringZero(data(), size()); }
+
+		// 获得起始迭代器
+		constexpr const char* begin() const { return data(); }
+
+		// 获得终止迭代器
+		constexpr const char* end() const { return data() + size(); }
+
+		// 判断是否包含子串other
+		constexpr bool contains(const self& other) const { return index(other) != -1; }
+
+		// 判断是否包含ch
+		constexpr bool contains(const char& ch) const { return index(ch) != -1; }
+
+		/*
+		* @brief 从pos开始从前往后查找子串other的位置
+		*
+		* @param other 要查找的子串
+		*
+		* @param pos 开始查找的位置
+		*
+		* @return 所在下标，不存在返回-1
+		*/
+		constexpr c_size index(const self& other, c_size pos = 0) const
+		{
+			c_size m_size = size(), o_size = other.size();
+			if (o_size > m_size - pos) return -1;
+
+			while (pos <= m_size - o_size)
+			{
+				if (std::equal(other.begin(), other.end(), begin() + pos))
+					return pos;
+				++pos;
+			}
+			return -1;
+		}
+
+		/*
+		* @brief 从pos开始从前往后查找子串ch的位置
+		*
+		* @param ch 要查找的字符
+		*
+		* @param pos 开始查找的位置
+		*
+		* @return 所在下标，不存在返回-1
+		*/
+		constexpr c_size index(const char& ch, c_size pos = 0) const
+		{
+			c_size m_size = size();
+
+			while (pos < m_size)
+			{
+				if (at(pos) == ch)
+					return pos;
+				++pos;
+			}
+			return -1;
+		}
+
+		/*
+		* @brief 从pos开始从后往前查找子串other的位置
+		*
+		* @param other 要查找的子串
+		*
+		* @param pos 开始查找的位置
+		*
+		* @return 所在下标，不存在返回-1
+		*/
+		constexpr c_size rindex(const self& other, c_size pos = -1) const
+		{
+			c_size m_size = size(), o_size = other.size();
+			if (pos < 0 || pos > m_size - o_size)
+				pos = m_size - o_size;
+
+			while (pos >= 0)
+			{
+				if (std::equal(other.begin(), other.end(), begin() + pos))
+					return pos;
+				--pos;
+			}
+			return -1;
+		}
+
+		/*
+		* @brief 从pos开始从后往前查找子串ch的位置
+		*
+		* @param ch 要查找的字符
+		*
+		* @param pos 开始查找的位置
+		*
+		* @return 所在下标，不存在返回-1
+		*/
+		constexpr c_size rindex(const char& ch, c_size pos = -1) const
+		{
+			if (pos < 0 || pos > size() - 1) pos = size() - 1;
+			while (pos >= 0)
+			{
+				if (at(pos) == ch)
+					return pos;
+				--pos;
+			}
+			return -1;
+		}
+
+		// 获取other在字符串中出现的次数
+		constexpr c_size count(const self& other, c_size pos = 0) const
+		{
+			c_size m_size = size(), o_size = other.size();
+			c_size count = 0;
+			if (o_size > m_size - pos) return 0;
+
+			while (pos <= m_size - o_size)
+			{
+				if (std::equal(other.begin(), other.end(), begin() + pos))
+				{
+					++count;
+					pos += o_size;
+				}
+				else
+					++pos;
+			}
+			return count;
+		}
+
+		// 获取ch在字符串中出现的次数
+		constexpr c_size count(const char& ch, c_size pos = 0) const
+		{
+			c_size m_size = size(), count = 0;
+			while (pos < m_size)
+			{
+				if (at(pos) == ch)
+					++count;
+				++pos;
+			}
+			return count;
+		}
 
 		// 拷贝一个新的 CString 对象，并拥有内存
 		constexpr self clone() const
 		{
-			self new_str;
-			c_size m_size = size();
-			if (m_size > SSO_SIZE)
-			{
-				char* ptr = ayr_alloc<char>(m_size);
-				ayr::strcpy(ptr, this->data(), m_size);
-				new_str.long_str = ptr;
-				// 无小内存优化
-				new_str.owner_sso_length_flag = m_size | OWNER_MASK;
-			}
-			else
-			{
-				// 小内存优化
-				ayr::strcpy(new_str.short_str, this->data(), m_size);
-				new_str.owner_sso_length_flag = m_size | SSO_MASK;
-			}
-
-			return new_str;
+			self res;
+			char* ptr = res.assign_ptr(size());
+			std::copy(begin(), end(), ptr);
+			return res;
 		}
 
 		// 字符串切片，[start, end)，浅拷贝
-		constexpr self vslice(c_size start, c_size end) const { return self(data() + start, end - start, false); }
+		constexpr self vslice(c_size start, c_size end) const
+		{
+			self res;
+			// 越界检查
+			if (end > start)
+			{
+				// 可以sso优化
+				if (end - start <= SSO_SIZE)
+				{
+					std::copy(begin() + start, begin() + end, res.short_str);
+					res.owner_sso_length_flag = (end - start) | SSO_MASK;
+				}
+				else
+				{
+					res.long_str = data() + start;
+					res.owner_sso_length_flag = end - start;
+				}
+			}
+
+			return res;
+		}
 
 		// 字符串切片，[start, size())，浅拷贝
 		constexpr self vslice(c_size start) const { return vslice(start, size()); }
 
 		// 字符串切片，[start, end)，深拷贝
-		constexpr self slice(c_size start, c_size end) const { return vslice(start, end).clone(); }
+		constexpr self slice(c_size start, c_size end) const
+		{
+			self res = vslice(start, end);
+			// 视图转为深拷贝
+			if (res.viewer())
+				return res.clone();
+			else
+				return res;
+		}
 
 		// 字符串切片，[start, size())，深拷贝
-		constexpr self slice(c_size start) const { return vslice(start, size()).clone(); }
+		constexpr self slice(c_size start) const { return slice(start, size()); }
 
 		// 判断是否以prefix开头
 		constexpr bool startswith(const self& preifx) const
 		{
-			c_size m_size = size(), p_size = preifx.size();
-			if (p_size > m_size) return false;
-			return ayr::strcmp(data(), preifx.data(), p_size) == 0;
+			if (preifx.size() > size()) return false;
+			return std::equal(preifx.begin(), preifx.end(), begin());
 		}
 
 		// 判断是否以suffix结尾
 		constexpr bool endswith(const self& suffix) const
 		{
-			c_size m_size = size(), s_size = suffix.size();
-			if (s_size > m_size) return false;
-			return ayr::strcmp(data() + m_size - s_size, suffix.data(), s_size) == 0;
+			if (suffix.size() > size()) return false;
+			return std::equal(suffix.begin(), suffix.end(), begin() + size() - suffix.size());
+		}
+
+		// 判断是否为空字符串
+		constexpr bool isspace() const
+		{
+			for (const char& ch : *this)
+				if (ch < 9 || ch > 13 || (ch != '\0' && ch != ' '))
+					return false;
+			return true;
+		}
+
+		// 判断是否为数字字符串
+		constexpr bool isdigit() const
+		{
+			for (const char& ch : *this)
+				if (ch < '0' || ch > '9')
+					return false;
+			return true;
+		}
+
+		// 判断是否为字母字符串
+		constexpr bool isalpha() const
+		{
+			for (const char& ch : *this)
+				if ((ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z'))
+					return false;
+			return true;
+		}
+
+		// 判断是否为大写字符串
+		constexpr bool isupper() const
+		{
+			for (const char& ch : *this)
+				if (ch < 'A' || ch > 'Z')
+					return false;
+			return true;
+		}
+
+		// 判断是否为小写字符串
+		constexpr bool islower() const
+		{
+			for (const char& ch : *this)
+				if (ch < 'a' || ch > 'z')
+					return false;
+			return true;
+		}
+
+		// 返回新的大写字符串
+		constexpr self upper() const
+		{
+			c_size m_size = size();
+			self res;
+
+			char* ptr = res.assign_ptr(m_size);
+			for (const char& ch : *this)
+			{
+				if (ch >= 'a' && ch <= 'z')
+					*ptr = ch - 'a' + 'A';
+				else
+					*ptr = ch;
+				++ptr;
+			}
+			return res;
+		}
+
+		// 返回新的小写字符串
+		constexpr self lower() const
+		{
+			c_size m_size = size();
+			self res;
+
+			char* ptr = res.assign_ptr(m_size);
+			for (const char& ch : *this)
+			{
+				if (ch >= 'A' && ch <= 'Z')
+					*ptr = ch - 'A' + 'a';
+				else
+					*ptr = ch;
+				++ptr;
+			}
+			return res;
 		}
 
 		// 通过*this，连接可迭代对象中的字符串
 		template<IteratableU<self> Obj>
-		self join(const Obj& elems) const
+		constexpr self join(const Obj& elems) const
 		{
 			if (empty()) return cjoin(elems);
 
-			c_size len = 0, s_size = size();
-
+			c_size res_size = 0, m_size = size();
+			// 计算结果字符串长度
 			for (const self& str : elems)
-				len += str.size() + s_size;
-			if (len) len -= s_size;
+				res_size += str.size() + m_size;
 
-			return sso_assign(len, [&](char*& ptr) {
-				for (auto it = elems.begin(); it != elems.end(); ++it)
+			self res;
+			if (res_size - m_size > 0)
+			{
+				char* ptr = res.assign_ptr(res_size - m_size);
+				// 是否已经复制了第一个元素
+				bool first_flag = false;
+				for (const self& elem : elems)
 				{
-					c_size o_size = it->size();
-					if (it != elems.begin())
-					{
-						ayr::strcpy(ptr, this->data(), s_size);
-						ptr += s_size;
-					}
-					ayr::strcpy(ptr, it->data(), o_size);
-					ptr += o_size;
+					if (first_flag)
+						ptr = std::copy(begin(), end(), ptr);
+
+					ptr = std::copy(elem.begin(), elem.end(), ptr);
+					first_flag = true;
 				}
-				});
+			}
+			return res;
 		}
 
 		template<IteratableU<self> Obj>
-		static self cjoin(const Obj& elems)
+		constexpr static self cjoin(const Obj& elems)
 		{
-			c_size len = 0;
-			for (const self& s : elems)
-				len += s.size();
+			c_size res_size = 0;
+			for (const self& elem : elems)
+				res_size += elem.size();
 
-			return sso_assign(len, [&](char*& ptr) {
-				for (const self& s : elems)
-				{
-					c_size s_size = s.size();
-					ayr::strcpy(ptr, s.data(), s_size);
-					ptr += s_size;
-				}
-				});
+			self res;
+			if (res_size > 0)
+			{
+				char* ptr = res.assign_ptr(res_size);
+				for (const self& elem : elems)
+					ptr = std::copy(elem.begin(), elem.end(), ptr);
+			}
+			return res;
 		}
-
-		constexpr const char* begin() const { return data(); }
-
-		constexpr const char* end() const { return data() + size(); }
 
 		constexpr cmp_t __cmp__(const self& other) const
 		{
-			c_size min_size = std::min(size(), other.size());
-			int cmp = ayr::strcmp(data(), other.data(), min_size);
-			if (cmp) return cmp;
-			return size() - other.size();
+			c_size m_size = size(), o_size = other.size();
+			for (c_size i = 0; i < m_size && i < o_size; ++i)
+				if (at(i) != other.at(i))
+					return at(i) - other.at(i);
+			return m_size - o_size;
 		}
 
 		constexpr bool __equals__(const self& other) const
 		{
-			c_size m_size = size(), o_size = other.size();
-			if (m_size != o_size) return false;
-			return ayr::strcmp(data(), other.data(), m_size) == 0;
+			if (size() != other.size()) return false;
+			return std::equal(begin(), end(), other.begin());
 		}
 
 		constexpr bool __equals__(const char* other) const
 		{
-			c_size m_size = size(), o_size = ayr::strlen(other);
-			if (m_size != o_size) return false;
-			return ayr::strcmp(data(), other, m_size) == 0;
+			if (size() != ayr::strlen(other)) return false;
+			return std::equal(begin(), end(), other);
 		}
 
 		size_t __hash__() const { return bytes_hash(data(), size()); }
@@ -298,69 +632,32 @@ namespace ayr
 		constexpr bool operator== (const char* other) const { return __equals__(other); }
 
 		constexpr bool operator!= (const char* other) const { return __equals__(other); }
-
-		constexpr self operator+(const self& other) const
-		{
-			c_size m_size = size(), o_size = other.size();
-			self new_str;
-
-			if (m_size + o_size > SSO_SIZE)
-			{
-				char* ptr = ayr_alloc<char>(m_size + o_size);
-				ayr::strcpy(ptr, this->data(), m_size);
-				ayr::strcpy(ptr + m_size, other.data(), o_size);
-				new_str.long_str = ptr;
-				// 无小内存优化
-				new_str.owner_sso_length_flag = (m_size + o_size) | OWNER_MASK;
-			}
-			else
-			{
-				// 小内存优化
-				ayr::strcpy(new_str.short_str, this->data(), m_size);
-				ayr::strcpy(new_str.short_str + m_size, other.data(), o_size);
-				new_str.owner_sso_length_flag = (m_size + o_size) | SSO_MASK;
-			}
-
-			return new_str;
-		}
-
-		constexpr self& operator+=(const self& other)
-		{
-			c_size m_size = size(), o_size = other.size();
-			if (sso() && m_size + o_size <= SSO_SIZE)
-			{
-				ayr::strcpy(short_str + m_size, other.data(), o_size);
-				owner_sso_length_flag = (m_size + o_size) | SSO_MASK;
-			}
-			else
-			{
-				self res = *this + other;
-				*this = std::move(res);
-			}
-
-			return *this;
-		}
-
 	private:
-		// 一个字节一个字节的生成新的字符串
-		// 根据len参数决定是否使用sso优化
-		static self sso_assign(c_size len, std::function<void(char*&)> fn)
+		/*
+		* @brief 根据length分配内存，返回首地址
+		*
+		* @details 若length <= SSO_SIZE, 则分配sso优化内存，否则分配堆内存
+		*
+		* @param length 字符串长度
+		*
+		* @return char* 首地址
+		*/
+		constexpr char* assign_ptr(c_size length)
 		{
-			self new_str;
 			char* ptr = nullptr;
-			if (len > SSO_SIZE)
+			if (length <= SSO_SIZE)
 			{
-				new_str.long_str = ptr = ayr_alloc<char>(len);
-				new_str.owner_sso_length_flag = len | OWNER_MASK;
+				ptr = short_str;
+				owner_sso_length_flag = length | SSO_MASK;
 			}
 			else
 			{
-				ptr = new_str.short_str;
-				new_str.owner_sso_length_flag = len | SSO_MASK;
+				ptr = ayr_alloc<char>(length);
+				long_str = ptr;
+				owner_sso_length_flag = length | OWNER_MASK;
 			}
 
-			fn(ptr);
-			return new_str;
+			return ptr;
 		}
 	};
 
@@ -408,7 +705,7 @@ namespace ayr
 
 	// 将任意类型转换为 CString 对象
 	template<typename T>
-	der(CString) cstr(const T& value)
+	constexpr der(CString) cstr(const T& value)
 	{
 		if constexpr (hasmethod(T, __str__))
 			return value.__str__();

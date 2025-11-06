@@ -41,9 +41,9 @@ namespace ayr
 		def exists(const CString& path)
 		{
 #ifdef AYR_WIN
-			return GetFileAttributesA(path.c_str().c_str()) != INVALID_FILE_ATTRIBUTES;
+			return GetFileAttributesA(path.c_str()) != INVALID_FILE_ATTRIBUTES;
 #else
-			return access(path.c_str().c_str(), F_OK) == 0;
+			return access(path.c_str(), F_OK) == 0;
 #endif
 		}
 
@@ -51,12 +51,12 @@ namespace ayr
 		def isfile(const CString& path)
 		{
 #ifdef AYR_WIN
-			DWORD attributes = GetFileAttributesA(path.c_str().c_str());
+			DWORD attributes = GetFileAttributesA(path.c_str());
 
 			return (attributes != INVALID_FILE_ATTRIBUTES) && (attributes & FILE_ATTRIBUTE_DIRECTORY) == 0;
 #else
 			struct stat st;
-			if (stat(path.c_str().c_str(), &st) == 0)
+			if (stat(path.c_str(), &st) == 0)
 				return S_ISREG(st.st_mode);
 			return false;
 #endif
@@ -66,10 +66,10 @@ namespace ayr
 		def isdir(const CString& path)
 		{
 #ifdef AYR_WIN
-			return (GetFileAttributesA(path.c_str().c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0;
+			return (GetFileAttributesA(path.c_str()) & FILE_ATTRIBUTE_DIRECTORY) != 0;
 #else
 			struct stat st;
-			if (stat(path.c_str().c_str(), &st) == 0)
+			if (stat(path.c_str(), &st) == 0)
 				return S_ISDIR(st.st_mode);
 			return false;
 #endif
@@ -96,13 +96,13 @@ namespace ayr
 		{
 #ifdef AYR_WIN
 			char abs_path[MAX_PATH];
-			DWORD len = GetFullPathNameA(path.c_str().c_str(), MAX_PATH, abs_path, nullptr);
+			DWORD len = GetFullPathNameA(path.c_str(), MAX_PATH, abs_path, nullptr);
 
 			if (len == 0 || len > MAX_PATH)
 				SystemError(std::format("abspath failed for path: {}", path));
 			return dstr(abs_path, len);
 #else
-			char* abs_path = realpath(path.c_str().c_str(), nullptr);
+			char* abs_path = realpath(path.c_str(), nullptr);
 
 			if (abs_path == nullptr)
 				SystemError(std::format("abspath failed for path: {}", path));
@@ -134,7 +134,7 @@ namespace ayr
 #ifdef AYR_WIN
 			WIN32_FIND_DATAA find_data;
 
-			HANDLE handle = FindFirstFileA(join(path, "*").c_str().c_str(), &find_data);
+			HANDLE handle = FindFirstFileA(join(path, "*").c_str(), &find_data);
 
 			ExTask task([&handle] { FindClose(handle); });
 
@@ -150,7 +150,7 @@ namespace ayr
 				co_yield std::move(file_name);
 			} while (FindNextFileA(handle, &find_data));
 #else
-			DIR* dir = opendir(path.c_str().c_str());
+			DIR* dir = opendir(path.c_str());
 			ExTask task([&dir] { closedir(dir); });
 
 			if (dir == nullptr)
@@ -163,9 +163,9 @@ namespace ayr
 				if (d_name == "." || d_name == "..")
 					continue;
 				co_yield std::move(d_name);
-		}
+			}
 #endif
-	}
+		}
 
 		// 遍历当前路径下的所有文件和文件夹
 		def walk(const CString& path) -> coro::Generator<std::tuple<CString, Array<CString>, Array<CString>>>
@@ -194,7 +194,7 @@ namespace ayr
 		def mkdir(const CString& path, bool exist_ok = false)
 		{
 #ifdef AYR_WIN
-			BOOL state = CreateDirectoryA(path.c_str().c_str(), nullptr);
+			BOOL state = CreateDirectoryA(path.c_str(), nullptr);
 
 			switch (state)
 			{
@@ -207,7 +207,7 @@ namespace ayr
 				break;
 			}
 #else
-			if (::mkdir(path.c_str().c_str(), 0755) != 0)
+			if (::mkdir(path.c_str(), 0755) != 0)
 				raise_error_msg_for_path(path);
 #endif
 		}
@@ -219,9 +219,9 @@ namespace ayr
 			if (isfile(path))
 			{
 #ifdef AYR_WIN
-				DeleteFileA(path.c_str().c_str());
+				DeleteFileA(path.c_str());
 #else
-				if (::unlink(path.c_str().c_str()) != 0)
+				if (::unlink(path.c_str()) != 0)
 					raise_error_msg_for_path(path);
 #endif
 			}
@@ -231,9 +231,9 @@ namespace ayr
 					remove(join(path, sub_path));
 
 #ifdef AYR_WIN
-				RemoveDirectoryA(path.c_str().c_str());
+				RemoveDirectoryA(path.c_str());
 #else
-				if (::rmdir(path.c_str().c_str()) != 0)
+				if (::rmdir(path.c_str()) != 0)
 					raise_error_msg_for_path(path);
 #endif
 			}
@@ -247,12 +247,12 @@ namespace ayr
 			{
 #ifdef AYR_WIN
 				WIN32_FILE_ATTRIBUTE_DATA attr;
-				if (!GetFileAttributesExA(path.c_str().c_str(), GetFileExInfoStandard, &attr))
+				if (!GetFileAttributesExA(path.c_str(), GetFileExInfoStandard, &attr))
 					raise_error_msg_for_path(path);
 				size_ = (static_cast<uint64_t>(attr.nFileSizeHigh) << 32) | attr.nFileSizeLow;
 #else
 				struct stat st;
-				if (stat(path.c_str().c_str(), &st) == 0)
+				if (stat(path.c_str(), &st) == 0)
 					size_ = st.st_size;
 				else
 					raise_error_msg_for_path(path);
@@ -323,6 +323,6 @@ namespace ayr
 				path.slice(last_dot_pos)
 			);
 		}
-}
 	}
+}
 #endif // AYR_FS_PATH_HPP

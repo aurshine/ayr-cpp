@@ -33,12 +33,8 @@ namespace ayr
 			// 短字符串，使用sso优化
 			AChar short_str[SSO_SIZE];
 		};
-	public:
-		// 默认构造函数，创建一个空字符串
-		constexpr Atring() : owner_sso_length_flag(0 | SSO_MASK), short_str() {}
 
-		constexpr Atring(std::nullptr_t) : owner_sso_length_flag(0 | SSO_MASK), long_str(nullptr) {}
-
+		// 使用Codec解码bytes，创建字符串
 		template<UniCodec Codec>
 		constexpr Atring(const CString& bytes, const Codec& codec) : Atring()
 		{
@@ -46,6 +42,9 @@ namespace ayr
 			AChar* ptr = assign_ptr(len);
 			codec.decode(ptr, len, bytes);
 		}
+	public:
+		// 默认构造函数，创建一个空字符串，使用sso优化
+		constexpr Atring() : owner_sso_length_flag(0 | SSO_MASK), short_str() {}
 
 		constexpr Atring(const AChar& ch) : short_str()
 		{
@@ -53,13 +52,9 @@ namespace ayr
 			owner_sso_length_flag = 1 | SSO_MASK;
 		}
 
-		constexpr Atring(const self& other)
-		{
-			long_str = other.data();
-			owner_sso_length_flag = other.size();
-		}
-
-		constexpr Atring(self&& other) noexcept : short_str()
+		// 如果other是sso优化，深拷贝
+		// 否则浅拷贝
+		constexpr Atring(const self& other) : short_str()
 		{
 			if (other.sso())
 			{
@@ -69,9 +64,19 @@ namespace ayr
 			else
 			{
 				long_str = other.long_str;
-				owner_sso_length_flag = other.owner_sso_length_flag;
-				other.owner_sso_length_flag = 0;
+				owner_sso_length_flag = other.size();
 			}
+		}
+
+		constexpr Atring(self&& other) noexcept : short_str()
+		{
+			if (other.sso())
+				std::copy(other.begin(), other.end(), short_str);
+			else
+				long_str = other.long_str;
+
+			owner_sso_length_flag = other.owner_sso_length_flag;
+			other.owner_sso_length_flag = 0;
 		}
 
 		constexpr ~Atring()
@@ -87,8 +92,17 @@ namespace ayr
 			if (this == &other) return *this;
 			this->~Atring();
 
-			long_str = other.data();
-			owner_sso_length_flag = other.size();
+			if (other.sso())
+			{
+				std::copy(other.begin(), other.end(), short_str);
+				owner_sso_length_flag = other.owner_sso_length_flag;
+			}
+			else
+			{
+				long_str = other.long_str;
+				owner_sso_length_flag = other.size();
+			}
+			return *this;
 		}
 
 		constexpr self& operator=(self&& other) noexcept
@@ -97,16 +111,13 @@ namespace ayr
 			this->~Atring();
 
 			if (other.sso())
-			{
-				std::copy(other.short_str, other.short_str + other.size(), short_str);
-				owner_sso_length_flag = other.owner_sso_length_flag;
-			}
+				std::copy(other.begin(), other.end(), short_str);
 			else
-			{
 				long_str = other.long_str;
-				owner_sso_length_flag = other.owner_sso_length_flag;
-				other.owner_sso_length_flag = 0;
-			}
+
+			owner_sso_length_flag = other.owner_sso_length_flag;
+			other.owner_sso_length_flag = 0;
+			return *this;
 		}
 
 		// 字符串拼接
@@ -150,9 +161,27 @@ namespace ayr
 			return *this;
 		}
 
+		// 字符串拼接
+		constexpr self& operator+=(const AChar& ch)
+		{
+			c_size m_size = size();
+			if (sso() && m_size + 1 <= SSO_SIZE)
+			{
+				short_str[m_size] = ch;
+				owner_sso_length_flag = (m_size + 1) | SSO_MASK;
+			}
+			else
+			{
+				self tmp = *this + ch;
+				*this = std::move(tmp);
+			}
+			return *this;
+		}
+
+		// 复制字符串
 		constexpr self operator*(c_size n) const
 		{
-			if (n <= 0) return self();
+			if (n <= 0 || empty()) return self();
 			c_size m_size = size();
 
 			self res;
@@ -168,6 +197,9 @@ namespace ayr
 		// 判断是否使用sso优化
 		constexpr bool sso() const { return owner_sso_length_flag & SSO_MASK; }
 
+		// 判断是否只是视图
+		constexpr bool viewer() const { return (owner_sso_length_flag & (OWNER_MASK | SSO_MASK)) == 0; }
+
 		// 获得字符串长度
 		constexpr c_size size() const { return owner_sso_length_flag & ~(OWNER_MASK | SSO_MASK); }
 
@@ -175,7 +207,7 @@ namespace ayr
 		constexpr bool empty() const { return size() == 0; }
 
 		// 获得字符串第index个字符
-		constexpr const AChar& at(c_size index) const { return data()[index]; }
+		constexpr const AChar& at(c_size index) const { return *(data() + index); }
 
 		// 获得字符串第index个字符, 允许负索引
 		constexpr const AChar& operator[](c_size index) const { return at(neg_index(index, size())); }
@@ -327,12 +359,21 @@ namespace ayr
 		// 字符串切片，[start, end)，浅拷贝
 		constexpr self vslice(c_size start, c_size end) const
 		{
-			self res(nullptr);
+			self res;
 			// 越界检查
 			if (end > start)
 			{
-				res.long_str = data() + start;
-				res.owner_sso_length_flag = end - start;
+				// 可以sso优化
+				if (end - start <= SSO_SIZE)
+				{
+					std::copy(begin() + start, begin() + end, res.short_str);
+					res.owner_sso_length_flag = (end - start) | SSO_MASK;
+				}
+				else
+				{
+					res.long_str = data() + start;
+					res.owner_sso_length_flag = end - start;
+				}
 			}
 
 			return res;
@@ -342,10 +383,18 @@ namespace ayr
 		constexpr self vslice(c_size start) const { return vslice(start, size()); }
 
 		// 字符串切片，[start, end)，深拷贝
-		constexpr self slice(c_size start, c_size end) const { return vslice(start, end).clone(); }
+		constexpr self slice(c_size start, c_size end) const
+		{
+			self res = vslice(start, end);
+			// 视图转为深拷贝
+			if (res.viewer())
+				return res.clone();
+			else
+				return res;
+		}
 
 		// 字符串切片，[start, size())，深拷贝
-		constexpr self slice(c_size start) const { return vslice(start, size()).clone(); }
+		constexpr self slice(c_size start) const { return slice(start, size()); }
 
 		// 判断是否以prefix开头
 		constexpr bool startswith(const self& preifx) const
@@ -470,7 +519,7 @@ namespace ayr
 		}
 
 		// 去除左侧pattern，浅拷贝
-		self lstrip(const self& pattern) const
+		constexpr self lstrip(const self& pattern) const
 		{
 			c_size l = 0, r = size(), p_size = pattern.size();
 			// 从左往右找第一个非pattern字符
@@ -479,7 +528,7 @@ namespace ayr
 		}
 
 		// 去除右侧空白，浅拷贝
-		self rstrip() const
+		constexpr self rstrip() const
 		{
 			c_size l = 0, r = size();
 			auto begin_it = begin();
@@ -489,7 +538,7 @@ namespace ayr
 		}
 
 		// 去除右侧pattern，浅拷贝
-		self rstrip(const self& pattern) const
+		constexpr self rstrip(const self& pattern) const
 		{
 			c_size l = 0, r = size(), p_size = pattern.size();
 			// 从右往左找第一个非pattern字符
@@ -501,6 +550,8 @@ namespace ayr
 		template<IteratableU<self> Obj>
 		constexpr self join(const Obj& elems) const
 		{
+			if (empty()) return ajoin(elems);
+
 			c_size m_size = size(), res_size = 0;
 			// 计算结果字符串长度
 			for (const self& elem : elems)
@@ -562,7 +613,6 @@ namespace ayr
 				{
 					l = pos;
 					pos = index(old_, pos);
-					tlog(pos);
 					ptr = std::copy(begin() + l, begin() + pos, ptr);
 					ptr = std::copy(new_.begin(), new_.end(), ptr);
 				}
@@ -728,14 +778,18 @@ namespace ayr
 			return from_buffer(std::move(buffer));
 		}
 
+		// 使用Codec编码字符串
+		template<UniCodec Codec>
+		constexpr static self from(const CString& bytes, const Codec& codec) { return self(bytes, codec); }
+
 		// utf8编码字符串
-		constexpr static self from_utf8(const CString& bytes) { return self(bytes, UTF8Codec{}); }
+		constexpr static self from_utf8(const CString& bytes) { return from(bytes, UTF8Codec{}); }
 
 		// utf16编码字符串
-		constexpr static self from_utf16(const CString& bytes) { return self(bytes, UTF16Codec{}); }
+		constexpr static self from_utf16(const CString& bytes) { return from(bytes, UTF16Codec{}); }
 
 		// utf32编码字符串
-		constexpr static self from_utf32(const CString& bytes) { return self(bytes, UTF32Codec{}); }
+		constexpr static self from_utf32(const CString& bytes) { return from(bytes, UTF32Codec{}); }
 
 		// 拼接迭代器对象
 		template<IteratableU<self> Obj>
@@ -772,10 +826,10 @@ namespace ayr
 
 		hash_t __hash__() const { return bytes_hash(reinterpret_cast<const char*>(data()), size() * sizeof(AChar)); }
 
-		CString __str__() const { return encode(Codec{}); }
-
 		void __repr__(Buffer& buffer) const { Codec{}.encode(data(), size(), buffer); }
-		//private:
+
+		CString __str__() const { return encode(Codec{}); }
+	private:
 		// 获得AChar字符序列的首地址
 		constexpr const AChar* data() const { return ifelse(sso(), short_str, long_str); }
 
@@ -819,7 +873,7 @@ namespace ayr
 		constexpr Atring operator""au32(const char* bytes, size_t size) { return Atring::from_utf32(vstr(bytes, size)); }
 
 		// 字符串字面量，使用默认的编码格式
-		constexpr Atring operator""as(const char* bytes, size_t size) { return Atring(vstr(bytes, size), Codec{}); }
+		constexpr Atring operator""as(const char* bytes, size_t size) { return Atring::from(vstr(bytes, size), Codec{}); }
 	}
 
 	using namespace literals;
