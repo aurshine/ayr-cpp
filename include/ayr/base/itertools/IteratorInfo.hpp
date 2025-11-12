@@ -1,7 +1,9 @@
-#ifndef AYR_BASE_ITERATORINFO_HPP
-#define AYR_BASE_ITERATORINFO_HPP
+#ifndef AYR_BASE_ITERTOOLS_ITERATORINFO_HPP
+#define AYR_BASE_ITERTOOLS_ITERATORINFO_HPP
 
-#include "Object.hpp"
+#include <ranges>
+
+#include "../raise_error.hpp"
 
 namespace ayr
 {
@@ -15,8 +17,7 @@ namespace ayr
 		typename Distance = std::ptrdiff_t,
 		typename Pointer = T*,
 		typename Reference = T&>
-	struct IteratorInfo :
-		public Object<Iterator>
+	struct IteratorInfo : public Object<Iterator>
 	{
 	public:
 		using iterator_type = Iterator;
@@ -41,4 +42,4 @@ namespace ayr
 	};
 
 }
-#endif // AYR_BASE_ITERATORINFO_HPP
+#endif // AYR_BASE_ITERTOOLS_ITERATORINFO_HPP

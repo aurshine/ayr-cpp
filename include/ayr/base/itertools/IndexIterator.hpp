@@ -1,5 +1,5 @@
-﻿#ifndef AYR_BASE_INDEXITERATOR_HPP
-#define AYR_BASE_INDEXITERATOR_HPP
+﻿#ifndef AYR_BASE_ITERTOOLS_INDEXITERATOR_HPP
+#define AYR_BASE_ITERTOOLS_INDEXITERATOR_HPP
 
 #include "IteratorInfo.hpp"
 
@@ -53,4 +53,4 @@ namespace ayr
 	};
 }
 
-#endif
+#endif // AYR_BASE_ITERTOOLS_INDEXITERATOR_HPP

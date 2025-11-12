@@ -3,9 +3,9 @@
 
 #include <utility>
 
-#include "Array.hpp"
 #include "base/bunit.hpp"
 #include "base/Appender.hpp"
+#include "base/itertools.hpp"
 
 namespace ayr
 {

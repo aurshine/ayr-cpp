@@ -7,67 +7,57 @@ int main()
 {
 	constexpr Atring str1 = Atring::from_utf8("你好世界");
 	tlog(str1);
-	constexpr Atring str2 = "123"as;
+	constexpr Atring str2 = "1"as + "2"as + "3"as;
 	tlog(str2);
-	tlog(str1 + str2 + "456"as);
 	constexpr Atring str3 = AChar('w');
 	tlog(str3);
-	tlog(str3 * 3);
-	tlog(str3 + AChar('w'));
-	Atring str4 = "你好世界我很好"as;
-	str4 += "你好世界"as;
+	constexpr Atring str4 = str3 * 3;
 	tlog(str4);
-	tlog(str4[0]);
-	tlog(str4[-1]);
-	tlog(str4.contains(str1));
-	tlog(str4.index(str1));
-	tlog(str4.rindex(str1));
-	tlog(str4.count(str1));
-	tlog(str4.vslice(1, 2));
-	tlog(str4.vslice(5));
-	tlog(str4.startswith("你好"as));
-	tlog(str4.endswith("你好"as));
-	tlog(str4.strip("你好"as));
-	tlog(str4.strip("世界"as));
-	tlog(str3.lstrip("w"as));
-	tlog(str3.rstrip("w"as));
-	tlog(str4.replace("你好"as, "你们好"as));
-	tlog(str4.replace("你好"as, "你们好"as, 1)); //
-	Atring str5 = ","as.join(arr("我"as, "爱"as, "你"as));
+	Atring str5 = "你好世界我很好"as;
+	str5 += "你好世界"as;
 	tlog(str5);
-	tlog(str5.split(","as));
+	constexpr AChar str2_0 = str2[0];
+	tlog(str2_0);
+	constexpr AChar str2__1 = str2[-1];
+	tlog(str2__1);
+	constexpr bool contains = str1.contains("你好"as);
+	tlog(contains);
+	constexpr c_size idx = str4.index("w"as);
+	tlog(idx);
+	constexpr c_size ridx = str4.rindex("w"as);
+	tlog(ridx);
+	constexpr c_size cnt = str4.count("w"as);
+	tlog(cnt);
+	constexpr Atring str6 = str1.vslice(0, 2);
+	tlog(str6);
+	constexpr Atring str7 = str1.vslice(2);
+	tlog(str7);
+	constexpr bool sw1 = str1.startswith("你好"as);
+	tlog(sw1);
+	constexpr bool sw2 = str1.startswith("世界"as);
+	tlog(sw2);
+	constexpr bool ew1 = str1.endswith("世界"as);
+	tlog(ew1);
+	constexpr bool ew2 = str1.endswith("你好"as);
+	tlog(ew2);
+	constexpr Atring str8 = str1.strip("你好"as);
+	tlog(str8);
+	constexpr Atring str9 = str1.lstrip("你好"as);
+	tlog(str9);
+	constexpr Atring str10 = str1.rstrip("世界"as);
+	tlog(str10);
+	constexpr Atring str11 = str1.replace("你好"as, "你们好"as);
+	tlog(str11);
+	constexpr Atring str12 = ","as.join(std::array<Atring, 3>{ "我"as, "爱"as, "你"as });
+	tlog(str12);
+	tlog(str12.split(","as));
 	tlog(" 你 好 世 界 "as.split());
-	tlog("114514"as.to_int());
-	tlog("-114514"as.to_int());
-	tlog("114514.123456"as.to_double());
-	tlog("-114514.123456"as.to_double());
+	constexpr c_size num1 = "114514"as.to_int();
+	tlog(num1);
+	constexpr c_size num2 = "-11451"as.to_int();
+	tlog(num2);
+	constexpr double num3 = "114.51"as.to_double();
+	tlog(num3);
+	constexpr double num4 = "-114.5"as.to_double();
+	tlog(num4);
 }
-
-/*#include <ayr/Atring.hpp>
-
-using namespace ayr;
-
-int main()
-{
-	Atring str1 = "你好 世界";
-	tlog("1"as * 5);
-	tlog(str1);
-	tlog(str1.slice(1, 2));
-	tlog(str1.replace("你"as, "你们"as));
-	Atring str2 = "aaaaa";
-	tlog(str2.replace("a"as, "b"as, 2));
-	tlog(str1.split());
-	Atring str3 = "a1a2a3a4a5a";
-	tlog(str3.split("a"as, 2));
-	tlog(str1.strip("你"));
-	tlog(str1.startswith("你"));
-	tlog(str1.endswith("你"));
-	tlog("*"as.join(arr({ "我", "爱", "你" })));
-	tlog("adhaf{{这是内容}}ahfiaf{{dadf}}"as.match("{{", "}}"));
-	tlog(*str1.encoding());
-	tlog("123"as.to_int());
-	tlog("-123"as.to_int());
-	tlog("123.456"as.to_double());
-	tlog("-123.456"as.to_double());
-	print(UTF8->ord("你"));
-}*/

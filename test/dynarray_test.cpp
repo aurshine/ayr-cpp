@@ -3,7 +3,6 @@
 #include <string>
 #include <algorithm>
 
-#include <ayr/Array.hpp>
 #include <ayr/DynArray.hpp>
 #include <ayr/timer.hpp>
 
@@ -139,7 +138,7 @@ int main()
 
 	da.clear();
 
-	da.extend(Range(1e6));
+	da.extend(range(1e6));
 	for (int i = 0; i < 1e6; ++i)
 		if (i != da[i])
 			tlog(std::format("da[{}] == {}", i, da[i]));

@@ -3,10 +3,8 @@
 
 #include <ranges>
 
-#include "Array.hpp"
-#include "Chain.hpp"
 #include "base/Table.hpp"
-
+#include "Chain.hpp"
 
 namespace ayr
 {

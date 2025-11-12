@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "timer.hpp"
-#include "Array.hpp"
 
 namespace ayr
 {

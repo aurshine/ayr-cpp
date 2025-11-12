@@ -9,6 +9,4 @@
 - [ ] hashlib库，实现md5、sha1、sha256、sha512等常用哈希算法
 - [ ] http请求和响应库,uri
 - [ ] itertool库，实现常用迭代器工具
-- [ ] AChar unicode码
-- [ ] json懒解析
 - [ ] 优化Chain，Dict，Set

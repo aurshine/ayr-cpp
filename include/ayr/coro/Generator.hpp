@@ -3,7 +3,7 @@
 
 #include <coroutine>
 
-#include "../base/IteratorInfo.hpp"
+#include "../base/itertools.hpp"
 #include "../Optional.hpp"
 
 namespace ayr

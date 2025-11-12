@@ -4,7 +4,7 @@
 #include <array>
 
 #include "bunit.hpp"
-#include "IteratorInfo.hpp"
+#include "itertools.hpp"
 #include "raise_error.hpp"
 #include "../DynArray.hpp"
 

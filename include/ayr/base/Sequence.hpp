@@ -3,7 +3,7 @@
 
 #include <functional>
 
-#include "IndexIterator.hpp"
+#include "itertools.hpp"
 
 
 namespace ayr

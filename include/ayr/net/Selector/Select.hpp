@@ -5,7 +5,7 @@
 #include <chrono>
 
 #include "IoEvent.hpp"
-#include "../../Array.hpp"
+#include "../../base/Array.hpp"
 #include "../../fs/oslib.h"
 
 #if defined(AYR_LINUX)
