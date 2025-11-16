@@ -29,6 +29,8 @@ namespace ayr
 
 		c_size size() const { NotImplementedError(std::format("{} Not implemented size()", dtype(Derived))); return None; }
 
+		bool empty() const { return super::derived().size() == 0; }
+
 		// 删除最后n个元素
 		void pop_back(c_size n = 1) { NotImplementedError(std::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
 

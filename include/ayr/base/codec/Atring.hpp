@@ -2,7 +2,7 @@
 #define AYR_BASE_CODEC_ASTRING_HPP
 
 #include "UniCodec.hpp"
-#include "../../DynArray.hpp"
+#include "../Array.hpp"
 
 namespace ayr
 {

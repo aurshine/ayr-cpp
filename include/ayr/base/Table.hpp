@@ -286,6 +286,8 @@ namespace ayr
 
 		c_size size() const { return size_; }
 
+		bool empty() const { return size_ == 0; }
+
 		c_size capacity() const { return policy_.capacity(); }
 
 		/*

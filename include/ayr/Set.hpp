@@ -64,6 +64,8 @@ namespace ayr
 
 		c_size size() const { return htable_.size(); }
 
+		bool empty() const { return htable_.empty(); }
+
 		c_size capacity() const { return htable_.capacity(); }
 
 		bool contains(const Value_t& value) const { return htable_.contains(ayrhash(value)); }

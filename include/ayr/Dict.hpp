@@ -71,6 +71,9 @@ namespace ayr
 		// key-value对的数量
 		c_size size() const { return htable_.size(); }
 
+		// 表是否为空
+		bool empty() const { return htable_.empty(); }
+
 		// 表容量
 		c_size capacity() const { return htable_.capacity(); }
 
