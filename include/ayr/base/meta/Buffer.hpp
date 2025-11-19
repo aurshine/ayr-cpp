@@ -149,11 +149,11 @@ namespace ayr
 		// 追加字节
 		void append_bytes(const void* bytes, c_size size)
 		{
-			if (size > writeable_size()) expand_util(size);
+			expand_util(size);
 			std::memcpy(write_ptr_, bytes, size);
 			written(size);
 		}
-	private:
+
 		/*
 		* @brief 扩容写缓冲区到至少min_capacity大小
 		*
@@ -161,6 +161,10 @@ namespace ayr
 		*/
 		void expand_util(c_size min_write_size)
 		{
+			// 写缓冲区足够
+			if (min_write_size <= writeable_size())
+				return;
+
 			c_size capacity = this->capacity() * 2, read_size = readable_size();
 			while (capacity < read_size + min_write_size) capacity *= 2;
 
@@ -174,6 +178,7 @@ namespace ayr
 			end_ptr_ = tmp + capacity;
 		}
 
+		private:
 		/*
 		* @brief 分离缓冲区底部数据
 		* 
