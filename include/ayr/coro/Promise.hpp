@@ -28,7 +28,12 @@ namespace ayr
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
 
-			T result() noexcept { return std::move(*value_); }
+			T result() noexcept
+			{
+				if (!value_.has_value())
+					RuntimeError("promise witout co_return or co_yield value");
+				return std::move(*value_);
+			}
 
 			Optional<T> value_;
 		};
