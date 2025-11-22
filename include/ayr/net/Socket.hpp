@@ -67,33 +67,77 @@ namespace ayr
 			// 判断文件描述符是否有效
 			bool valid() const { return read_fd_ != -1 || write_fd_ != -1; }
 
-			coro::Task<int> write(const CString& data, int flags = 0)
+			/*
+			* @brief 协程挂起，直到socket写完data
+			*
+			* @param data 要写入的数据
+			*
+			* @return 返回写入结果，true表示成功，false表示对方关闭连接
+			*/
+			coro::Task<bool> write(const CString& data, int flags = 0)
 			{
-				int num_write = net::write(write_fd_, data, flags);
-				// 调用net::write返回-1表示非阻塞模式下没有空间可写，需要挂起等待
-				if (num_write != -1) co_return num_write;
-				co_await write_awaiter_;
-				co_return net::write(write_fd_, data, flags);
+				c_size data_written = 0, data_size = data.size();
+				while (data_written < data_size)
+				{
+					int num_written = net::write(write_fd_, data.vslice(data_written), flags);
+					switch (num_written)
+					{
+					case -1:
+						co_await write_awaiter_;
+						break;
+					case 0:
+						co_return false;
+					default:
+						data_written += num_written;
+					}
+				}
+
+				co_return true;
 			}
 
-			// 协程挂起，直到socket可读
-			coro::Task<int> write(Buffer& buffer, int flags = 0)
+			/*
+			* @brief 协程挂起，直到socket写完buffer
+			*
+			* @param buffer 要写入的数据
+			*
+			* @return 返回写入结果，true表示成功，false表示对方关闭连接
+			*/
+			coro::Task<bool> write(Buffer& buffer, int flags = 0)
 			{
-				int num_write = net::write(write_fd_, buffer, flags);
-				// 调用net::write返回-1表示非阻塞模式下没有空间可写，需要挂起等待
-				if (num_write != -1) co_return num_write;
-				co_await write_awaiter_;
-				co_return net::write(write_fd_, buffer, flags);
+				while (buffer.readable_size() > 0)
+				{
+					int num_written = net::write(write_fd_, buffer, flags);
+					switch (num_written)
+					{
+					case -1:
+						co_await write_awaiter_;
+						break;
+					case 0:
+						co_return false;
+					}
+				}
+				co_return true;
 			}
 
-			// 协程挂起，直到socket可写
-			coro::Task<int> read(Buffer& buffer, int flags = 0)
+			/*
+			* @brief 协程挂起，直到socket读完或buffer被写满
+			*
+			* @param buffer 要读取的数据存放的buffer
+			*
+			* @param read_size 要读取的数据大小，-1表示读取整个buffer大小
+			*
+			* @return 返回读取的字节数, -1表示读取错误, 0表示对方关闭连接
+			*/
+			coro::Task<int> read(Buffer& buffer, c_size read_size = 1024, int flags = 0)
 			{
-				int num_read = net::read(read_fd_, buffer, flags);
-				// 调用net::read返回-1表示非阻塞模式下没有数据可读，需要挂起等待
-				if (num_read != -1) co_return num_read;
-				co_await read_awaiter_;
-				co_return net::read(read_fd_, buffer, flags);
+				while (true)
+				{
+					int num_read = net::read(read_fd_, buffer, read_size, flags);
+					if (num_read == -1)
+						co_await read_awaiter_;
+					else
+						co_return num_read;
+				}
 			}
 
 			cmp_t __cmp__(const self& other) const { return arr(read_fd_, write_fd_).__cmp__(arr(other.read_fd_, other.write_fd_)); }
@@ -132,7 +176,7 @@ namespace ayr
 				std::memset(&addr, 0, sizeof(addr));
 				addr.sin_family = ifelse(ipv6, AF_INET6, AF_INET);
 				addr.sin_port = htons(port);
-				if (inet_pton(addr.sin_family, ip.c_str().c_str(), &addr.sin_addr) != 1)
+				if (inet_pton(addr.sin_family, ip.c_str(), &addr.sin_addr) != 1)
 					RuntimeError("Invalid host address.");
 				if (::bind(fd_, (sockaddr*)&addr, sizeof(addr)) != 0)
 					RuntimeError(get_error_msg());
@@ -206,7 +250,7 @@ namespace ayr
 			hints.ai_socktype = SOCK_STREAM;
 			hints.ai_protocol = IPPROTO_TCP;
 
-			if (getaddrinfo(host.c_str().c_str(), std::to_string(port).c_str(), &hints, &res) == 0)
+			if (getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &res) == 0)
 			{
 				ExTask exit([&res] { freeaddrinfo(res); });
 

@@ -181,33 +181,25 @@ namespace ayr
 		*
 		* @param buffer 要读取的数据存放的buffer
 		*
+		* @param read_size 要读取的数据大小
+		*
 		* @return 实际读取的字节数
 		*/
-		def read(int fd, Buffer& buffer, int flags = 0)
+		def read(int fd, Buffer& buffer, c_size read_size, int flags = 0)
 		{
-			int num_read = ::recv(fd, buffer.write_ptr(), buffer.writeable_size(), flags);
-			if (num_read == -1 && !is_eagain())
-				RuntimeError(get_error_msg());
+			if (read_size <= 0)
+				read_size = buffer.writeable_size();
+			else
+				buffer.expand_util(read_size);
+
+			int num_read = ::recv(fd, buffer.write_ptr(), read_size, flags);
+			if (num_read == -1)
+				if (is_eagain())
+					return -1;
+				else
+					RuntimeError(get_error_msg());
 			buffer.written(num_read);
 			return num_read;
-		}
-
-		/*
-		* @brief 读取socket文件描述符的数据到buffer中
-		*
-		* @param fd 要读取的文件描述符
-		*
-		* @param bufsize 要读取的数据大小
-		*
-		* @param flags 接收标志
-		*
-		* @return 读取的数据buffer
-		*/
-		def read(int fd, c_size bufsize = 1024, int flags = 0) -> Buffer
-		{
-			Buffer buffer(bufsize);
-			read(fd, buffer, flags);
-			return buffer;
 		}
 
 		/*
@@ -216,23 +208,19 @@ namespace ayr
 		* @param fd 要写入的文件描述符
 		*
 		* @param data 要写入的数据
+		*
+		* @return 实际写入的字节数, -1表示非阻塞模式下写缓冲区已满
 		*/
 		def write(int fd, const CString& data, int flags = 0) -> int
 		{
-			c_size num_written = 0, data_size = data.size();
-			while (num_written < data_size)
-			{
-				int sent = ::send(fd, data.data() + num_written, data_size - num_written, flags);
-				if (sent == -1)
-				{
-					if (!is_eagain())
-						RuntimeError(get_error_msg());
+			int num_written = ::send(fd, data.data(), data.size(), flags);
+			if (num_written == -1)
+				if (is_eagain())
 					return -1;
-				}
-				num_written += sent;
-			}
+				else
+					RuntimeError(get_error_msg());
 
-			return data_size;
+			return num_written;
 		}
 
 		/*
@@ -240,11 +228,18 @@ namespace ayr
 		*
 		* @param fd 要写入的文件描述符
 		*
-		* @param buffer 要写入的数据存放的buffer
+		* @param buffer 要写入的数据存放的buffer, buffer中的数据会根据已写数据大小调整
+		*
+		* @return 实际写入的字节数, -1表示非阻塞模式下写缓冲区已满
 		*/
 		def write(int fd, Buffer& buffer, int flags = 0) -> int
 		{
-			int num_written = net::write(fd, vstr(buffer.peek(), buffer.readable_size()), flags);
+			int num_written = ::send(fd, buffer.peek(), buffer.readable_size(), flags);
+			if (num_written == -1)
+				if (is_eagain())
+					return -1;
+				else
+					RuntimeError(get_error_msg());
 			buffer.retrieve(num_written);
 			return num_written;
 		}
