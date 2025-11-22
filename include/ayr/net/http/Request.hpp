@@ -1,217 +1,141 @@
 #ifndef AYR_NET_HTTP_REQUEST_HPP
 #define AYR_NET_HTTP_REQUEST_HPP
 
+#include "Uri.hpp"
 #include "../Socket.hpp"
-#include "../../Atring.hpp"
-#include "../../Dict.hpp"
-#include "../../base/View.hpp"
 
 namespace ayr
 {
-	class HttpRequest : public Object<HttpRequest>
+	namespace net
 	{
-		using self = HttpRequest;
-
-		using super = Object<HttpRequest>;
-
-	public:
-		Atring method, uri, version;
-
-		Dict<Atring, Atring> quries;
-
-		Dict<Atring, Atring> headers;
-
-		Atring body;
-
-		HttpRequest() : method(), uri(), version(), headers(), body() {}
-
-		HttpRequest(const Atring& method, const Atring& uri, const Atring& version, Dict<Atring, Atring> headers, const Atring& body) :
-			method(method),
-			uri(uri),
-			version(version),
-			headers(std::move(headers)),
-			body(body) {}
-
-		HttpRequest(const self& other) : HttpRequest(other.method, other.uri, other.version, other.headers, other.body) {}
-
-		HttpRequest(self&& other) noexcept : HttpRequest(other.method, other.uri, other.version, std::move(other.headers), other.body) {}
-
-		self& operator=(const self& other)
+		class HttpRequest : public Object<HttpRequest>
 		{
-			if (this == &other) return *this;
-			method = other.method;
-			uri = other.uri;
-			version = other.version;
-			headers = other.headers;
-			body = other.body;
-			return *this;
-		}
+			using self = HttpRequest;
 
-		self& operator=(self&& other) noexcept
-		{
-			if (this == &other) return *this;
-			method = std::move(other.method);
-			uri = std::move(other.uri);
-			version = std::move(other.version);
-			headers = std::move(other.headers);
-			body = std::move(other.body);
-			return *this;
-		}
+			using super = Object<HttpRequest>;
 
-		void set_method(const Atring& method) { this->method = method; }
+			// 请求方法
+			Atring method_;
 
-		void set_uri(const Atring& uri) { this->uri = uri; }
+			// 请求Uri
+			Uri uri_;
 
-		void set_version(const Atring& version) { this->version = version; }
+			// HTTP版本
+			Atring version_;
+		public:
+			Dict<Atring, Atring> headers;
 
-		void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
+			Atring body;
 
-		void set_body(const Atring& body) { this->body = body; }
+			HttpRequest() : method_(), uri_(), version_(), headers(), body() {}
 
-		Atring path() const { return uri.split("?", 1)[0]; }
-
-		Dict<Atring, Atring> querys() const
-		{
-			Array<Atring> splits = uri.split("?", 1);
-			Dict<Atring, Atring> querys_dict;
-
-			if (splits.size() == 2)
+			HttpRequest(const Atring& method, const Uri& uri, const Atring& version, bool keep_alive = true) :
+				method_(method.clone()),
+				uri_(uri),
+				version_(version.clone())
 			{
-				Atring querys_string = splits[1];
-				for (const Atring& kv_str : querys_string.split("&"))
-				{
-					Array<Atring> kv = kv_str.split("=", 1);
-					if (kv.size() != 2) continue;
-					querys_dict.insert(kv[0], kv[1]);
-				}
+				if (!uri_.host().empty())
+					add_header("Host"as, uri_.host());
+				if (uri_.port().empty())
+					if (uri_.scheme() == "http"as)
+						uri_.port("80"as);
+					else if (uri_.scheme() == "https"as)
+						uri_.port("443"as);
+					else
+						ValueError("cannot determine port for scheme");
+				this->keep_alive(keep_alive);
 			}
 
-			return querys_dict;
-		}
-
-		/*
-		* 返回请求的文本
-		* request line
-		* \r\n
-		* headers
-		* \r\n
-		* \r\n
-		* body
-		*/
-		Atring text() const
-		{
-			DynArray<Atring> lines;
-			Atring request_line = " "as.join(arr({ view_of(method), view_of(uri), view_of(version) }));
-			lines.append(request_line);
-
-			for (auto& [k, v] : headers.items())
-				lines.append(": "as.join(arr({ view_of(k), view_of(v) })));
-			lines.append("");
-			lines.append(body);
-
-			return "\r\n"as.join(lines);
-		}
-	};
-
-	class RequestParser : public Object<RequestParser>
-	{
-		enum class Expect
-		{
-			ExpectReqLine,
-			ExpectHeaders,
-			ExpectBody,
-			Done
-		} parse_expect;
-
-		Atring buffer;
-	public:
-		RequestParser() : parse_expect(Expect::ExpectReqLine), buffer() {}
-
-		bool operator()(HttpRequest& request, const Atring& data)
-		{
-			buffer += data;
-
-			// 是否还有更多数据可解析
-			bool has_more = true;
-			while (has_more)
-			{
-				switch (parse_expect)
-				{
-				case Expect::ExpectReqLine:
-					has_more = parse_req_line(request);
-					break;
-				case Expect::ExpectHeaders:
-					has_more = parse_headers(request);
-					break;
-				case Expect::ExpectBody:
-					parse_body(request);
-					has_more = false;
-					break;
-				}
+			HttpRequest(const self& other) :
+				method_(other.method_.clone()),
+				uri_(other.uri_),
+				version_(other.version_.clone()),
+				headers(other.headers),
+				body(other.body.clone()) {
 			}
 
-			if (parse_expect == Expect::Done)
-			{
-				parse_expect = Expect::ExpectReqLine;
-				return true;
+			HttpRequest(self&& other) noexcept :
+				method_(std::move(other.method_)),
+				uri_(std::move(other.uri_)),
+				version_(std::move(other.version_)),
+				headers(std::move(other.headers)),
+				body(std::move(other.body)) {
 			}
 
-			return false;
-		}
-	private:
-		bool parse_req_line(HttpRequest& request)
-		{
-			c_size pos = buffer.find("\r\n");
-			if (pos == -1) return false;
-
-			Atring req_line = buffer.slice(0, pos);
-			buffer = buffer.slice(pos + 2);
-
-			Array<Atring> req_datas = req_line.split(" ", 3);
-			if (req_datas.size() != 3)
-				RuntimeError("parse request line failed, req_datas.size() != 3");
-
-			request.set_method(std::move(req_datas[0]));
-			request.set_uri(std::move(req_datas[1]));
-			request.set_version(std::move(req_datas[2]));
-
-			parse_expect = Expect::ExpectHeaders;
-			return true;
-		}
-
-		bool parse_headers(HttpRequest& request)
-		{
-			c_size pos = buffer.find("\r\n");
-			if (pos == -1) return false;
-			if (pos == 0)
+			self& operator=(const self& other)
 			{
-				parse_expect = Expect::ExpectBody;
-				buffer = buffer.slice(pos + 2);
-				return true;
+				if (this == &other) return *this;
+				ayr_destroy(this);
+				return *ayr_construct(this, other);
 			}
 
-			Atring header_line = buffer.slice(0, pos);
-			buffer = buffer.slice(pos + 2);
-			Array<Atring> kv = header_line.split(":", 1);
-			if (kv.size() != 2)
-				RuntimeError("parse headers failed, kv.size() != 2");
-
-			request.add_header(std::move(kv[0].strip()), std::move(kv[1].strip()));
-
-			return true;
-		}
-
-		void parse_body(HttpRequest& request)
-		{
-			c_size content_length = request.headers.get("content-length", "0").to_int();
-			if (buffer.size() >= content_length)
+			self& operator=(self&& other) noexcept
 			{
-				request.set_body(std::move(buffer.slice(0, content_length)));
-				buffer = buffer.slice(content_length);
-
-				parse_expect = Expect::Done;
+				if (this == &other) return *this;
+				ayr_destroy(this);
+				return *ayr_construct(this, std::move(other));
 			}
-		}
-	};
+
+			// 请求的uri
+			const Uri& uri() const { return uri_; }
+
+			// 请求路径 uri.path()?uri.query()
+			const Atring& path() const
+			{
+				if (uri_.queries().empty())
+					return uri_.path();
+				return "?"as.join(arr(uri_.path(), uri_.query()));
+			}
+
+			// 请求主机名
+			const Atring& host() const { return uri_.host(); }
+
+			// 请求的端口
+			const Atring& port() const { return uri_.port(); }
+
+			// 添加请求头
+			void add_header(const Atring& key, const Atring& value) { headers.insert(key.clone(), value.clone()); }
+
+			// 添加请求体内容
+			void set_body(const Atring& body)
+			{
+				if (body.empty()) return;
+				this->body = body.clone();
+				add_header("Content-Length"as, Atring::from_utf8(cstr(body.size())));
+			}
+
+			// 设置是否保持连接
+			void keep_alive(bool on)
+			{
+				if (on)
+					add_header("Connection"as, "keep-alive"as);
+				else
+					add_header("Connection"as, "close"as);
+			}
+
+			/*
+			* 返回请求的文本
+			* request line
+			* \r\n
+			* headers
+			* \r\n
+			* \r\n
+			* body
+			*/
+			Atring text() const
+			{
+				DynArray<Atring> lines;
+				Atring request_line = " "as.join(arr(method_, path(), version_));
+				lines.append(request_line);
+
+				for (auto& [k, v] : headers.items())
+					lines.append(": "as.join(arr(k, v)));
+				lines.append(""as);
+				lines.append(body);
+
+				return "\r\n"as.join(lines);
+			}
+		};
+	}
 }
 #endif // AYR_NET_HTTP_REQUEST_HPP
