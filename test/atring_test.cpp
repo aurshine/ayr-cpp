@@ -1,5 +1,6 @@
-#include <ayr/base/codec/Atring.hpp>
-#include <ayr/Dict.hpp>
+#include <array>
+
+#include <ayr/Atring.hpp>
 
 using namespace ayr;
 

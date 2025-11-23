@@ -1,10 +1,10 @@
+#include <unordered_map>
+#include <unordered_set>
+
 #include <ayr/Dict.hpp>
 #include <ayr/Set.hpp>
 #include <ayr/timer.hpp>
-#include <ayr/Atring.hpp>
 
-#include <unordered_map>
-#include <unordered_set>
 
 using namespace ayr;
 
@@ -193,7 +193,7 @@ void set_test()
 
 int main()
 {
-	// dict_run_speed_test();
-	set_run_speed_test();
+	dict_run_speed_test();
+	//set_run_speed_test();
 	return 0;
 }

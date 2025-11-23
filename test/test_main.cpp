@@ -2,24 +2,28 @@
 #include <ayr/base/raise_error.hpp>
 
 using namespace ayr;
-template <typename Range>
-class enumerate_view {
-public:
-	explicit enumerate_view(Range base) : base_(std::move(base)) {}
-private:
-	Range base_;
+
+struct A
+{
+	A() { print("A()"); }
+
+	A(const A&) { print("A(const A&)"); }
+
+	A(A&&) { print("A(A&&)"); }
+
+	~A() { print("~A()"); }
 };
-#include <vector>
+
+void f(const A& a)
+{
+	print("f(const A&)");
+}
+
+A a() { return A(); }
 
 int main()
 {
-	for (auto& i : range(10))
-		print(i);
-	for (auto [i, x] : enumerate(range(10)))
-		print(i, x);
-
-	for (auto [x, y] : zip(range(2, 5), range(3, 6)))
-		print(x, y);
+	f(a());
 
 	return 0;
 }

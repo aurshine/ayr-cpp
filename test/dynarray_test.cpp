@@ -14,7 +14,7 @@ ayr::DynArray<int> dai;
 std::vector<int> vi;
 
 constexpr int N = 1e6;
-
+ 
 void test_das_add()
 {
 	for (int i = 0; i < N; ++i)
