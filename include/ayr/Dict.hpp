@@ -166,7 +166,8 @@ namespace ayr
 		*
 		* @return Value_t& 要获取的value
 		*/
-		Value_t& operator[](const Key_t& key)
+		template<DecaySameAs<Key_t> _K>
+		Value_t& operator[](_K&& key)
 		{
 			hash_t hashv = ayrhash(key);
 
@@ -176,7 +177,7 @@ namespace ayr
 			if (index_hashv_has_value(index, hashv))
 				return htable_.items_[index].value()->value.second;
 
-			auto kv_node = kv_chain_.append(key, Value_t{});
+			auto kv_node = kv_chain_.append(std::forward<_K>(key), Value_t{});
 
 			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
 			return kv_node->value.second;
@@ -234,14 +235,15 @@ namespace ayr
 		*
 		* @return key位置上的value
 		*/
-		Value_t& setdefault(const Key_t& key, Value_t default_value)
+		template<typename _K, typename _V>
+		Value_t& setdefault(_K&& key, _V&& default_value)
 		{
 			hash_t hashv = ayrhash(key);
 			auto [index, move_dist] = htable_.try_get(hashv);
 			if (index_hashv_has_value(index, hashv))
 				return htable_.items_[index].value()->value.second;
 
-			auto kv_node = kv_chain_.append(key, std::move(default_value));
+			auto kv_node = kv_chain_.append(std::forward<_K>(key), std::forward<_V>(default_value));
 			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
 		}
 
@@ -249,10 +251,8 @@ namespace ayr
 		* @brief 根据key删除key-value
 		*
 		* @param key 要删除的key
-		*
-		* @return bool 是否成功删除
 		*/
-		bool pop(const Key_t& key)
+		void pop(const Key_t& key)
 		{
 			hash_t hashv = ayrhash(key);
 			auto [index, move_dist] = htable_.try_get(hashv);
@@ -260,10 +260,7 @@ namespace ayr
 			{
 				kv_chain_.pop(htable_.items_[index].value());
 				htable_.pop_value_on_index(index, hashv, move_dist);
-				return true;
 			}
-
-			return false;
 		}
 
 		// 清空字典

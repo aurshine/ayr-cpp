@@ -42,16 +42,17 @@ namespace ayr
 
 				req.set_body(data);
 
-				Socket sock = co_await open_connect(req.host().encode(Codec{}), req.port().to_int(), io_context);
+				Socket sock = co_await open_connect(req.host().encode(), req.port().to_int(), io_context);
 
-				co_await sock.write(req.text().encode(Codec{}));
+				Buffer req_buffer, resp_buffer;
+				req_buffer << req;
+				co_await sock.write(req_buffer);
 
-				Buffer buffer;
 				HttpResponse res;
 				ResponseParser res_parser;
 				do {
-					co_await sock.read(buffer);
-				} while (!res_parser(res, buffer));
+					co_await sock.read(resp_buffer);
+				} while (!res_parser(res, resp_buffer));
 
 				co_return res;
 			}

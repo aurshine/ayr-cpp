@@ -95,10 +95,8 @@ namespace ayr
 		* @brief 删除元素
 		*
 		* @param value 待删除元素
-		*
-		* 如果元素不存在，则不删除，返回false
 		*/
-		bool pop(const Value_t& value)
+		void pop(const Value_t& value)
 		{
 			hash_t hashv = ayrhash(value);
 			auto [index, move_dist] = htable_.try_get(hashv);
@@ -106,10 +104,7 @@ namespace ayr
 			{
 				chain_.pop(htable_.items_[index].value());
 				htable_.pop_value_on_index(index, hashv, move_dist);
-				return true;
 			}
-
-			return false;
 		}
 
 		void clear() { htable_.clear(); chain_.clear(); }
@@ -246,7 +241,7 @@ namespace ayr
 	};
 
 	template<typename T, IteratorU<T> It>
-	def set(const It& begin_, const It& end_)
+	def set(const It& begin_, const It& end_) -> Set<T>
 	{
 		Set<T> r_set(std::distance(begin_, end_));
 		It walker = begin_;

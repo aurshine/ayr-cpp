@@ -770,26 +770,44 @@ namespace ayr
 		}
 
 		// 将字符串编码为指定的编码格式
-		template<UniCodec Codec>
-		CString encode(const Codec& codec) const
+		template<UniCodec C = Codec>
+		CString encode() const
 		{
 			Buffer buffer;
-			codec.encode(data(), size(), buffer);
+			C{}.encode(data(), size(), buffer);
 			return from_buffer(std::move(buffer));
 		}
 
+		/*
+		* @brief 将字符串编码为指定的编码格式
+		* 
+		* @param encoding 指定的编码格式
+		* utf8, utf16, utf32
+		*/
+		CString encode(const self& encoding) const
+		{
+			if (encoding.lower() == from("utf8"))
+				return encode<UTF8Codec>();
+			else if (encoding.lower() == from("utf16"))
+				return encode<UTF16Codec>();
+			else if (encoding.lower() == from("utf32"))
+				return encode<UTF32Codec>();
+			ValueError("Valid encoding is 'utf8', 'utf16', 'utf32'");
+			return None;
+		}
+
 		// 使用Codec编码字符串
-		template<UniCodec Codec>
-		constexpr static self from(const CString& bytes, const Codec& codec) { return self(bytes, codec); }
+		template<UniCodec C = Codec>
+		constexpr static self from(const CString& bytes) { return self(bytes, C{}); }
 
 		// utf8编码字符串
-		constexpr static self from_utf8(const CString& bytes) { return from(bytes, UTF8Codec{}); }
+		constexpr static self from_utf8(const CString& bytes) { return from<UTF8Codec>(bytes); }
 
 		// utf16编码字符串
-		constexpr static self from_utf16(const CString& bytes) { return from(bytes, UTF16Codec{}); }
+		constexpr static self from_utf16(const CString& bytes) { return from<UTF16Codec>(bytes); }
 
 		// utf32编码字符串
-		constexpr static self from_utf32(const CString& bytes) { return from(bytes, UTF32Codec{}); }
+		constexpr static self from_utf32(const CString& bytes) { return from<UTF32Codec>(bytes); }
 
 		// 拼接迭代器对象
 		template<IteratableU<self> Obj>
@@ -828,7 +846,7 @@ namespace ayr
 
 		void __repr__(Buffer& buffer) const { Codec{}.encode(data(), size(), buffer); }
 
-		CString __str__() const { return encode(Codec{}); }
+		CString __str__() const { return encode(); }
 	private:
 		// 获得AChar字符序列的首地址
 		constexpr const AChar* data() const { return ifelse(sso(), short_str, long_str); }
@@ -873,7 +891,7 @@ namespace ayr
 		constexpr Atring operator""au32(const char* bytes, size_t size) { return Atring::from_utf32(vstr(bytes, size)); }
 
 		// 字符串字面量，使用默认的编码格式
-		constexpr Atring operator""as(const char* bytes, size_t size) { return Atring::from(vstr(bytes, size), Codec{}); }
+		constexpr Atring operator""as(const char* bytes, size_t size) { return Atring::from<Codec>(vstr(bytes, size)); }
 	}
 
 	using namespace literals;

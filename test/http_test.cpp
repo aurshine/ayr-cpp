@@ -9,7 +9,7 @@ coro::Task<void> task(coro::IoContext* io_context)
 
 	net::HttpResponse res = co_await net::get(io_context, u);
 
-	print(res.text());
+	print(res);
 }
 
 int main()

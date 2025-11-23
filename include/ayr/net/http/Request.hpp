@@ -113,27 +113,13 @@ namespace ayr
 					add_header("Connection"as, "close"as);
 			}
 
-			/*
-			* 返回请求的文本
-			* request line
-			* \r\n
-			* headers
-			* \r\n
-			* \r\n
-			* body
-			*/
-			Atring text() const
+			void __repr__(Buffer& buffer) const
 			{
-				DynArray<Atring> lines;
-				Atring request_line = " "as.join(arr(method_, path(), version_));
-				lines.append(request_line);
-
+				buffer.expand_util(body.size() + 1024);
+				buffer << method_ << " " << path() << " " << version_ << "\r\n";
 				for (auto& [k, v] : headers.items())
-					lines.append(": "as.join(arr(k, v)));
-				lines.append(""as);
-				lines.append(body);
-
-				return "\r\n"as.join(lines);
+					buffer << k << ": " << v << "\r\n";
+				buffer << "\r\n" << body;
 			}
 		};
 	}

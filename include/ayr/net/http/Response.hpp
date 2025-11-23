@@ -81,18 +81,13 @@ namespace ayr
 					add_header("Connection"as, "close"as);
 			}
 
-			Atring text() const
+			void __repr__(Buffer& buffer) const
 			{
-				DynArray<Atring> lines;
-				Atring response_line = " "as.join(arr(version, status_code, status_message));
-				lines.append(response_line);
-
+				buffer.expand_util(body.size() + 1024);
+				buffer << version << " " << status_code << " " << status_message << "\r\n";
 				for (auto& [key, value] : headers.items())
-					lines.append(": "as.join(arr(key, value)));
-				lines.append(""as);
-				lines.append(body);
-
-				return "\r\n"as.join(lines);
+					buffer << key << ": " << value << "\r\n";
+				buffer << "\r\n" << body;
 			}
 		};
 
@@ -146,7 +141,7 @@ namespace ayr
 				c_size i = buffer.find_crlf();
 				if (i == -1) return false;
 
-				Atring line = Atring::from(vstr(buffer.peek(), i), Codec{});
+				Atring line = Atring::from(vstr(buffer.peek(), i));
 				buffer.retrieve(i + 2);
 
 				Array<Atring> parts = line.split(" "as, 2);
@@ -166,7 +161,7 @@ namespace ayr
 					c_size i = buffer.find_crlf();
 					if (i == -1) return false;
 
-					Atring line = Atring::from(vstr(buffer.peek(), i), Codec{});
+					Atring line = Atring::from(vstr(buffer.peek(), i));
 					buffer.retrieve(i + 2);
 
 					if (line.empty())
@@ -187,7 +182,7 @@ namespace ayr
 
 				if (buffer.readable_size() < content_length)
 					return false;
-				response.body = Atring::from(vstr(buffer.peek(), content_length), Codec{});
+				response.body = Atring::from(vstr(buffer.peek(), content_length));
 				buffer.retrieve(content_length);
 				return true;
 			}
