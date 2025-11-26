@@ -80,5 +80,7 @@ namespace ayr
 #define EncodingError(E_MSG) RAISE("EncodingError", E_MSG)
 
 #define SystemError(E_MSG) RAISE("SystemError", E_MSG)
+
+#define SSLError(E_MSG) RAISE("SSLError", E_MSG)
 }
 #endif // AYR_BASE_RAISE_ERROR_HPP

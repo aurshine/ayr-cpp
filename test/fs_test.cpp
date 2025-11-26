@@ -3,7 +3,7 @@
 using namespace ayr;
 
 int main()
-{		
+{
 	CString file_name = fs::join(fs::dirname(__FILE__), "test.txt");
 	tlog(fs::exists(file_name));
 	fs::AyrFile a(file_name, "w");

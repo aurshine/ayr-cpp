@@ -4,6 +4,7 @@
 #if defined(_WIN32) || defined(_WIN64)
 #define AYR_WIN
 
+#include <io.h>
 #include <WinSock2.h>
 #include <Windows.h>
 #include <fileapi.h>

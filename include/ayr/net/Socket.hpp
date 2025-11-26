@@ -27,28 +27,54 @@ namespace ayr
 			coro::EventAwaiter read_awaiter_;
 
 			coro::EventAwaiter write_awaiter_;
+
+			// TLS members
+			SSL_CTX* ssl_ctx_;
+
+			SSL* ssl_;
 		public:
-			Socket(int fd, coro::IoContext* io_context) :
+			Socket(int fd, coro::IoContext* io_context, SSL_CTX* ctx = nullptr) :
 				read_fd_(fd),
 				write_fd_(net::dup(fd)),
 				read_awaiter_(io_context->wait_for_read(read_fd_)),
-				write_awaiter_(io_context->wait_for_write(write_fd_))
+				write_awaiter_(io_context->wait_for_write(write_fd_)),
+				ssl_ctx_(ctx),
+				ssl_(nullptr)
 			{
 				setblocking(fd, false);
+				if (ssl_ctx_)
+				{
+					ssl_ = SSL_new(ssl_ctx_);
+					if (!ssl_)
+						RuntimeError("Failed to create SSL object.");
+
+					SSL_set_fd(ssl_, fd);
+				}
 			}
 
 			Socket(self&& other) noexcept :
 				read_fd_(other.read_fd_),
 				write_fd_(other.write_fd_),
 				read_awaiter_(std::move(other.read_awaiter_)),
-				write_awaiter_(std::move(other.write_awaiter_))
+				write_awaiter_(std::move(other.write_awaiter_)),
+				ssl_ctx_(other.ssl_ctx_),
+				ssl_(other.ssl_)
 			{
 				other.read_fd_ = -1;
 				other.write_fd_ = -1;
+				other.ssl_ctx_ = nullptr;
+				other.ssl_ = nullptr;
 			}
 
 			~Socket()
 			{
+				if (ssl_)
+				{
+					SSL_shutdown(ssl_);
+					SSL_free(ssl_);
+					ssl_ = nullptr;
+				}
+
 				if (valid())
 				{
 					net::close(read_fd_);
@@ -68,6 +94,29 @@ namespace ayr
 			bool valid() const { return read_fd_ != -1 || write_fd_ != -1; }
 
 			/*
+			* @brief ssl握手
+			*
+			* @param is_server 是否为服务端
+			*/
+			coro::Task<void> handshake(bool is_server)
+			{
+				if (ssl_ == nullptr) co_return;
+
+				if (is_server)
+					SSL_set_accept_state(ssl_);
+				else
+					SSL_set_connect_state(ssl_);
+
+				while (true)
+				{
+					int ret = ifelse(is_server, SSL_accept(ssl_), SSL_connect(ssl_));
+					if (ret == 1) co_return;
+					
+					co_await ssl_eagain_wait(ret);
+				}
+			}
+
+			/*
 			* @brief 协程挂起，直到socket写完data
 			*
 			* @param data 要写入的数据
@@ -79,17 +128,10 @@ namespace ayr
 				c_size data_written = 0, data_size = data.size();
 				while (data_written < data_size)
 				{
-					int num_written = net::write(write_fd_, data.vslice(data_written), flags);
-					switch (num_written)
-					{
-					case -1:
-						co_await write_awaiter_;
-						break;
-					case 0:
+					int num_written = co_await ifelse(ssl_, write_ssl_once(data), write_fd_once(data));
+					if (num_written == 0)
 						co_return false;
-					default:
-						data_written += num_written;
-					}
+					data_written += num_written;
 				}
 
 				co_return true;
@@ -106,21 +148,15 @@ namespace ayr
 			{
 				while (buffer.readable_size() > 0)
 				{
-					int num_written = net::write(write_fd_, buffer, flags);
-					switch (num_written)
-					{
-					case -1:
-						co_await write_awaiter_;
-						break;
-					case 0:
+					int num_written = co_await ifelse(ssl_, write_ssl_once(buffer), write_fd_once(buffer));
+					if (num_written == 0)
 						co_return false;
-					}
 				}
 				co_return true;
 			}
 
 			/*
-			* @brief 协程挂起，直到socket读完或buffer被写满
+			* @brief 协程挂起，直到读取到数据
 			*
 			* @param buffer 要读取的数据存放的buffer
 			*
@@ -132,11 +168,22 @@ namespace ayr
 			{
 				while (true)
 				{
-					int num_read = net::read(read_fd_, buffer, read_size, flags);
-					if (num_read == -1)
-						co_await read_awaiter_;
+					if (ssl_)
+					{
+						int num_read = net::read(ssl_, buffer, read_size);
+						if (num_read == -1)
+							co_await ssl_eagain_wait(num_read);
+						else
+							co_return num_read;
+					}
 					else
-						co_return num_read;
+					{
+						int num_read = net::read(read_fd_, buffer, read_size, flags);
+						if (num_read == -1)
+							co_await read_awaiter_;
+						else
+							co_return num_read;
+					}
 				}
 			}
 
@@ -149,6 +196,98 @@ namespace ayr
 			}
 
 			void __repr__(Buffer& buffer) const { buffer << "Socket(" << read_fd_ << ")"; }
+		private:
+			/*
+			* @brief 等待ssl需要的读写事件
+			*
+			* @param ret 之前的ssl函数返回值
+			*/
+			coro::Task<void> ssl_eagain_wait(int ret)
+			{
+				int err = SSL_get_error(ssl_, ret);
+				if (err == SSL_ERROR_WANT_READ)
+					co_await read_awaiter_;
+				else if (err == SSL_ERROR_WANT_WRITE)
+					co_await write_awaiter_;
+				else
+					SSLError(ssl_error_msg());
+			}
+
+			/*
+			* @brief 协程挂起，直到ssl完成一次写操作
+			*
+			* @param data 要写入的数据
+			*
+			* @return 返回写入的字节数, 0表示对方关闭连接
+			*/
+			coro::Task<int> write_ssl_once(const CString& data)
+			{
+				while (true)
+				{
+					int num_written = net::write(ssl_, data);
+					if (num_written < 0)
+						co_await ssl_eagain_wait(num_written);
+					else
+						co_return num_written;
+				}
+			}
+
+			/*
+			* @brief 协程挂起，直到ssl完成一次写操作
+			*
+			* @param buffer 要写入的数据
+			*
+			* @return 返回写入的字节数, 0表示对方关闭连接
+			*/
+			coro::Task<int> write_ssl_once(Buffer& buffer)
+			{
+				while (true)
+				{
+					int num_written = net::write(ssl_, buffer);
+
+					if (num_written < 0)
+						co_await ssl_eagain_wait(num_written);
+					else
+					{
+						buffer.retrieve(num_written);
+						co_return num_written;
+					}
+				}
+			}
+
+			/*
+			* @brief 协程挂起，直到fd完成一次写操作
+			*
+			* @param data 要写入的数据
+			*
+			* @return 返回写入的字节数, 0表示对方关闭连接
+			*/
+			coro::Task<int> write_fd_once(const CString& data)
+			{
+				while (true)
+				{
+					int num_written = net::write(write_fd_, data);
+					if (num_written < 0)
+						co_await write_awaiter_;
+					else
+						co_return num_written;
+				}
+			}
+
+			coro::Task<int> write_fd_once(Buffer& buffer)
+			{
+				while (true)
+				{
+					int num_written = net::write(write_fd_, buffer);
+					if (num_written < 0)
+						co_await write_awaiter_;
+					else
+					{
+						buffer.retrieve(num_written);
+						co_return num_written;
+					}
+				}
+			}
 		};
 
 
@@ -166,11 +305,14 @@ namespace ayr
 			coro::IoContext* io_context_;
 
 			coro::EventAwaiter read_awaiter_;
+
+			SSL_CTX* ssl_ctx_;
 		public:
-			Acceptor(const CString& ip, int port, coro::IoContext* io_context, bool ipv6 = false) :
+			Acceptor(const CString& ip, int port, coro::IoContext* io_context, bool ipv6 = false, SSL_CTX* ssl_ctx = nullptr) :
 				fd_(net::socket(ifelse(ipv6, AF_INET6, AF_INET), SOCK_STREAM, IPPROTO_TCP)),
 				read_awaiter_(io_context->wait_for_read(fd_)),
-				io_context_(io_context)
+				io_context_(io_context),
+				ssl_ctx_(ssl_ctx)
 			{
 				sockaddr_in addr;
 				std::memset(&addr, 0, sizeof(addr));
@@ -221,7 +363,9 @@ namespace ayr
 					if (fd == -1)
 						RuntimeError(get_error_msg());
 				}
-				co_return Socket(fd, io_context_);
+				Socket sock(fd, io_context_, ssl_ctx_);
+				co_await sock.handshake(true);
+				co_return sock;
 			}
 
 			cmp_t __cmp__(const self& other) const { return fd_ - other.fd_; }
@@ -240,7 +384,7 @@ namespace ayr
 		*
 		* @return 返回连接成功的文件描述符，否则抛出异常
 		*/
-		def open_connect(const CString& host, int port, coro::IoContext* io_context) -> coro::Task<Socket>
+		def open_connect(const CString& host, int port, coro::IoContext* io_context, SSL_CTX* ssl_ctx = nullptr) -> coro::Task<Socket>
 		{
 			addrinfo hints, * res = nullptr;
 			memset(&hints, 0, sizeof(hints));
@@ -258,7 +402,11 @@ namespace ayr
 				{
 					int fd = net::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 					if (co_await co_connect(fd, p->ai_addr, p->ai_addrlen, io_context))
-						co_return Socket(fd, io_context);
+					{
+						Socket sock(fd, io_context, ssl_ctx);
+						co_await sock.handshake(false);
+						co_return sock;
+					}
 					net::close(fd);
 				}
 			}
@@ -283,7 +431,7 @@ namespace ayr
 		};
 
 		static const _StartSocket __startsocket;
-	}
 #endif // AYR_WIN
+	}
 }
 #endif // AYR_NET_SOCKET_HPP

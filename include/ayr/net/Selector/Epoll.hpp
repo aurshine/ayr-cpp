@@ -61,20 +61,23 @@ namespace ayr
 			void insert(int fd, const IoEvent& io_event)
 			{
 				struct epoll_event ev;
-				ev.data.ptr = (void*)&fd_events.insert(fd, io_event);
 				// 默认监听错误事件，挂起连接
-				ev.events = EPOLLERR | EPOLLHUP | EPOLLRDHUP;
+				ev.events = EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
 				// 读事件，LT模式
 				if (io_event.registered_events() & IoEvent::READABLE)
 					ev.events |= EPOLLIN;
 				// 写事件
 				if (io_event.registered_events() & IoEvent::WRITABLE)
 					ev.events |= EPOLLOUT;
-
-				if (contains(fd))
-					::epoll_ctl(epoll_fd_, EPOLL_CTL_MOD, fd, &ev);
-				else
-					::epoll_ctl(epoll_fd_, EPOLL_CTL_ADD, fd, &ev);
+				
+				int epoll_op = EPOLL_CTL_MOD;
+				if (!contains(fd))
+				{
+					fd_events.insert(fd, io_event);
+					epoll_op = EPOLL_CTL_ADD;
+				}
+				ev.data.ptr = (void*)&fd_events.get(fd);
+				::epoll_ctl(epoll_fd_, epoll_op, fd, &ev);
 			}
 
 			/*

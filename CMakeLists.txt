@@ -5,8 +5,14 @@ project(ayr-cpp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# https需要使用openssl
+find_package(OpenSSL REQUIRED)
+
 add_library(ayr INTERFACE)
 target_include_directories(ayr INTERFACE ${PROJECT_SOURCE_DIR}/include)
+
+# 给库加上 OpenSSL
+target_link_libraries(ayr INTERFACE OpenSSL::SSL OpenSSL::Crypto)
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     

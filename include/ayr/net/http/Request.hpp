@@ -36,6 +36,8 @@ namespace ayr
 			{
 				if (!uri_.host().empty())
 					add_header("Host"as, uri_.host());
+				if (uri_.scheme().empty())
+					uri_.scheme("https"as);
 				if (uri_.port().empty())
 					if (uri_.scheme() == "http"as)
 						uri_.port("80"as);

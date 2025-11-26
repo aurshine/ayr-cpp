@@ -1,7 +1,8 @@
 #ifndef AYR_NET_UTILS_HPP
 #define AYR_NET_UTILS_HPP
 
-#include <io.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 
 #include "../base/ExTask.hpp"
 #include "../coro/IoContext.hpp"
@@ -11,6 +12,15 @@ namespace ayr
 {
 	namespace net
 	{
+		// 获取ssl的错误信息
+		def ssl_error_msg() -> CString
+		{
+			Buffer buf(256);
+			ERR_error_string_n(ERR_get_error(), buf.write_ptr(), buf.writeable_size());
+			buf.written(std::strlen(buf.peek()));
+			return from_buffer(std::move(buf));
+		}
+
 		// 是否是非阻塞模式还未就绪
 		bool is_eagain()
 		{
@@ -19,8 +29,21 @@ namespace ayr
 			return err == WSAEWOULDBLOCK;
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 			int err = errno;
-			return return err == EAGAIN || err == EWOULDBLOCK;
+			return err == EAGAIN || err == EWOULDBLOCK;
 #endif
+		}
+
+		/*
+		* @brief 是否是SSL非阻塞模式还未就绪
+		*
+		* @param ssl SSL指针
+		*
+		* @param ret SSL_read或SSL_write的返回值
+		*/
+		bool is_ssl_eagain(SSL* ssl, int ret)
+		{
+			int err = SSL_get_error(ssl, ret);
+			return err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE;
 		}
 
 		// 是否是正在进行连接
@@ -183,7 +206,7 @@ namespace ayr
 		*
 		* @param read_size 要读取的数据大小
 		*
-		* @return 实际读取的字节数
+		* @return 实际读取的字节数, -1表示非阻塞模式下读缓冲区为空
 		*/
 		def read(int fd, Buffer& buffer, c_size read_size, int flags = 0)
 		{
@@ -198,6 +221,35 @@ namespace ayr
 					return -1;
 				else
 					RuntimeError(get_error_msg());
+			buffer.written(num_read);
+			return num_read;
+		}
+
+		/*
+		* @brief 读取SSL指针的数据到buffer中
+		*
+		* @param ssl SSL指针
+		*
+		* @param buffer 要读取的数据存放的buffer
+		*
+		* @param read_size 要读取的数据大小
+		*
+		* @return 实际读取的字节数, -1表示非阻塞模式下读缓冲区为空
+		*/
+		def read(SSL* ssl, Buffer& buffer, c_size read_size)
+		{
+			if (read_size <= 0)
+				read_size = buffer.writeable_size();
+			else
+				buffer.expand_util(read_size);
+
+			int num_read = SSL_read(ssl, buffer.write_ptr(), read_size);
+			if (num_read < 0)
+				if (is_ssl_eagain(ssl, num_read))
+					return -1;
+				else
+					SSLError(ssl_error_msg());
+
 			buffer.written(num_read);
 			return num_read;
 		}
@@ -224,6 +276,26 @@ namespace ayr
 		}
 
 		/*
+		* @brief 写入数据到SSL指针
+		*
+		* @param ssl SSL指针
+		*
+		* @param data 要写入的数据
+		*
+		* @return 实际写入的字节数, -1表示非阻塞模式下写缓冲区已满
+		*/
+		def write(SSL* ssl, const CString& data) -> int
+		{
+			int num_written = SSL_write(ssl, data.data(), data.size());
+			if (num_written < 0)
+				if (is_ssl_eagain(ssl, num_written))
+					return -1;
+				else
+					SSLError(ssl_error_msg());
+			return num_written;
+		}
+
+		/*
 		* @brief 将buffer中的数据写入socket文件描述符
 		*
 		* @param fd 要写入的文件描述符
@@ -240,6 +312,18 @@ namespace ayr
 					return -1;
 				else
 					RuntimeError(get_error_msg());
+			buffer.retrieve(num_written);
+			return num_written;
+		}
+
+		def write(SSL* ssl, Buffer& buffer) -> int
+		{
+			int num_written = SSL_write(ssl, buffer.peek(), buffer.readable_size());
+			if (num_written < 0)
+				if (is_ssl_eagain(ssl, num_written))
+					return -1;
+				else
+					SSLError(ssl_error_msg());
 			buffer.retrieve(num_written);
 			return num_written;
 		}
@@ -262,7 +346,7 @@ namespace ayr
 			if (ret == -1 && !is_einprogress())
 				RuntimeError(get_error_msg());
 			co_await io_context->wait_for_write(fd);
-
+			
 			int result = 0;
 			socklen_t result_len = sizeof(result);
 			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &result, &result_len) < 0)
