@@ -63,11 +63,11 @@ namespace ayr
 		static void print_logevent(const LogEvent& evt, const CString& msg, const Date& date, const CString& file, int line)
 		{
 			fprintf(evt.output_, "%s %s%-5s%s %s:%d ",
-				cstr(date).c_str().c_str(),
+				cstr(date).c_str(),
 				LogLevel::LEVEL_COLORS[evt.level_],
 				LogLevel::LEVEL_NAMES[evt.level_],
 				Color::CLOSE,
-				file.c_str().c_str(),
+				file.c_str(),
 				line);
 			fwrite(msg, 1, msg.size(), evt.output_);
 			fprintf(evt.output_, "\n");
