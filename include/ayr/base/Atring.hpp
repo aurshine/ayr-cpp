@@ -1,8 +1,8 @@
-#ifndef AYR_BASE_CODEC_ASTRING_HPP
-#define AYR_BASE_CODEC_ASTRING_HPP
+#ifndef AYR_BASE_ATRING_HPP
+#define AYR_BASE_ATRING_HPP
 
-#include "UniCodec.hpp"
-#include "../Array.hpp"
+#include "Array.hpp"
+#include "codec/UniCodec.hpp"
 
 namespace ayr
 {
@@ -780,7 +780,7 @@ namespace ayr
 
 		/*
 		* @brief 将字符串编码为指定的编码格式
-		* 
+		*
 		* @param encoding 指定的编码格式
 		* utf8, utf16, utf32
 		*/
@@ -896,4 +896,4 @@ namespace ayr
 
 	using namespace literals;
 }
-#endif // AYR_BASE_CODEC_ASTRING_HPP
+#endif // AYR_BASE_ATRING_HPP

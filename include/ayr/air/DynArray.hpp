@@ -1,11 +1,7 @@
-﻿#ifndef AYR_DYNARRAY_HPP
-#define AYR_DYNARRAY_HPP
+﻿#ifndef AYR_AIR_DYNARRAY_HPP
+#define AYR_AIR_DYNARRAY_HPP
 
-#include <utility>
-
-#include "base/bunit.hpp"
-#include "base/Appender.hpp"
-#include "base/itertools.hpp"
+#include "Appender.hpp"
 
 namespace ayr
 {
@@ -404,4 +400,4 @@ namespace ayr
 	};
 }
 
-#endif
+#endif // AYR_AIR_DYNARRAY_HPP

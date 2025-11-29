@@ -1,5 +1,5 @@
-﻿#ifndef AYR_BASE_AYR_TRAITS_HPP
-#define AYR_BASE_AYR_TRAITS_HPP
+﻿#ifndef AYR_BASE_META_AYR_TRAITS_HPP
+#define AYR_BASE_META_AYR_TRAITS_HPP
 
 #include <type_traits>
 
@@ -104,5 +104,4 @@ namespace ayr
 		return static_cast<std::remove_reference_t<T2>>(arg);
 	}
 }
-
-#endif
+#endif // AYR_BASE_META_AYR_TRAITS_HPP

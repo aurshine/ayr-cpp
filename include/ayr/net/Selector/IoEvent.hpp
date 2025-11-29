@@ -1,7 +1,6 @@
 #ifndef AYR_NET_SELECTOR_IOEVENT_HPP
 #define AYR_NET_SELECTOR_IOEVENT_HPP
 
-#include "../../base/View.hpp"
 #include "../../coro/co_utils.hpp"
 
 namespace ayr

@@ -34,9 +34,7 @@
 
 #endif // 平台判断
 
-#include "../base/ExTask.hpp"
-#include "../base/raise_error.hpp"
-
+#include "../base.hpp"
 
 namespace ayr
 {

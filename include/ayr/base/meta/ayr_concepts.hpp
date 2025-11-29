@@ -1,5 +1,5 @@
-﻿#ifndef AYR_BASE_AYR_CONCEPTS_HPP
-#define AYR_BASE_AYR_CONCEPTS_HPP
+﻿#ifndef AYR_BASE_META_AYR_CONCEPTS_HPP
+#define AYR_BASE_META_AYR_CONCEPTS_HPP
 
 #include <iostream>
 #include <concepts>
@@ -101,4 +101,4 @@ namespace ayr
 	template<typename T>
 	concept NoDestroy = Or<BaseType<T>, isinstance<T, NoDestroyObj>>;
 }
-#endif
+#endif // AYR_BASE_META_AYR_CONCEPTS_HPP

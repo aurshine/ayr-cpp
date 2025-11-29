@@ -21,7 +21,7 @@ unicode编码的字符串
 ```cpp
 #include <array>
 
-#include <ayr/Atring.hpp>
+#include <ayr/base.hpp>
 
 using namespace ayr;
 
@@ -89,9 +89,7 @@ int main()
 根据json字符串快速解析出json对象，支持多种json格式
 ```cpp
 #include <ayr/json.hpp>
-#include <ayr/timer.hpp>
 #include <ayr/filesystem.hpp>
-#include <fstream>
 
 using namespace ayr;
 
@@ -212,8 +210,7 @@ int main()
 #include <string>
 #include <algorithm>
 
-#include <ayr/DynArray.hpp>
-#include <ayr/timer.hpp>
+#include <ayr/air/DynArray.hpp>
 
 using namespace ayr;
 
@@ -288,8 +285,7 @@ vector query str time: 0.000100 ms
 ```cpp
 #include <unordered_map>
 
-#include <ayr/Dict.hpp>
-#include <ayr/timer.hpp>
+#include <ayr/air/Dict.hpp>
 
 using namespace ayr;
 
@@ -355,8 +351,7 @@ std::unordered_map pop time:  180.377100 m
 
 #include <unordered_set>
 
-#include <ayr/Set.hpp>
-#include <ayr/timer.hpp>
+#include <ayr/air/Set.hpp>
 
 using namespace ayr;
 
@@ -596,7 +591,6 @@ client end
 ## http请求
 ```
 #include <ayr/net/http.hpp>
-#include <ayr/net/http/Uri.hpp>
 
 using namespace ayr;
 

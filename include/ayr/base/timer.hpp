@@ -1,10 +1,10 @@
-﻿#ifndef AYR_TIMER_HPP
-#define AYR_TIMER_HPP
+﻿#ifndef AYR_BASE_TIMER_HPP
+#define AYR_BASE_TIMER_HPP
 
 #include <ctime>
 #include <chrono>
 
-#include "base/raise_error.hpp"
+#include "raise_error.hpp"
 
 namespace ayr
 {
@@ -138,4 +138,4 @@ namespace ayr
 	using Timer_us = Timer<std::micro>;
 	using Timer_ns = Timer<std::nano>;
 }
-#endif
+#endif // AYR_BASE_TIMER_HPP

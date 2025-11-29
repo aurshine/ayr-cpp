@@ -2,7 +2,6 @@
 #define AYR_FS_FILE_HPP
 
 #include "oslib.h"
-#include "../Atring.hpp"
 #include "../coro/Generator.hpp"
 
 namespace ayr
@@ -17,7 +16,7 @@ namespace ayr
 			using FD = HANDLE;
 
 			constexpr static FD INVALID_FD = INVALID_HANDLE_VALUE;
-			
+
 			constexpr static const char* SYS_EOL = "\r\n";
 #else
 			using FD = int;
@@ -30,9 +29,9 @@ namespace ayr
 		public:
 			/*
 			* @brief AyrFile构造函数
-			* 
+			*
 			* @param filename 文件名
-			* 
+			*
 			* @param mode 打开模式，支持"w"、"r"、"a"
 			*/
 			AyrFile(const CString& filename, const CString& mode) : fd_(INVALID_FD)
@@ -123,11 +122,11 @@ namespace ayr
 
 			/*
 			* @brief 将文件内容读入缓冲区
-			* 
+			*
 			* @param buffer 要读入的缓冲区
-			* 
+			*
 			* @param size 要读入数据的长度，默认为-1，表示读取整个文件
-			* 
+			*
 			* @return 实际读取的字节数
 			*/
 			c_size read(Buffer& buffer, c_size size = -1) const
@@ -162,9 +161,9 @@ namespace ayr
 
 			/*
 			* @brief 将文件内容读入缓冲区
-			* 
+			*
 			* @param size 要读入数据的长度，默认为-1，表示读取整个文件
-			* 
+			*
 			* @return 返回缓冲区
 			*/
 			Buffer read_buffer(c_size size = -1) const
@@ -183,12 +182,12 @@ namespace ayr
 			* @return 返回读取的数据
 			*/
 			CString read(c_size size = -1) const { return from_buffer(read_buffer(size)); }
-			
+
 			/*
 			* @brief 根据编码读取文件内容
-			* 
+			*
 			* @template C 编码类型, 默认是Codec(utf-8)
-			* 
+			*
 			* @return 返回编码后的字符串
 			*/
 			template<UniCodec C = Codec>
@@ -198,7 +197,7 @@ namespace ayr
 			* @brief 按行读取文件内容
 			*
 			* @detail 每行字符串末尾不包含换行符
-			* 
+			*
 			* @return 返回一个协程生成器
 			*/
 			coro::Generator<CString> readlines() const
@@ -217,9 +216,9 @@ namespace ayr
 					num_read = read(buffer, BLOCK_SIZE);
 					/*
 					* 当需要read_buffer时，表示前befor_read_size都没有换行符
-					* 
+					*
 					* 第一次获取eol_pos时，从befor_read_size开始查找
-					* 
+					*
 					* 后续获取eol_pos时，下标0开始查找
 					*/
 					for (eol_pos = buffer.find_eol(before_read_size); eol_pos != -1; eol_pos = buffer.find_eol())
@@ -238,7 +237,7 @@ namespace ayr
 					}
 					before_read_size = buffer.readable_size();
 				} while (num_read == BLOCK_SIZE);
-				
+
 				// 最后一行
 				if (buffer.readable_size() > 0)
 					co_return from_buffer(std::move(buffer));
@@ -246,7 +245,7 @@ namespace ayr
 
 			/*
 			* @brief 按行读取指定编码文件内容
-			* 
+			*
 			* @template C 编码类型, 默认是Codec(utf-8)
 			*/
 			template<UniCodec C = Codec>
@@ -308,11 +307,11 @@ namespace ayr
 
 			/*
 			* @brief 按行写入文件内容
-			* 
+			*
 			* @template C 编码类型, 默认是Codec(utf-8)
-			* 
+			*
 			* @param data 要写入的数据
-			* 
+			*
 			* @param size 要写入数据的长度，默认为-1，表示写入整个数据
 			*/
 			template<UniCodec C = Codec>
@@ -342,9 +341,9 @@ namespace ayr
 
 			/*
 			* @brief 按行写入文件指定编码内容
-			* 
+			*
 			* @template C 编码类型, 默认是Codec(utf-8)
-			* 
+			*
 			* @param obj 要写入的字符串可迭代对象
 			*/
 			template<IteratableV<Atring> Obj, UniCodec C = Codec>
@@ -389,11 +388,11 @@ namespace ayr
 
 		/*
 		* @brief 读取文件指定编码内容
-		* 
+		*
 		* @template C 编码类型, 默认是Codec(utf-8)
-		* 
+		*
 		* @param filename 文件名
-		* 
+		*
 		* @return 返回编码后的字符串
 		*/
 		template<UniCodec C = Codec>
@@ -420,43 +419,43 @@ namespace ayr
 		* @param size 要写入数据的长度，默认为-1，表示写入整个数据
 		*/
 		def write(const CString& filename, Buffer& buffer, c_size size = -1) { return AyrFile(filename, "w").write(buffer, size); }
-		
+
 		/*
 		* @brief 写入文件指定编码内容
-		* 
+		*
 		* @template C 编码类型, 默认是Codec(utf-8)
-		* 
+		*
 		* @param filename 文件名
-		* 
+		*
 		* @param data 要写入的数据
-		* 
+		*
 		* @param size 要写入数据的长度，默认为-1，表示写入整个数据
 		*/
 		template<UniCodec C = Codec>
 		def writes(const CString& filename, const Atring& data, c_size size = -1) { return AyrFile(filename, "w").writes<C>(data, size); }
-		
+
 		/*
 		* @brief 按行写入文件内容
-		* 
+		*
 		* @param filename 文件名
-		* 
+		*
 		* @param obj 要写入的字符串可迭代对象
 		*/
 		template<IteratableV<CString> Obj>
 		def writelines(const CString& filename, Obj&& obj) { return AyrFile(filename, "w").writelines(obj); }
-		
+
 		/*
 		* @brief 按行写入文件指定编码内容
-		* 
+		*
 		* @template C 编码类型, 默认是Codec(utf-8)
-		* 
+		*
 		* @param filename 文件名
-		* 
+		*
 		* @param obj 要写入的字符串可迭代对象
 		*/
 		template<IteratableV<Atring> Obj, UniCodec C = Codec>
 		def writeliness(const CString& filename, Obj&& obj) { return AyrFile(filename, "w").writeliness<C>(obj); }
-	}
-}
+			}
+			}
 
 #endif // AYR_FS_FILE_HPP

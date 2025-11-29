@@ -57,4 +57,4 @@ namespace ayr
 	template<size_t N>
 	inline hash_t ayrhash(const char(&key)[N]) { return bytes_hash(key, N - 1); }
 }
-#endif
+#endif // AYR_BASE_HASH_HPP

@@ -1,5 +1,4 @@
 #include <ayr/net/http.hpp>
-#include <ayr/net/http/Uri.hpp>
 
 using namespace ayr;
 

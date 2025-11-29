@@ -4,10 +4,9 @@
 #include <thread>
 #include <queue>
 #include <future>
-#include <functional>
 #include <condition_variable>
 
-#include "../Array.hpp"
+#include "../base.hpp"
 
 
 namespace ayr

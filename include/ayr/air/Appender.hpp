@@ -1,7 +1,7 @@
-#ifndef AYR_BASE_APPENDER_HPP
-#define AYR_BASE_APPENDER_HPP
+#ifndef AYR_AIR_APPENDER_HPP
+#define AYR_AIR_APPENDER_HPP
 
-#include "Array.hpp"
+#include "../base.hpp"
 
 namespace ayr
 {
@@ -114,4 +114,4 @@ namespace ayr
 		Value_t* buffer_;
 	};
 }
-#endif
+#endif // AYR_AIR_APPENDER_HPP

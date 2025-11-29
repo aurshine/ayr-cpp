@@ -2,8 +2,6 @@
 #define AYR_NET_SOCKET_HPP
 
 #include "utils.hpp"
-#include "../Atring.hpp"
-
 
 namespace ayr
 {
@@ -111,7 +109,7 @@ namespace ayr
 				{
 					int ret = ifelse(is_server, SSL_accept(ssl_), SSL_connect(ssl_));
 					if (ret == 1) co_return;
-					
+
 					co_await ssl_eagain_wait(ret);
 				}
 			}

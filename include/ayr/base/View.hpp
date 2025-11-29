@@ -131,4 +131,4 @@ namespace ayr
 	template<typename T>
 	def view_of(ViewOF<T> obj) { return obj; }
 }
-#endif
+#endif // AYR_BASE_VIEW_HPP

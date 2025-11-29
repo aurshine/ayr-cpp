@@ -1,7 +1,7 @@
-#ifndef AYR_OPTIONAL_HPP
-#define AYR_OPTIONAL_HPP
+#ifndef AYR_AIR_OPTIONAL_HPP
+#define AYR_AIR_OPTIONAL_HPP
 
-#include "base/raise_error.hpp"
+#include "../base.hpp"
 
 namespace ayr
 {
@@ -269,4 +269,4 @@ namespace ayr
 		const T* get_ptr() const { return reinterpret_cast<const T*>(&storage_); }
 	};
 }
-#endif // AYR_OPTIONAL_HPP
+#endif // AYR_AIR_OPTIONAL_HPP

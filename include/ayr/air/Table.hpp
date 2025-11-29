@@ -1,12 +1,9 @@
-#ifndef AYR_BASE_TABLE_HPP
-#define AYR_BASE_TABLE_HPP
+#ifndef AYR_AIR_TABLE_HPP
+#define AYR_AIR_TABLE_HPP
 
 #include <array>
 
-#include "bunit.hpp"
-#include "itertools.hpp"
-#include "raise_error.hpp"
-#include "../DynArray.hpp"
+#include "DynArray.hpp"
 
 namespace ayr
 {
@@ -511,4 +508,4 @@ namespace ayr
 		}
 	};
 }
-#endif // AYR_BASE_TABLE_HPP
+#endif // AYR_AIR_TABLE_HPP

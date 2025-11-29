@@ -1,9 +1,7 @@
-#ifndef AYR_CHAIN2_HPP
-#define AYR_CHAIN2_HPP
+#ifndef AYR_AYR_CHAIN_HPP
+#define AYR_AYR_CHAIN_HPP
 
-#include "base/raise_error.hpp"
-#include "base/Sequence.hpp"
-
+#include "../base.hpp"
 
 namespace ayr
 {
@@ -315,4 +313,4 @@ namespace ayr
 		return res;
 	}
 }
-#endif // AYR_CHAIN2_HPP
+#endif // AYR_AYR_CHAIN_HPP

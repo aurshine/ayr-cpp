@@ -1,8 +1,6 @@
 #include <array>
 
-#include "ayr/base/Array.hpp"
-#include "ayr/base/printer.hpp"
-#include "ayr/timer.hpp"
+#include "ayr/base.hpp"
 
 
 using namespace ayr;

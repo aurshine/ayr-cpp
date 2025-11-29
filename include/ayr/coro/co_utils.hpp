@@ -2,7 +2,8 @@
 #define AYR_CORO_CO_UTILS_HPP_
 
 #include <coroutine>
-#include "../base/Object.hpp"
+
+#include "../base.hpp"
 
 namespace ayr
 {

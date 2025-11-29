@@ -3,6 +3,9 @@
 
 #include "IteratorInfo.hpp"
 
+#undef max
+#undef min
+
 namespace ayr
 {
 	// 求和

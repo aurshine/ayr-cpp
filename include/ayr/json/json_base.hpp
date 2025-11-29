@@ -1,9 +1,8 @@
 #ifndef AYR_JSON_JSON_BASE_HPP
 #define AYR_JSON_JSON_BASE_HPP
 
-#include "../DynArray.hpp"
-#include "../Dict.hpp"
-#include "../Atring.hpp"
+#include "../air/Dict.hpp"
+#include "../air/DynArray.hpp"
 
 namespace ayr
 {

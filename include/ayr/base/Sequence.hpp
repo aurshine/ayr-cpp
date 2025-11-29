@@ -3,8 +3,8 @@
 
 #include <functional>
 
-#include "itertools.hpp"
-
+#include "itertools/IndexIterator.hpp"
+#include "raise_error.hpp"
 
 namespace ayr
 {

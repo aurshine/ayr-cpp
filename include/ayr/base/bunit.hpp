@@ -1,5 +1,5 @@
-﻿#ifndef AYR_DETIAL_BUNIT_HPP
-#define AYR_DETIAL_BUNIT_HPP
+﻿#ifndef AYR_BASE_BUNIT_HPP
+#define AYR_BASE_BUNIT_HPP
 
 #include "meta/ayr.h"
 
@@ -116,5 +116,4 @@ namespace ayr
 		return x + 1;
 	}
 }
-
-#endif
+#endif // AYR_BASE_BUNIT_HPP

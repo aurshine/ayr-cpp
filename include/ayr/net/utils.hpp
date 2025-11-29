@@ -4,7 +4,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#include "../base/ExTask.hpp"
 #include "../coro/IoContext.hpp"
 #include "../fs/oslib.h"
 
@@ -346,7 +345,7 @@ namespace ayr
 			if (ret == -1 && !is_einprogress())
 				RuntimeError(get_error_msg());
 			co_await io_context->wait_for_write(fd);
-			
+
 			int result = 0;
 			socklen_t result_len = sizeof(result);
 			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &result, &result_len) < 0)

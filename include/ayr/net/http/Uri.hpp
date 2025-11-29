@@ -1,9 +1,7 @@
 #ifndef AYR_NET_HTTP_URI_HPP
 #define AYR_NET_HTTP_URI_HPP
 
-#include "../../Atring.hpp"
-#include "../../base/itertools.hpp"
-#include "../../Dict.hpp"
+#include "../../air/Dict.hpp"
 
 namespace ayr
 {

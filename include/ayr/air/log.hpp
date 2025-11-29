@@ -1,9 +1,9 @@
-﻿#ifndef AYR_LOG_HPP
-#define AYR_LOG_HPP
+﻿#ifndef AYR_AIR_LOG_HPP
+#define AYR_AIR_LOG_HPP
 
 #include <functional>
 
-#include "timer.hpp"
+#include "../base.hpp"
 
 namespace ayr
 {
@@ -26,7 +26,7 @@ namespace ayr
 
 			constexpr static int WARN = 3;
 
-			constexpr static int ERROR = 4;
+			constexpr static int ERR = 4;
 
 			constexpr static int FATAL = 5;
 
@@ -49,10 +49,19 @@ namespace ayr
 
 			constexpr LogEvent(int level, FILE* output) : level_(level), output_(output) {}
 
+			constexpr LogEvent(const LogEvent& other) : level_(other.level_), output_(other.output_) {}
+
 			~LogEvent()
 			{
 				if (output_ && output_ != stdout && output_ != stderr)
 					fclose(output_);
+			}
+
+			constexpr LogEvent& operator=(const LogEvent& other)
+			{
+				level_ = other.level_;
+				output_ = other.output_;
+				return *this;
 			}
 
 			int level_;
@@ -69,7 +78,7 @@ namespace ayr
 				Color::CLOSE,
 				file.c_str(),
 				line);
-			fwrite(msg, 1, msg.size(), evt.output_);
+			fwrite(msg.data(), 1, msg.size(), evt.output_);
 			fprintf(evt.output_, "\n");
 			fflush(evt.output_);
 		}
@@ -99,7 +108,7 @@ namespace ayr
 
 		static void warn(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::WARN, loc.file_name(), loc.line()); }
 
-		static void error(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERROR, loc.file_name(), loc.line()); }
+		static void error(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::ERR, loc.file_name(), loc.line()); }
 
 		static void fatal(const CString& msg, std::source_location loc = std::source_location::current()) { return log(msg, LogLevel::FATAL, loc.file_name(), loc.line()); }
 
@@ -115,4 +124,4 @@ namespace ayr
 
 	int Log::event_count = 1;
 }
-#endif
+#endif // AYR_AIR_LOG_HPP
