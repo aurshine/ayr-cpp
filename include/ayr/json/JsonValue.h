@@ -1,306 +1,142 @@
 #ifndef AYR_JSON_JSONVALUE_H
 #define AYR_JSON_JSONVALUE_H
 
-#include "json_base.hpp"
+#include <variant>
+
+#include "../air/Dict.hpp"
+#include "../air/DynArray.hpp"
 
 namespace ayr
 {
 	namespace json
 	{
+		class Json;
+
+		using JsonNull = std::monostate;
+
+		using JsonInt = long long;
+
+		using JsonFloat = double;
+
+		using JsonBool = bool;
+
+		using JsonStr = Atring;
+
+		using JsonArray = DynArray<Json>;
+
+		using JsonDict = Dict<JsonStr, Json>;
+
+
+		template<typename T>
+		concept JsonTypeConcept = issame<T, JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict>;
+
 		class Json
 		{
 			using self = Json;
 
-			void* json_item_;
-
-			// json对象的类型id
-			int8_t json_type_id_;
+			std::variant<JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict> json_var_;
 		public:
-
-			/*
-			* @brief 根据json_type_id 将json对象分发到对应的处理函数中
-			*
-			* @detail
-			*
-			* R 模板参数表示处理函数的返回值
-			*
-			* IsConst 表示处理函数的参数是否传入const对象
-			*/
-			template<typename R, bool IsConst = false>
-			class JsonMethodsImpl
-			{
-				using self = JsonMethodsImpl;
-
-				using NullArgT = add_const_t<IsConst, JsonNull>&;
-
-				using IntArgT = add_const_t<IsConst, JsonInt>&;
-
-				using FloatArgT = add_const_t<IsConst, JsonFloat>&;
-
-				using BoolArgT = add_const_t<IsConst, JsonBool>&;
-
-				using StrArgT = add_const_t<IsConst, JsonStr>&;
-
-				using ArrayArgT = add_const_t<IsConst, JsonArray>&;
-
-				using DictArgT = add_const_t<IsConst, JsonDict>&;
-
-				std::function<R(NullArgT)> for_null_;
-
-				std::function<R(IntArgT)> for_int_;
-
-				std::function<R(FloatArgT)> for_float_;
-
-				std::function<R(BoolArgT)> for_bool_;
-
-				std::function<R(StrArgT)> for_str_;
-
-				std::function<R(ArrayArgT)> for_array_;
-
-				std::function<R(DictArgT)> for_dict_;
-			public:
-				JsonMethodsImpl() {}
-
-				void for_null(std::function<R(NullArgT)> func) { for_null_ = std::move(func); }
-
-				void for_int(std::function<R(IntArgT)> func) { for_int_ = std::move(func); }
-
-				void for_float(std::function<R(FloatArgT)> func) { for_float_ = std::move(func); }
-
-				void for_bool(std::function<R(BoolArgT)> func) { for_bool_ = std::move(func); }
-
-				void for_str(std::function<R(StrArgT)> func) { for_str_ = std::move(func); }
-
-				void for_array(std::function<R(ArrayArgT)> func) { for_array_ = std::move(func); }
-
-				void for_dict(std::function<R(DictArgT)> func) { for_dict_ = std::move(func); }
-
-				/*
-				* @brief 根据传入的json对象的类型id，转发到对应的处理函数中
-				*
-				* @param obj 传入的json对象
-				*
-				* @return R 返回处理函数的返回值
-				*
-				* @warning 若处理函数没有被定义，会抛出JSON_TYPE_INVALID_ERROR异常
-				*/
-				R operator()(add_const_t<IsConst, Json>& obj) const
-				{
-					if (obj.is_null())
-						return null_fn(obj.as_null());
-					else if (obj.is_int())
-						return int_fn(obj.as_int());
-					else if (obj.is_float())
-						return float_fn(obj.as_float());
-					else if (obj.is_bool())
-						return bool_fn(obj.as_bool());
-					else if (obj.is_str())
-						return str_fn(obj.as_str());
-					else if (obj.is_array())
-						return array_fn(obj.as_array());
-					else if (obj.is_dict())
-						return dict_fn(obj.as_dict());
-
-					JSON_TYPE_INVALID_ERROR;
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-			private:
-				R null_fn(NullArgT obj) const
-				{
-					if (for_null_) return for_null_(obj);
-					json_invalid_error<JsonNull>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R int_fn(IntArgT obj) const
-				{
-					if (for_int_) return for_int_(obj);
-					json_invalid_error<JsonInt>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R float_fn(FloatArgT obj) const
-				{
-					if (for_float_) return for_float_(obj);
-					json_invalid_error<JsonFloat>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R bool_fn(BoolArgT obj) const
-				{
-					if (for_bool_) return for_bool_(obj);
-					json_invalid_error<JsonBool>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R str_fn(StrArgT obj) const
-				{
-					if (for_str_) return for_str_(obj);
-					json_invalid_error<JsonStr>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R array_fn(ArrayArgT obj) const
-				{
-					if (for_array_) return for_array_(obj);
-					json_invalid_error<JsonArray>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-
-				R dict_fn(DictArgT obj) const
-				{
-					if (for_dict_) return for_dict_(obj);
-					json_invalid_error<JsonDict>();
-					if constexpr (Not<issame<R, void>>)
-						return None;
-				}
-			};
-
-			template<typename R = void>
-			using JsonMethods = JsonMethodsImpl<R, false>;
-
-			template<typename R = void>
-			using JsonMethodsC = JsonMethodsImpl<R, true>;
-
-			Json() : json_item_(ayr_make<JsonNull>()), json_type_id_(GetJsonTypeID<JsonNull>::ID) {}
+			constexpr Json() : json_var_(JsonNull()) {}
 
 			template<JsonTypeConcept T>
-			explicit Json(const T& value) : json_item_(ayr_make<T>(value)), json_type_id_(GetJsonTypeID<T>::ID) {}
+			constexpr explicit Json(T&& value) : json_var_(std::forward<T>(value)) {}
+
+			constexpr Json(const Json& other) : json_var_(other.json_var_) {}
+
+			constexpr Json(Json&& other) noexcept : json_var_(std::move(other.json_var_)) {}
 
 			template<JsonTypeConcept T>
-			explicit Json(T&& value) : json_item_(ayr_make<T>(std::move(value))), json_type_id_(GetJsonTypeID<T>::ID) {}
-
-			Json(const Json& other) : json_item_(nullptr), json_type_id_(INVALID_JSON_TYPE_ID)
+			constexpr self& operator=(const T& value)
 			{
-				JsonMethodsC<> jmc;
-				jmc.for_null([&](const JsonNull& obj) { ayr_construct(this, obj); });
-				jmc.for_int([&](const JsonInt& obj) { ayr_construct(this, obj); });
-				jmc.for_float([&](const JsonFloat& obj) { ayr_construct(this, obj); });
-				jmc.for_bool([&](const JsonBool& obj) { ayr_construct(this, obj); });
-				jmc.for_str([&](const JsonStr& obj) { ayr_construct(this, obj); });
-				jmc.for_array([&](const JsonArray& obj) { ayr_construct(this, obj); });
-				jmc.for_dict([&](const JsonDict& obj) { ayr_construct(this, obj); });
-				jmc(other);
-			}
-
-			Json(Json&& other) noexcept : json_item_(other.json_item_), json_type_id_(other.json_type_id_)
-			{
-				other.json_item_ = nullptr;
-				other.json_type_id_ = INVALID_JSON_TYPE_ID;
-			}
-
-			~Json()
-			{
-				if (this->json_type_id_ == INVALID_JSON_TYPE_ID) return;
-
-				JsonMethods<> jm;
-				jm.for_null([&](JsonNull& obj) { ayr_desloc(&obj); });
-				jm.for_int([&](JsonInt& obj) { ayr_desloc(&obj); });
-				jm.for_float([&](JsonFloat& obj) { ayr_desloc(&obj); });
-				jm.for_bool([&](JsonBool& obj) { ayr_desloc(&obj); });
-				jm.for_str([&](JsonStr& obj) { ayr_desloc(&obj); });
-				jm.for_array([&](JsonArray& obj) { ayr_desloc(&obj); });
-				jm.for_dict([&](JsonDict& obj) { ayr_desloc(&obj); });
-				jm(*this);
-				json_item_ = nullptr;
-				json_type_id_ = INVALID_JSON_TYPE_ID;
+				json_var_.emplace(value);
+				return *this;
 			}
 
 			template<JsonTypeConcept T>
-			self& operator=(const T& value)
+			constexpr self& operator=(T&& value)
 			{
-				if (json_item_ == &value) return *this;
-				ayr_destroy(this);
-				return *ayr_construct(this, value);
+				json_var_.emplace(std::move(value));
+				return *this;
 			}
 
-			template<JsonTypeConcept T>
-			self& operator=(T&& value)
+			constexpr self& operator=(const self& other)
 			{
-				if (json_item_ == &value) return *this;
-				ayr_destroy(this);
-				return *ayr_construct(this, std::move(value));
+				json_var_ = other.json_var_;
+				return *this;
 			}
 
-			self& operator=(const self& other)
+			constexpr self& operator=(self&& other) noexcept
 			{
-				if (this == &other) return *this;
-				ayr_destroy(this);
-				return *ayr_construct(this, other);
+				json_var_ = std::move(other.json_var_);
+				return *this;
 			}
 
-			self& operator=(self&& other) noexcept
-			{
-				if (this == &other) return *this;
-				ayr_destroy(this);
-				return *ayr_construct(this, std::move(other));
-			}
+			constexpr bool is_null() const { return std::holds_alternative<JsonNull>(json_var_); }
 
-			bool is_null() const { return json_type_id_ == GetJsonTypeID<JsonNull>::ID; }
+			constexpr bool is_int() const { return std::holds_alternative<JsonInt>(json_var_); }
 
-			bool is_int() const { return json_type_id_ == GetJsonTypeID<JsonInt>::ID; }
+			constexpr bool is_float() const { return std::holds_alternative<JsonFloat>(json_var_); }
 
-			bool is_float() const { return json_type_id_ == GetJsonTypeID<JsonFloat>::ID; }
+			constexpr bool is_bool() const { return std::holds_alternative<JsonBool>(json_var_); }
 
-			bool is_bool() const { return json_type_id_ == GetJsonTypeID<JsonBool>::ID; }
+			constexpr bool is_str() const { return std::holds_alternative<JsonStr>(json_var_); }
 
-			bool is_str() const { return json_type_id_ == GetJsonTypeID<JsonStr>::ID; }
+			constexpr bool is_array() const { return std::holds_alternative<JsonArray>(json_var_); }
 
-			bool is_array() const { return json_type_id_ == GetJsonTypeID<JsonArray>::ID; }
+			constexpr bool is_dict() const { return std::holds_alternative<JsonDict>(json_var_); }
 
-			bool is_dict() const { return json_type_id_ == GetJsonTypeID<JsonDict>::ID; }
+			constexpr JsonNull& as_null() { return std::get<JsonNull>(json_var_); }
 
-			JsonNull& as_null() { return *reinterpret_cast<JsonNull*>(json_item_); }
+			constexpr const JsonNull& as_null() const { return std::get<JsonNull>(json_var_); }
 
-			const JsonNull& as_null() const { return *reinterpret_cast<const JsonNull*>(json_item_); }
+			constexpr JsonInt& as_int() { return std::get<JsonInt>(json_var_); }
 
-			JsonInt& as_int() { return *reinterpret_cast<JsonInt*>(json_item_); }
+			constexpr const JsonInt& as_int() const { return std::get<JsonInt>(json_var_); }
 
-			const JsonInt& as_int() const { return *reinterpret_cast<const JsonInt*>(json_item_); }
+			constexpr JsonFloat& as_float() { return std::get<JsonFloat>(json_var_); }
 
-			JsonFloat& as_float() { return *reinterpret_cast<JsonFloat*>(json_item_); }
+			constexpr const JsonFloat& as_float() const { return std::get<JsonFloat>(json_var_); }
 
-			const JsonFloat& as_float() const { return *reinterpret_cast<const JsonFloat*>(json_item_); }
+			constexpr JsonBool& as_bool() { return std::get<JsonBool>(json_var_); }
 
-			JsonBool& as_bool() { return *reinterpret_cast<JsonBool*>(json_item_); }
+			constexpr const JsonBool& as_bool() const { return std::get<JsonBool>(json_var_); }
 
-			const JsonBool& as_bool() const { return *reinterpret_cast<const JsonBool*>(json_item_); }
+			constexpr JsonStr& as_str() { return std::get<JsonStr>(json_var_); }
 
-			JsonStr& as_str() { return *reinterpret_cast<JsonStr*>(json_item_); }
+			constexpr const JsonStr& as_str() const { return std::get<JsonStr>(json_var_); }
 
-			const JsonStr& as_str() const { return *reinterpret_cast<const JsonStr*>(json_item_); }
+			constexpr JsonArray& as_array() { return std::get<JsonArray>(json_var_); }
 
-			JsonArray& as_array() { return *reinterpret_cast<JsonArray*>(json_item_); }
+			constexpr const JsonArray& as_array() const { return std::get<JsonArray>(json_var_); }
 
-			const JsonArray& as_array() const { return *reinterpret_cast<const JsonArray*>(json_item_); }
+			constexpr JsonDict& as_dict() { return std::get<JsonDict>(json_var_); }
 
-			JsonDict& as_dict() { return *reinterpret_cast<JsonDict*>(json_item_); }
-
-			const JsonDict& as_dict() const { return *reinterpret_cast<const JsonDict*>(json_item_); }
+			constexpr const JsonDict& as_dict() const { return std::get<JsonDict>(json_var_); }
 
 			/*
 			* @brief 获取Json类型名称
 			*
 			* @return CString 类型名称
 			*/
-			CString type_name() const
+			constexpr CString type_name() const
 			{
-				JsonMethodsC<CString> jmc;
-				jmc.for_null([&](const JsonNull&) -> CString { return "null"; });
-				jmc.for_int([&](const JsonInt&) -> CString { return "int"; });
-				jmc.for_float([&](const JsonFloat&) -> CString { return "float"; });
-				jmc.for_bool([&](const JsonBool&) -> CString { return "bool"; });
-				jmc.for_str([&](const JsonStr&) -> CString { return "str"; });
-				jmc.for_array([&](const JsonArray&) -> CString { return "array"; });
-				jmc.for_dict([&](const JsonDict&) -> CString { return "dict"; });
-				return jmc(*this);
+				return visit([](auto&& v) {
+					using T = decltype(v);
+					if constexpr (issame<T, JsonNull>)
+						return "Null";
+					else if constexpr (issame<T, JsonInt>)
+						return "Int";
+					else if constexpr (issame<T, JsonBool>)
+						return "Bool";
+					else if constexpr (issame<T, JsonFloat>)
+						return "Float";
+					else if constexpr (issame<T, JsonStr>)
+						return "Str";
+					else if constexpr (issame<T, JsonArray>)
+						return "Array";
+					else if constexpr (issame<T, JsonDict>)
+						return "Dict";
+					});
 			}
 
 			/*
@@ -314,9 +150,10 @@ namespace ayr
 			*/
 			Json& append(const Json& json)
 			{
-				JsonMethods<Json&> jm;
-				jm.for_array([&json](JsonArray& obj) -> Json& { return obj.append(json); });
-				return jm(*this);
+				if (is_array())
+					return as_array().append(json);
+				JsonValueError(std::format("type {} cannot call append", type_name()));
+				return None;
 			}
 
 			/*
@@ -333,9 +170,10 @@ namespace ayr
 			*/
 			Json& operator[] (const JsonStr& key)
 			{
-				JsonMethods<Json&> jm;
-				jm.for_dict([&key](JsonDict& obj) -> Json& { return obj[key]; });
-				return jm(*this);
+				if (is_dict())
+					return as_dict()[key];
+				JsonValueError(std::format("type {} cannot call operator[key]", type_name()));
+				return None;
 			}
 
 			/*
@@ -352,9 +190,10 @@ namespace ayr
 			*/
 			const Json& operator[] (const JsonStr& key) const
 			{
-				JsonMethodsC<const Json&> jmc;
-				jmc.for_dict([&key](const JsonDict& obj) -> const Json& { return obj[key]; });
-				return jmc(*this);
+				if (is_dict())
+					return as_dict()[key];
+				JsonValueError(std::format("type {} cannot call operator[key]", type_name()));
+				return None;
 			}
 
 			/*
@@ -371,9 +210,10 @@ namespace ayr
 			*/
 			Json& operator[] (c_size index)
 			{
-				JsonMethods<Json&> jm;
-				jm.for_array([&index](JsonArray& obj) -> Json& { return obj[index]; });
-				return jm(*this);
+				if (is_array())
+					return as_array()[index];
+				JsonValueError(std::format("type {} cannot call operator[index]", type_name()));
+				return None;
 			}
 
 			/*
@@ -390,9 +230,10 @@ namespace ayr
 			*/
 			const Json& operator[] (c_size index) const
 			{
-				JsonMethodsC<const Json&> jmc;
-				jmc.for_array([&index](const JsonArray& obj) -> const Json& { return obj[index]; });
-				return jmc(*this);
+				if (is_array())
+					return as_array()[index];
+				JsonValueError(std::format("type {} cannot call operator[index]", type_name()));
+				return None;
 			}
 
 			/*
@@ -407,9 +248,9 @@ namespace ayr
 			*/
 			void pop(c_size index)
 			{
-				JsonMethods<> jm;
-				jm.for_array([&index](JsonArray& obj) { obj.pop(index); });
-				jm(*this);
+				if (is_array())
+					as_array().pop(index);
+				JsonValueError(std::format("type {} cannot call pop(index)", type_name()));
 			}
 
 			/*
@@ -421,17 +262,10 @@ namespace ayr
 			*/
 			void pop(const JsonStr& key)
 			{
-				JsonMethods<> jm;
-				jm.for_dict([&key](JsonDict& obj) { obj.pop(key); });
-				jm(*this);
+				if (is_dict())
+					as_dict().pop(key);
+				JsonValueError(std::format("type {} cannot call pop(key)", type_name()));
 			}
-
-			/*void pop(const Json& json_obj)
-			{
-				JsonMethods<> jm;
-				jm.for_array([&json_obj](JsonArray& obj) { obj.pop_if([&json_obj](const Json& json) { return json == json_obj; }); });
-				jm(*this);
-			}*/
 
 			/*
 			* @brief 清空Json对象内部的值
@@ -440,10 +274,12 @@ namespace ayr
 			*/
 			void clear()
 			{
-				JsonMethods<> jm;
-				jm.for_array([](JsonArray& obj) { obj.clear(); });
-				jm.for_dict([](JsonDict& obj) { obj.clear(); });
-				jm(*this);
+				return visit([&](auto&& v) {
+					using T = decltype(v);
+					if constexpr (issame<T, JsonArray, JsonDict>)
+						return v.clear();
+					JsonValueError(std::format("type {} cannot call clear", type_name()));
+					});
 			}
 
 			/*
@@ -460,167 +296,111 @@ namespace ayr
 			*/
 			c_size size() const
 			{
-				JsonMethodsC<c_size> jmc;
-				jmc.for_array([](const JsonArray& obj) { return obj.size(); });
-				jmc.for_dict([](const JsonDict& obj) { return obj.size(); });
-				jmc.for_str([](const JsonStr& obj) { return obj.size(); });
-				return jmc(*this);
+				return visit([&](auto&& v) -> c_size {
+					using T = decltype(v);
+					if constexpr (issame<T, JsonStr, JsonArray, JsonDict>)
+						return v.size();
+					JsonValueError(std::format("type {} cannot call clear", type_name()));
+					return None;
+					});
 			}
 
-			bool operator==(const Json& other) const
-			{
-				if (this == &other) return true;
-				if (json_type_id_ != other.json_type_id_) return false;
-				JsonMethodsC<bool> jmc;
-				jmc.for_null([&other](const JsonNull&) { return true; });
-				jmc.for_int([&other](const JsonInt& obj) { return obj == other.as_int(); });
-				jmc.for_float([&other](const JsonFloat& obj) { return obj == other.as_float(); });
-				jmc.for_bool([&other](const JsonBool& obj) { return obj == other.as_bool(); });
-				jmc.for_str([&other](const JsonStr& obj) { return obj == other.as_str(); });
-				jmc.for_array([&other](const JsonArray& obj) { return obj == other.as_array(); });
-				jmc.for_dict([&other](const JsonDict& obj) { return obj == other.as_dict(); });
-				return jmc(*this);
-			}
+			// 访问json的实际元素
+			template<typename Callable>
+			auto visit(Callable&& fn) { return std::visit(std::forward<Callable>(fn), json_var_); }
+
+			// 访问json的实际元素
+			template<typename Callable>
+			auto visit(Callable&& fn) const { return std::visit(std::forward<Callable>(fn), json_var_); }
+
+			bool operator==(const Json& other) const { return json_var_ == other.json_var_; }
 
 			void __repr__(Buffer& buffer) const { fmt_buf(buffer, 0, "    "); }
-
-			/*
-			* @brief 根据匹配模式设置Json对象的值
-			*
-			* @detail
-			* - pattern 为空串时，直接设置当前Json对象的值为v
-			* - pattern 为a.b.c，以abc为key，在当前Json对象中查找，若不存在，则创建
-			* - pattern 为[n]，以n为下标，在当前Json对象中查找，若不存在，则创建
-			* - pattern 为a.b[n]，以ab为key，在当前Json对象中查找，若不存在，则创建
-			*
-			* @param pattern 匹配模式
-			*
-			* @param v 待设置的值
-			*
-			* @return Json& 当前Json对象
-			*/
-			Json& pattern_set(Atring pattern, Json v)
-			{
-				// 空串
-				if (pattern.empty()) return *this = v;
-
-				// 数组
-				if (pattern.startswith("["as))
-				{
-					c_size r = pattern.index("]"as);
-					if (r == -1) RuntimeError("Invalid partner for '['");
-					auto index = pattern.slice(1, r).to_int();
-
-					while (index >= size()) append(Json());
-					return (*this)[index].pattern_set(pattern.slice(r + 1), v);
-				}
-				else // 字典
-				{
-					pattern = pattern.lstrip("."as);
-					c_size r = 0;
-					while (r < pattern.size() && pattern[r] != '.' && pattern[r] != '[')
-						++r;
-					Atring key = pattern.slice(0, r);
-					return (*this)[key].pattern_set(pattern.slice(r), v);
-				}
-			}
 		private:
 			// 格式化输出json对象
 			void fmt_buf(Buffer& buffer, int depth, const CString& indent) const
 			{
-				JsonMethodsC<> jmc;
+				struct Visitor
+				{
+					Buffer& vb;
 
-				jmc.for_null([&buffer](const JsonNull& obj) { buffer << "null"; });
-				jmc.for_int([&buffer](const JsonInt& obj) { buffer << obj; });
-				jmc.for_float([&buffer](const JsonFloat& obj) { buffer << obj; });
-				jmc.for_bool([&buffer](const JsonBool& obj) { buffer << obj; });
-				jmc.for_str([&buffer](const JsonStr& obj) { buffer << "\"" << obj << "\""; });
+					int depth;
 
-				jmc.for_array([&](const JsonArray& obj) {
-					buffer << "[";
-					bool is_ds = any(obj, [](const Json& item) {
-						return item.is_array() || item.is_dict();
-						});
+					const CString& indent;
 
-					if (is_ds) fmt_new_line(buffer, depth + 1, indent);
+					void operator()(const JsonNull& obj) { vb << "null"; }
 
-					bool flag = false;
-					for (auto& item : obj)
+					void operator()(const JsonInt& obj) { vb << obj; }
+
+					void operator()(const JsonFloat& obj) { vb << obj; }
+
+					void operator()(const JsonBool& obj) { vb << obj; }
+
+					void operator()(const JsonStr& obj) { vb << "\"" << obj << "\""; }
+
+					void operator()(const JsonArray& obj)
 					{
-						if (flag)
+						vb << "[";
+						bool is_ds = any(obj, [](const Json& item) {
+							return item.is_array() || item.is_dict();
+							});
+
+						if (is_ds) fmt_new_line(vb, depth + 1, indent);
+
+						bool flag = false;
+						for (auto& item : obj)
 						{
-							buffer << ", ";
-							if (is_ds) fmt_new_line(buffer, depth + 1, indent);
+							if (flag)
+							{
+								vb << ", ";
+								if (is_ds) fmt_new_line(vb, depth + 1, indent);
+							}
+							flag = true;
+							item.fmt_buf(vb, depth + 1, indent);
 						}
-						flag = true;
-						item.fmt_buf(buffer, depth + 1, indent);
+
+						if (is_ds) fmt_new_line(vb, depth, indent);
+
+						vb << "]";
 					}
 
-					if (is_ds) fmt_new_line(buffer, depth, indent);
-
-					buffer << "]";
-					});
-
-				jmc.for_dict([&](const JsonDict& obj) {
-					buffer << "{";
-					bool is_ds = any(obj.values(), [](const Json& item) {
-						return item.is_array() || item.is_dict();
-						});
-
-					if (is_ds) fmt_new_line(buffer, depth + 1, indent);
-
-					bool flag = false;
-					for (auto& [k, v] : obj.items())
+					void operator()(const JsonDict& obj)
 					{
-						if (flag)
+						vb << "{";
+						bool is_ds = any(obj.values(), [](const Json& item) {
+							return item.is_array() || item.is_dict();
+							});
+
+						if (is_ds) fmt_new_line(vb, depth + 1, indent);
+
+						bool flag = false;
+						for (auto& [k, v] : obj.items())
 						{
-							buffer << ", ";
-							if (is_ds) fmt_new_line(buffer, depth + 1, indent);
+							if (flag)
+							{
+								vb << ", ";
+								if (is_ds) fmt_new_line(vb, depth + 1, indent);
+							}
+							flag = true;
+							vb << "\"" << k << "\": ";
+							v.fmt_buf(vb, depth + 1, indent);
 						}
-						flag = true;
-						buffer << "\"" << k << "\": ";
-						v.fmt_buf(buffer, depth + 1, indent);
+
+						if (is_ds) fmt_new_line(vb, depth, indent);
+						vb << "}";
 					}
 
-					if (is_ds) fmt_new_line(buffer, depth, indent);
-					buffer << "}";
-					});
-
-				jmc(*this);
-			}
-
-			// 格式化输出换行
-			void fmt_new_line(Buffer& buffer, int depth, const CString& indent) const
-			{
-				buffer << "\n";
-				while (depth--)
-					buffer << indent;
+					// 格式化输出换行
+					void fmt_new_line(Buffer& buffer, int depth, const CString& indent) const
+					{
+						buffer << "\n";
+						while (depth--)
+							buffer << indent;
+					}
+				};
+				visit(Visitor{ buffer, depth, indent });
 			}
 		};
-
-		template<typename T>
-		constexpr inline Json make_int(T&& value)
-		{
-			static_assert(std::is_arithmetic_v<std::remove_cvref_t<T>>,
-				"Unsupported type for make int");
-
-			return Json(static_cast<JsonInt>(value));
-		}
-
-		template<typename T>
-		constexpr inline Json make_float(T&& value)
-		{
-			static_assert(std::is_arithmetic_v<std::remove_cvref_t<T>>,
-				"Unsupported type for make int");
-
-			return Json(static_cast<JsonFloat>(value));
-		}
-
-		template<typename T>
-		constexpr inline Json make_bool(T&& value)
-		{
-			return Json(static_cast<JsonBool>(value));
-		}
 	}
 }
 #endif  AYR_JSON_JSONVALUE_H

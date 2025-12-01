@@ -698,73 +698,86 @@ namespace ayr
 			return res;
 		}
 
-		constexpr c_size to_int() const
+		/*
+		* brief 将字符串转换为整数
+		* 
+		* @details 支持正负号
+		* 
+		* @param base 数字的进制，范围[2, 36]，默认10进制
+		* 
+		* @return 解析后的整数和未解析的字符串部分
+		*/
+		constexpr std::pair<c_size, self> toint(int base = 10) const
 		{
-			if (empty()) return 0;
+			if (base <= 1 || base > 36)
+				ValueError("Base must be in range [2, 36]");
+			if (empty()) return { 0, *this };
 
-			c_size num = 0;
-			bool neg = false;
-			auto it = begin(), end_it = end();
-			if (*it == '-')
-			{
-				neg = true;
-				++it;
-			}
-			else if (*it == '+')
-				++it;
+			c_size num = 0, i = (at(0) == '+' || at(0) == '-');
+			c_size remain_length = size();
+			bool neg = (at(0) == '-');
 
-			while (it != end_it)
+			for (c_size m_size = size(); i < m_size; ++i)
 			{
-				if (it->isdigit())
-					num = num * 10 + it->ord() - '0';
+				int digit = 0;
+				if (at(i) >= '0' && at(i) <= '9')
+					digit = at(i).ord() - '0';
+				else if (at(i) >= 'A' && at(i) <= 'Z')
+					digit = at(i).ord() - 'A' + 10;
+				else if (at(i) >= 'a' && at(i) <= 'z')
+					digit = at(i).ord() - 'a' + 10;
 				else
-					RuntimeError("Invalid character in integer string");
-				++it;
+				{
+					remain_length = i;
+					break;
+				}
+				num = num * base + digit;
 			}
-			return ifelse(neg, -num, num);
+	
+			return { ifelse(neg, -num, num), vslice(remain_length) };
 		}
 
-		constexpr double to_double() const
+		/*
+		* @brief 将字符串转换为双精度浮点数
+		* 
+		* @details 支持正负号和小数点
+		* 
+		* @return 解析后的浮点数和未解析的字符串部分
+		*/
+		constexpr std::pair<double, self> tofloat() const
 		{
-			if (empty()) return 0;
+			if (empty()) return {0, *this};
 
-			double num = 0.0;
-			bool neg = false;
+			c_size num = 0;
+			c_size frac_num = 0, frac_div = 1;
+			c_size i = (at(0) == '+' || at(0) == '-');
+			c_size remain_length = size();
+			bool neg = (at(0) == '-');
 			bool frac = false;
-			double frac_scale = 0.1;
 
-			auto it = begin(), end_it = end();
-			if (*it == '-') {
-				neg = true;
-				++it;
-			}
-			else if (*it == '+')
-				++it;
-
-			while (it != end_it)
-			{
-				if (!it->isdigit())
+			for (c_size m_size = size(); i < m_size; ++i)
+				if (at(i).isdigit())
 				{
-					if (!frac && *it == '.')
+					if (frac)
 					{
-						frac = true;
-						++it;
-						continue;
+						frac_num = frac_num * 10 + at(i).ord() - '0';
+						frac_div *= 10;
 					}
-					RuntimeError("Invalid character in double string");
-				}
-
-				if (frac)
-				{
-					num += (it->ord() - '0') * frac_scale;
-					frac_scale *= 0.1;
+					else
+						num = num * 10 + at(i).ord() - '0';
 				}
 				else
-					num = num * 10.0 + (it->ord() - '0');
-				++it;
-			}
-
-			return neg ? -num : num;
+				{
+					if (at(i) == '.' && !frac)
+						frac = true;
+					else
+					{
+						remain_length = i;
+						break;
+					}
+				}
+			double res = num + (frac_num / (double)frac_div);
+			return { ifelse(neg, -res, res) , vslice(remain_length) };
 		}
 
 		// 将字符串编码为指定的编码格式

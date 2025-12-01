@@ -9,201 +9,238 @@ namespace ayr
 	{
 		class JsonParser
 		{
-		public:
-			JsonParser() {}
+			// 需要解析的json字符串
+			Atring json_str_;
 
-			Json operator()(Atring json_str) const
+			// 当前解析位置，[pos_, ]为未解析部分
+			c_size pos_;
+		public:
+			JsonParser(const Atring& json_str): json_str_(json_str.strip()), pos_(0) {}
+
+			/*
+			* @brief 解析json字符串
+			* 
+			* @param json_str 待解析的json字符串
+			* 
+			* @return 解析得到的Json对象和解析的字符串的长度
+			*/
+			std::pair<Json, c_size> operator()()
 			{
-				Atring obj = json_str.strip();
-				return parse_obj(obj);
+				Json json_obj = parse_obj();
+				return { std::move(json_obj), pos_};
 			}
 		private:
-			// 解析 str
-			Json _parse_str(JsonStr& json_str) const
+			/*
+			* @brief 解析 number, bool, null
+			*
+			* @param json_str 待解析的json字符串
+			*
+			* @return 解析得到的Json对象
+			*/
+			Json _parse_simple()
 			{
-				for (c_size i = 1, n = json_str.size(); i < n; i++)
-					if (json_str.at(i) == '"' && json_str.at(i - 1) != '\\')
-					{
-						JsonStr str_part = json_str.slice(1, i);
-						json_str = json_str.vslice(i + 1);
-						return Json(std::move(str_part));
-					}
-
-				RuntimeError(std::format("invalid str parse: {}", json_str));
-				return None;
-			}
-
-			// 解析 number, bool, null
-			Json _parse_simple(JsonStr& json_str) const
-			{
+				Atring json_str = remain_str();
 				if (json_str.startswith("null"as)) // null类型
 				{
-					json_str = json_str.vslice(4);
+					pos_ += 4;
 					return Json();
 				}
-				else if (json_str.startswith("true"as))
+				else if (json_str.startswith("true"as)) // bool类型
 				{
-					json_str = json_str.vslice(4);
+					pos_ += 4;
 					return Json(true);
 				}
-				else if (json_str.startswith("false"as))
+				else if (json_str.startswith("false"as)) // bool类型
 				{
-					json_str = json_str.vslice(5);
+					pos_ += 5;
 					return Json(false);
 				}
-				else if (json_str.at(0) == '-' || json_str[0].isdigit()) // number类型
+				else if (json_str.at(0) == '-' ||
+					json_str.at(0) == '+' ||
+					json_str[0].isdigit()
+					) // number类型
 				{
-					bool float_flag = false;
-					c_size r = 1;
-					while (r < json_str.size())
-					{
-						if (json_str[r].isdigit())
-						{
-							++r;
-							continue;
-						}
+					c_size i = json_str.at(0) == '+' || json_str.at(0) == '-';
+					while (i < json_str.size() && json_str[i].isdigit()) ++i;
 
-						if (json_str.at(r) == '.' && !float_flag)
-						{
-							float_flag = true;
-							++r;
-							continue;
-						}
-						break;
+					// float类型
+					if (i < json_str.size() && json_str.at(i) == '.')
+					{
+						auto&& [num, remain_str] = json_str.tofloat();
+						pos_ = json_str_.size() - remain_str.size();
+						return Json(num);
 					}
 
-					auto num_part = json_str.vslice(0, r);
-					json_str = json_str.vslice(r);
-
-					return ifelse(float_flag, make_float(num_part.to_double()), make_int(num_part.to_int()));
+					// int类型
+					auto&& [num, remain_str] = json_str.toint();
+					pos_ = json_str_.size() - remain_str.size();
+					return Json(num);
 				}
-
 				ValueError(std::format("invalid simple parse: {}", json_str.at(0)));
 				return None;
 			}
 
-			// 返回一个可以被实际解析为Json对象的字符串
-			Json parse_obj(JsonStr& json_str) const
-			{
-				if (json_str.at(0) == '{')  // dict类型
+			/*
+			* @brief 解析 str
+			* 
+			* @param json_str 待解析的json字符串
+			* 
+			* @return 解析得到的Json对象
+			*/
+			Json _parse_str()
+			{				
+				// 去掉 "
+				c_size start_pos = ++ pos_;
+				c_size n = json_str_.size();
+				while (pos_ < n)
 				{
-					return _parse_dict(json_str);
+					// 遇到未转义的 "
+					if (json_str_.at(pos_) == '"' && json_str_.at(pos_ - 1) != '\\')
+						return Json(json_str_.slice(start_pos, pos_ ++));
+					++pos_;
 				}
-				else if (json_str.at(0) == '[')  // array类型)
-				{
-					return _parse_array(json_str);
-				}
-				else if (json_str.at(0) == '"')  // str类型
-					return _parse_str(json_str);
-				else
-					return _parse_simple(json_str);
+					
+				JsonValueError(std::format("invalid str parse: {}", json_str_.vslice(start_pos)));
+				return None;
 			}
 
-			// 解析array
-			Json _parse_array(JsonStr& json_str) const
+			/*
+			* @brief 解析 array
+			* 
+			* @param json_str 待解析的json字符串
+			* 
+			* @return 解析得到的Json对象
+			*/
+			Json _parse_array()
 			{
 				JsonArray arr;
 				// 去掉 [
-				c_size pos = first_non_space(json_str, 1);
-				json_str = json_str.vslice(pos);
-
-				if (json_str.at(0) == ']')
+				first_non_space(1);
+				
+				while (first_char() != ']')
 				{
-					json_str = json_str.vslice(1);
+					arr.append(parse_obj());
+
+					first_non_space();
+					if (first_char() == ']')
+						break;
+					else if (first_char() == ',')
+						first_non_space(1); // 去掉 ,
+					else
+						JsonValueError(std::format("invalid array parse: {}", remain_str()));
 				}
-				else
-				{
-					while (json_str.at(0) != ']')
-					{
-						arr.append(parse_obj(json_str));
-
-						pos = first_non_space(json_str);
-						if (json_str.at(pos) == ']')
-						{
-							json_str = json_str.vslice(first_non_space(json_str, pos + 1));
-							break;
-						}
-						else if (json_str.at(pos) == ',')
-						{
-							json_str = json_str.vslice(first_non_space(json_str, pos + 1));
-							continue;
-						}
-
-						ValueError(std::format("invalid array parse: {}", json_str));
-						return None;
-					}
-				}
-
+				
+				// 去掉 ]
+				++ pos_;
 				return Json(std::move(arr));
 			}
 
 
-			// 解析dict
-			Json _parse_dict(JsonStr& json_str) const
+			/*
+			* @brief 解析 dict
+			* 
+			* @param json_str 待解析的json字符串
+			* 
+			* @return 解析得到的Json对象
+			*/
+			Json _parse_dict()
 			{
 				JsonDict dict;
 				// 去掉 {
-				c_size pos = first_non_space(json_str, 1);
-				json_str = json_str.vslice(pos);
-
-				// dict为空
-				if (json_str.at(0) == '}')
-				{
-					json_str = json_str.vslice(1);
-					return Json(std::move(dict));
-				}
+				first_non_space(1);
 
 				// dict非空
-				while (json_str.at(0) != '}')
+				while (first_char() != '}')
 				{
 					// 解析到key
-					Json key = parse_obj(json_str);
+					Json key = parse_obj();
 					if (!key.is_str())
-					{
-						ValueError(std::format("invalid dict key parse: {}", json_str));
-						return None;
-					}
-
+						JsonValueError(std::format("invalid dict key parse: {}", key));
+					
 					// 找到 ':'
-					pos = first_non_space(json_str);
-					if (json_str.at(pos) != ':')
-					{
-						ValueError(std::format("invalid dict parse: {}", json_str));
-						return None;
-					}
+					first_non_space();
+					if (first_char() != ':')
+						JsonValueError(std::format("invalid dict parse: {}, expect ':'", first_char()));
 
+					// 去掉 ':'
+					first_non_space(1);
 					// 解析value
-					json_str = json_str.vslice(first_non_space(json_str, pos + 1));
-					dict.insert(std::move(key.as_str()), parse_obj(json_str));
+					dict.insert(std::move(key.as_str()), parse_obj());
 
 					// 找到 ','或 '}'
-					pos = first_non_space(json_str);
-					if (json_str.at(pos) == '}')
-					{
-						json_str = json_str.vslice(first_non_space(json_str, pos + 1));
+					first_non_space();
+					if (first_char() == '}')
 						break;
-					}
-					else if (json_str.at(pos) == ',')
-					{
-						json_str = json_str.vslice(first_non_space(json_str, pos + 1));
-						continue;
-					}
-
-					ValueError(std::format("invalid dict parse: {}", json_str));
-					return None;
+					else if (first_char() == ',')
+						first_non_space(1);
+					else
+						JsonValueError(std::format("invalid dict parse: {}", remain_str()));
 				}
 
+				// 去掉 }
+				++pos_;
 				return Json(std::move(dict));
 			}
 
-		private:
-			// 从pos开始第一个不是空白符的位置
-			c_size first_non_space(const JsonStr& json_str, c_size pos = 0) const
+			/*
+			* @brief 解析json对象
+			* 
+			* @param json_str 待解析的json字符串
+			* 
+			* @return 解析得到的Json对象
+			*/
+			Json parse_obj()
 			{
-				while (pos < json_str.size() && json_str[pos].isspace()) ++pos;
-				return pos;
+				if (first_char() == '{')  // dict类型
+					return _parse_dict();
+				else if (first_char() == '[')  // array类型)
+					return _parse_array();
+				else if (first_char() == '"')  // str类型
+					return _parse_str();
+				else
+					return _parse_simple();
 			}
-		};
+
+			// 从pos_ + offset 开始第一个不是空白符的位置
+			void first_non_space(c_size offset = 0)
+			{
+				pos_ += offset;
+				while (pos_ < json_str_.size() && first_char().isspace()) ++pos_;
+			}
+
+			// 获取剩余字符串
+			Atring remain_str() const { return json_str_.vslice(pos_); }
+			
+			// 获取剩余字符串的第一个字符
+			AChar first_char() const { return json_str_.at(pos_); }
+	};
+
+		/*
+		* @brief 解析json字符串
+		* 
+		* @param json_str 待解析的json字符串
+		* 
+		* @return 解析得到的Json对象
+		*/
+		Json load(const Atring& json_str)
+		{
+			JsonParser parser(json_str);
+			return parser().first;
+		}
+
+		/*
+		* @brief 解析json字符串
+		* 
+		* @param json_str 待解析的json字符串
+		* 
+		* @return 解析得到的Json对象和剩余未解析的字符串
+		*/
+		std::pair<Json, Atring> loads(const Atring& json_str)
+		{
+			JsonParser parser(json_str);
+			auto [json_obj, pos] = parser();
+			return { json_obj, json_str.vslice(pos) };
+		}
 	}
 }
 
