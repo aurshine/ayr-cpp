@@ -53,12 +53,12 @@ int main()
 	tlog(str12);
 	tlog(str12.split(","as));
 	tlog(" 你 好 世 界 "as.split());
-	constexpr c_size num1 = "114514"as.to_int();
+	constexpr c_size num1 = "114514"as.toint().first;
 	tlog(num1);
-	constexpr c_size num2 = "-11451"as.to_int();
+	constexpr c_size num2 = "-11451"as.toint().first;
 	tlog(num2);
-	constexpr double num3 = "114.51"as.to_double();
+	constexpr double num3 = "114.51"as.tofloat().first;
 	tlog(num3);
-	constexpr double num4 = "-114.5"as.to_double();
+	constexpr double num4 = "-114.5"as.tofloat().first;
 	tlog(num4);
 }

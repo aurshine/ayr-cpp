@@ -54,11 +54,11 @@ namespace ayr
 					io_context,
 					ssl_ctx(req.uri().scheme() == "https"as)
 				);
-				
+
 				Buffer req_buffer, resp_buffer;
 				req_buffer << req;
 				co_await sock.write(req_buffer);
-				
+
 				HttpResponse res;
 				ResponseParser res_parser;
 				do {

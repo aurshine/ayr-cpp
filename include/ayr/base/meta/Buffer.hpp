@@ -148,12 +148,23 @@ namespace ayr
 			return -1;
 		}
 
-		// 追加字节
-		void append_bytes(const void* bytes, c_size size)
+		/*
+		* @brief 向缓冲区追加字节
+		* 
+		* @param bytes 要追加的字节指针
+		* 
+		* @param size 追加字节的大小
+		* 
+		* @param n 追加字节的数量
+		*/
+		void append_bytes(const void* bytes, c_size size, c_size n=1)
 		{
-			expand_util(size);
-			std::memcpy(write_ptr_, bytes, size);
-			written(size);
+			expand_util(size * n);
+			while (n --)
+			{
+				std::memcpy(write_ptr_, bytes, size);
+				written(size);
+			}
 		}
 
 		/*
