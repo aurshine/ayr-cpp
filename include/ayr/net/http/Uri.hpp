@@ -8,11 +8,9 @@ namespace ayr
 	namespace net
 	{
 		// scheme://host[:port][/path][?query][#fragment]
-		class Uri : Object<Uri>
+		class Uri
 		{
 			using self = Uri;
-
-			using super = Object<Uri>;
 
 			// uri方案(协议)
 			Atring scheme_;

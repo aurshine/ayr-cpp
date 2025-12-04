@@ -7,11 +7,9 @@
 
 namespace ayr
 {
-	class Pow2Policy : Object<Pow2Policy>
+	class Pow2Policy
 	{
 		using self = Pow2Policy;
-
-		using super = Object<self>;
 
 		// 当前容量, 2^n
 		c_size capacity_;
@@ -65,7 +63,7 @@ namespace ayr
 		*
 		* @return 调整后的容量
 		*/
-		c_size adapt_at_least(c_size n)
+		constexpr c_size adapt_at_least(c_size n)
 		{
 			if (n > max_capacity())
 				RuntimeError("n is too large!");
@@ -116,11 +114,9 @@ namespace ayr
 	};
 
 	template<typename T>
-	class RobinItem : Object<RobinItem<T>>
+	class RobinItem
 	{
 		using self = RobinItem<T>;
-
-		using super = Object<self>;
 
 		std::aligned_storage_t<sizeof(T), alignof(T)> value_;
 	public:
@@ -136,13 +132,13 @@ namespace ayr
 
 		constexpr RobinItem() : hashv(0), dist(-1) {}
 
-		RobinItem(const self& other) : RobinItem()
+		constexpr RobinItem(const self& other) : RobinItem()
 		{
 			if (other.used())
 				set_empty_value(other.hashv, other.dist, other.value());
 		}
 
-		RobinItem(self&& other) : RobinItem()
+		constexpr RobinItem(self&& other) : RobinItem()
 		{
 			if (other.used())
 			{
@@ -151,9 +147,9 @@ namespace ayr
 			}
 		}
 
-		~RobinItem() { if (used()) { destroy_value(); } }
+		constexpr ~RobinItem() { if (used()) { destroy_value(); } }
 
-		self& operator=(const self& other)
+		constexpr self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
 
@@ -161,7 +157,7 @@ namespace ayr
 			return *ayr_construct(this, other);
 		}
 
-		self& operator=(self&& other)
+		constexpr self& operator=(self&& other)
 		{
 			if (this == &other) return *this;
 
@@ -173,17 +169,17 @@ namespace ayr
 		constexpr bool used() const { return dist != EMPITY_DIST; }
 
 		// value必须有效，将元素设置为不使用
-		void set_unused() { destroy_value(); dist = EMPITY_DIST; }
+		constexpr void set_unused() { destroy_value(); dist = EMPITY_DIST; }
 
 		// 不检查value的有效性,value必须有效
-		T& value() { return reinterpret_cast<T&>(value_); }
+		constexpr T& value() { return reinterpret_cast<T&>(value_); }
 
 		// 不检查value的有效性,value必须有效
-		const T& value() const { return reinterpret_cast<const T&>(value_); }
+		constexpr const T& value() const { return reinterpret_cast<const T&>(value_); }
 
 		// 原来不存在value, 构造一个新的value
 		template<typename... Args>
-		void set_empty_value(const hash_t& hashv, const Dist_t& dist, Args&& ... args)
+		constexpr void set_empty_value(const hash_t& hashv, const Dist_t& dist, Args&& ... args)
 		{
 			ayr_construct(&value(), std::forward<Args>(args)...);
 			this->hashv = hashv;
@@ -192,14 +188,14 @@ namespace ayr
 
 		// 原来存在value, 设置一个新的value
 		template<typename ... Args>
-		void set_new_value(Args&&... args)
+		constexpr void set_new_value(Args&&... args)
 		{
 			destroy_value();
 			ayr_construct(&value(), std::forward<Args>(args)...);
 		}
 
 		// 原来存在value, 交换value, hashv, dist
-		void swap_elements(hash_t& hashv, Dist_t& dist, T& value)
+		constexpr void swap_elements(hash_t& hashv, Dist_t& dist, T& value)
 		{
 			std::swap(this->value(), value);
 			std::swap(this->hashv, hashv);
@@ -207,7 +203,7 @@ namespace ayr
 		}
 
 		// 销毁value，value必须有效
-		void destroy_value()
+		constexpr void destroy_value()
 		{
 			ayr_destroy(&value());
 			hashv = 0;
@@ -223,11 +219,9 @@ namespace ayr
 	};
 
 	template<typename T>
-	class Table : public Object<Table<T>>
+	class Table
 	{
 		using self = Table<T>;
-
-		using super = Object<self>;
 
 		using Dist_t = typename RobinItem<T>::Dist_t;
 

@@ -1,12 +1,9 @@
 ﻿#ifndef AYR_BASE_META_AYR_CONCEPTS_HPP
 #define AYR_BASE_META_AYR_CONCEPTS_HPP
 
-#include <iostream>
 #include <concepts>
-#include <ranges>
 
 #include "ayr_traits.hpp"
-
 
 namespace ayr
 {
@@ -33,7 +30,7 @@ namespace ayr
 	concept AyrLikeHashable = requires(const T & one, const T & other)
 	{
 		{ one.__hash__() } -> std::convertible_to<hash_t>;
-		{ one.__cmp__(other) } -> std::convertible_to<cmp_t>;
+		{ one == other } -> std::convertible_to<bool>;
 	};
 
 

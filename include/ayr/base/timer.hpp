@@ -8,7 +8,7 @@
 
 namespace ayr
 {
-	class Date : public Object<Date>
+	class Date
 	{
 	public:
 		Date() : Date(std::time(nullptr)) {}
@@ -63,17 +63,16 @@ namespace ayr
 		// 返回当前是周几
 		CString week_str() const { return WEEK_STR[week()]; }
 
-		CString __str__() const { return dstr(std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_)); }
-
-		cmp_t __cmp__(const Date& date) const
+		constexpr std::strong_ordering operator<=>(const Date& date) const
 		{
-			if (year_ != date.year_) return year_ - date.year_;
-			if (month_ != date.month_) return month_ - date.month_;
-			return day_ - date.day_;
+			if (year_ != date.year_) return year_ <=> date.year_;
+			if (month_ != date.month_) return month_ <=> date.month_;
+			return day_ <=> date.day_;
 		}
 
-		bool __equals__(const Date& date) const { return __cmp__(date) == 0; }
+		bool operator==(const Date& date) const { return year_ == date.year_ && month_ == date.month_ && day_ == date.day_;}
 
+		CString __str__() const { return dstr(std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_)); }
 		// 计算星期
 		static int calc_week(int year, int month, int day)
 		{
@@ -98,7 +97,7 @@ namespace ayr
 
 
 	template<typename... Duration>
-	class Timer : public Object<Timer<Duration...>>
+	class Timer
 	{
 	public:
 		Timer() : is_into(false), start_time() {}

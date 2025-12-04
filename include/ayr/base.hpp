@@ -13,7 +13,7 @@
 #include "base/bunit.hpp"
 #include "base/ExTask.hpp"
 #include "base/itertools.hpp"
-#include "base/Object.hpp"
+#include "base/meta.hpp"
 #include "base/printer.hpp"
 #include "base/raise_error.hpp"
 #include "base/timer.hpp"

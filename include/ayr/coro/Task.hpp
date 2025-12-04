@@ -8,7 +8,7 @@ namespace ayr
 	namespace coro
 	{
 		template<typename T>
-		class Task : public Object<Task<T>>
+		class Task
 		{
 		public:
 			using promise_type = Promise<T>;
@@ -18,8 +18,6 @@ namespace ayr
 			friend class IoContext;
 		private:
 			using self = Task<T>;
-
-			using super = Object<self>;
 
 			co_type coro_;
 		public:

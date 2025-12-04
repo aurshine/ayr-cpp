@@ -27,7 +27,7 @@ namespace ayr
 
 
 		/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
-		class ThreadPool : public Object<ThreadPool>
+		class ThreadPool
 		{
 			using self = ThreadPool;
 

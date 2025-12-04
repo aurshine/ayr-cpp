@@ -8,11 +8,9 @@ namespace ayr
 {
 	namespace net
 	{
-		class HttpResponse : public Object<HttpResponse>
+		class HttpResponse
 		{
 			using self = HttpResponse;
-
-			using super = Object<HttpResponse>;
 		public:
 			// HTTP 版本，如 HTTP/1.1
 			Atring version;
@@ -91,11 +89,9 @@ namespace ayr
 			}
 		};
 
-		class ResponseParser : Object<ResponseParser>
+		class ResponseParser
 		{
 			using self = ResponseParser;
-
-			using super = Object<ResponseParser>;
 
 			// 期望解析什么结构
 			enum class Expect

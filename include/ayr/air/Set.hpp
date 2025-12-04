@@ -1,8 +1,6 @@
 ﻿#ifndef AYR_AIR_SET_HPP
 #define AYR_AIR_SET_HPP
 
-#include <algorithm>
-
 #include "Chain.hpp"
 #include "Table.hpp"
 
@@ -18,7 +16,7 @@ namespace ayr
 	* 保证value的顺序性，value的迭代顺序为插入顺序
 	*/
 	template<Hashable T>
-	class Set : public Object<Set<T>>
+	class Set
 	{
 		using self = Set<T>;
 
@@ -190,6 +188,18 @@ namespace ayr
 
 		self& operator^=(self&& other) { return *this = *this ^ std::move(other); }
 
+		bool operator==(const self& other)
+		{
+			if (size() != other.size())
+				return false;
+
+			for (auto v : *this)
+				if (!other.contains(v))
+					return false;
+
+			return true;
+		}
+
 		void __repr__(Buffer& buffer) const
 		{
 			buffer << "{";
@@ -204,18 +214,6 @@ namespace ayr
 				buffer << v;
 			}
 			buffer << "}";
-		}
-
-		bool __equals__(const self& other)
-		{
-			if (size() != other.size())
-				return false;
-
-			for (auto v : *this)
-				if (!other.contains(v))
-					return false;
-
-			return true;
 		}
 
 		Iterator begin() { return chain_.begin(); }

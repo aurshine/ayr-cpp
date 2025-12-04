@@ -30,7 +30,7 @@ namespace ayr
 
 		constexpr self operator++(int) { self tmp(*this); ++(*this); return tmp; }
 
-		constexpr bool __equals__(const self& other) const { return it_ == other.it_; }
+		constexpr bool operator==(const self& other) const { return it_ == other.it_; }
 	};
 
 	// 使用for (auto [i, elem] : enumerate(elems))

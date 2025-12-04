@@ -8,11 +8,9 @@ namespace ayr
 {
 	namespace net
 	{
-		class Session : public Object<Session>
+		class Session
 		{
 			using self = Session;
-
-			using super = Object<Session>;
 
 			SSL_CTX* ssl_ctx_;
 		public:

@@ -22,11 +22,9 @@ namespace ayr
 	};
 
 	// UTF-8编解码器
-	class UTF8Codec : public Object<UTF8Codec>
+	class UTF8Codec
 	{
 		using self = UTF8Codec;
-
-		using super = Object<self>;
 	public:
 		constexpr UTF8Codec() {}
 
@@ -121,11 +119,9 @@ namespace ayr
 	};
 
 	// UTF-16编解码器
-	class UTF16Codec : public Object<UTF16Codec>
+	class UTF16Codec
 	{
 		using self = UTF16Codec;
-
-		using super = Object<self>;
 	public:
 		constexpr UTF16Codec() {}
 
@@ -210,11 +206,9 @@ namespace ayr
 	};
 
 	// UTF-32编解码器
-	class UTF32Codec : public Object<UTF32Codec>
+	class UTF32Codec
 	{
 		using self = UTF32Codec;
-
-		using super = Object<self>;
 	public:
 		constexpr UTF32Codec() {}
 

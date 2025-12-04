@@ -5,11 +5,9 @@
 
 namespace ayr
 {
-	class AChar : public Object<AChar>
+	class AChar
 	{
 		using self = AChar;
-
-		using super = Object<AChar>;
 
 		// unicode序号
 		int32_t unicode_;
@@ -62,9 +60,13 @@ namespace ayr
 		// 是否为字母
 		constexpr bool isalpha() const { return isupper() || islower(); }
 
-		constexpr cmp_t __cmp__(const self& other) const { return unicode_ - other.unicode_; }
+		constexpr std::strong_ordering operator<=> (const self& other) const { return unicode_ <=> other.unicode_; }
 
-		constexpr bool __equals__(const self& other) const { return unicode_ == other.unicode_; }
+		constexpr std::strong_ordering operator<=> (char other) const { return unicode_ <=> other; }
+
+		constexpr bool operator==(const self& other) const { return unicode_ == other.unicode_; }
+
+		constexpr bool operator==(char other) const { return unicode_ == other; }
 
 		constexpr hash_t __hash__() const { return unicode_; }
 

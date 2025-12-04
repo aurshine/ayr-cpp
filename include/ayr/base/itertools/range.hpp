@@ -36,7 +36,7 @@ namespace ayr
 
 		constexpr self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
-		constexpr bool __equals__(const self& other) const { return current_ == other.current_ && step_ == other.step_; }
+		constexpr bool operator==(const self& other) const { return current_ == other.current_ && step_ == other.step_; }
 	private:
 		c_size current_, step_;
 	};

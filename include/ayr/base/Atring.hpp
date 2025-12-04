@@ -6,11 +6,9 @@
 
 namespace ayr
 {
-	class Atring : public Object<Atring>
+	class Atring
 	{
 		using self = Atring;
-
-		using super = Object<Atring>;
 
 		// 最高位字节为1，x & OWNER_MASK == 1 表示内存属于该对象
 		static constexpr c_size OWNER_MASK = 1ll << 63;
@@ -827,16 +825,16 @@ namespace ayr
 			return res;
 		}
 
-		cmp_t __cmp__(const self& other) const
+		constexpr std::strong_ordering operator<=>(const self& other) const
 		{
 			c_size m_size = size(), o_size = other.size();
 			for (c_size i = 0; i < m_size && i < o_size; ++i)
 				if (at(i) != other.at(i))
-					return at(i).ord() - other.at(i).ord();
-			return m_size - o_size;
+					return at(i).ord() <=> other.at(i).ord();
+			return m_size <=> o_size;
 		}
 
-		bool __equals__(const self& other) const
+		constexpr bool operator==(const self& other) const
 		{
 			if (size() != other.size()) return false;
 			return std::equal(begin(), end(), other.begin());

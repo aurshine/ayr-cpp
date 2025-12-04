@@ -9,7 +9,7 @@ namespace ayr
 	namespace coro
 	{
 		template<typename T>
-		struct PromiseImpl : public Object<PromiseImpl<T>>
+		struct PromiseImpl
 		{
 			using self = PromiseImpl<T>;
 
@@ -38,7 +38,7 @@ namespace ayr
 		};
 
 		template<>
-		struct PromiseImpl<void> : public Object<PromiseImpl<void>>
+		struct PromiseImpl<void>
 		{
 			using self = PromiseImpl<void>;
 

@@ -24,7 +24,7 @@ namespace ayr
 		};
 
 		template<typename T>
-		class _GenPromise : public Object<_GenPromise<T>>
+		class _GenPromise
 		{
 			using self = _GenPromise<T>;
 		public:
@@ -64,7 +64,7 @@ namespace ayr
 		};
 
 		template<typename T>
-		class Generator : public Object<Generator<T>>
+		class Generator
 		{
 			using self = Generator<T>;
 		public:
@@ -134,7 +134,7 @@ namespace ayr
 
 				ItInfo::pointer operator->() const { return &gen_->result(); }
 
-				bool __equals__(const self& other) const { return gen_ == other.gen_ && status_ == other.status_; }
+				bool operator==(const self& other) const { return gen_ == other.gen_ && status_ == other.status_; }
 			private:
 				// 当前状态是yield, 进入下一个状态
 				void yield_next()

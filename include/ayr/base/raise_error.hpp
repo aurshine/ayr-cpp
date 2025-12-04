@@ -6,11 +6,9 @@
 namespace ayr
 {
 	// 错误类，抛出后不应该被捕获
-	class AyrError : public Object<AyrError>
+	class AyrError
 	{
 		using self = AyrError;
-
-		using super = Object<self>;
 
 		CString err_msg_;
 	public:
@@ -53,7 +51,7 @@ namespace ayr
 		buffer << "File: " << loc.file_name() << "\n";
 		buffer << "Line, Column: " << loc.line() << ", " << loc.column() << "\n";
 		buffer << "FunctionName: " << loc.function_name() << "\n";
-		buffer << err_name << ": " << cstr(msg) << "\n";
+		buffer << err_name << ": " << msg << "\n";
 		ayr_error(vstr(buffer.peek(), buffer.readable_size()));
 		return from_buffer(std::move(buffer));
 	}

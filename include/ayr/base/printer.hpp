@@ -1,15 +1,12 @@
 ﻿#ifndef AYR_BASE_PRINTER_HPP
 #define AYR_BASE_PRINTER_HPP
-
-#include <cstdio>
-#include <format>
 #include <source_location>
 
-#include "Object.hpp"
+#include "meta.hpp"
 
 namespace ayr
 {
-	class Printer : public Object<Printer>
+	class Printer
 	{
 	public:
 		Printer(FILE* file_ptr, CString sw = " ", CString ew = "\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
@@ -68,7 +65,7 @@ namespace ayr
 
 	c_size Printer::BUFFER_SIZE = 128;
 
-	class Color : public Object<Color>
+	class Color
 	{
 	public:
 		constexpr static const char* CLOSE = "\033[0m";
@@ -122,10 +119,11 @@ namespace ayr
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 }
 
-template<ayr::AyrObject Ayr>
-struct std::formatter<Ayr> : std::formatter<ayr::CString>
+template<typename T>
+	requires hasattr(T, __str__) || hasattr(T, __repr__)
+struct std::formatter<T> : std::formatter<ayr::CString>
 {
-	auto format(const Ayr& value, std::format_context& ctx) const
+	auto format(const T& value, std::format_context& ctx) const
 	{
 		ayr::CString str = ayr::cstr(value);
 		return std::formatter<ayr::CString>::format(str, ctx);

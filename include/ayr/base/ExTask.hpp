@@ -1,8 +1,6 @@
 #ifndef AYR_BASE_EXTASK_HPP
 #define AYR_BASE_EXTASK_HPP
 
-#include <functional>
-
 #include "raise_error.hpp"
 
 namespace ayr
@@ -14,11 +12,9 @@ namespace ayr
 	* 调用 run() 执行任务
 	* 调用 set() 设置任务
 	*/
-	class ExTask : public Object<ExTask>
+	class ExTask
 	{
 		using self = ExTask;
-
-		using super = Object<ExTask>;
 
 		using Task_t = std::function<void()>;
 

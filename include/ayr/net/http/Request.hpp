@@ -8,11 +8,9 @@ namespace ayr
 {
 	namespace net
 	{
-		class HttpRequest : public Object<HttpRequest>
+		class HttpRequest
 		{
 			using self = HttpRequest;
-
-			using super = Object<HttpRequest>;
 
 			// 请求方法
 			Atring method_;

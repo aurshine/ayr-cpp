@@ -6,27 +6,25 @@
 namespace ayr
 {
 	template<typename T>
-	class BidirectionalNode : public Object<BidirectionalNode<T>>
+	class BidirectionalNode
 	{
 		using Value_t = T;
 
 		using self = BidirectionalNode<Value_t>;
-
-		using super = Object<self>;
 
 		self* prev_ = nullptr, * next_ = nullptr;
 	public:
 		Value_t value;
 
 		template<typename... Args>
-		BidirectionalNode(Args&&... args) : value(std::forward<Args>(args)...) {}
+		constexpr BidirectionalNode(Args&&... args) : value(std::forward<Args>(args)...) {}
 
-		BidirectionalNode(self&& other) : value(std::move(other.value)), prev_(other.prev_), next_(other.next_)
+		constexpr BidirectionalNode(self&& other) : value(std::move(other.value)), prev_(other.prev_), next_(other.next_)
 		{
 			other.prev_ = other.next_ = nullptr;
 		}
 
-		self& operator=(self&& other)
+		constexpr self& operator=(self&& other)
 		{
 			if (this == other) return *this;
 			ayr_destroy(this);
@@ -34,13 +32,13 @@ namespace ayr
 		}
 
 		// 得到当前节点的前一个节点
-		self* prev() const { return prev_; }
+		constexpr self* prev() const { return prev_; }
 
 		// 得到当前节点的下一个节点
-		self* next() const { return next_; }
+		constexpr self* next() const { return next_; }
 
 		// 将当前节点设置为前一个节点
-		self* prev(self* node)
+		constexpr self* prev(self* node)
 		{
 			prev_ = node;
 			if (node) node->next_ = this;
@@ -48,12 +46,16 @@ namespace ayr
 		}
 
 		// 将当前节点设置为下一个节点
-		self* next(self* node)
+		constexpr self* next(self* node)
 		{
 			next_ = node;
 			if (node) node->prev_ = this;
 			return node;
 		}
+
+		constexpr std::strong_ordering operator<=>(const self& other) const { return value <=> other.value; }
+
+		constexpr bool operator==(const self& other) const { return value == other.value; }
 	};
 
 	template<typename T>
@@ -223,6 +225,10 @@ namespace ayr
 			}
 		}
 
+		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }
+
+		bool operator==(const self& other) const { return super::operator==(other); }
+
 		template<bool IsConst>
 		struct ChainIterator : public IteratorInfo<ChainIterator<IsConst>, NonContainer, std::bidirectional_iterator_tag, add_const_t<IsConst, Value_t>>
 		{
@@ -280,7 +286,7 @@ namespace ayr
 				return res;
 			}
 
-			bool __equals__(const typename ItInfo::iterator_type& other) const { return node_ == other.node_; }
+			bool operator==(const typename ItInfo::iterator_type& other) const { return node_ == other.node_; }
 		};
 
 		using Iterator = ChainIterator<false>;

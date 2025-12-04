@@ -15,11 +15,9 @@ namespace ayr
 {
 	namespace net
 	{
-		class Select : public Object<Select>
+		class Select
 		{
 			using self = Select;
-
-			using super = Object<Select>;
 
 			// fd_set数组，0位为read_set，1位为write_set，2位为error_set
 			// fd_set[3]占128 * 3 = 384字节，使用堆区内存

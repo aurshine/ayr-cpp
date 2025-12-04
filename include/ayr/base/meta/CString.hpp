@@ -3,7 +3,6 @@
 
 #include <format>
 #include <sstream>
-#include <string>
 
 #include "Buffer.hpp"
 #include "hash.hpp"
@@ -590,22 +589,24 @@ namespace ayr
 			return res;
 		}
 
-		constexpr cmp_t __cmp__(const self& other) const
+		constexpr std::strong_ordering operator<=> (const self& other) const
 		{
 			c_size m_size = size(), o_size = other.size();
 			for (c_size i = 0; i < m_size && i < o_size; ++i)
 				if (at(i) != other.at(i))
-					return at(i) - other.at(i);
-			return m_size - o_size;
+					return at(i) <=> other.at(i);
+			return m_size <=> o_size;
 		}
 
-		constexpr bool __equals__(const self& other) const
+		constexpr const std::strong_ordering operator<=>(const char* other) const { return *this <=> CString(other, ayr::strlen(other), false); }
+
+		constexpr bool operator==(const self& other) const
 		{
 			if (size() != other.size()) return false;
 			return std::equal(begin(), end(), other.begin());
 		}
 
-		constexpr bool __equals__(const char* other) const
+		constexpr bool operator==(const char* other) const
 		{
 			if (size() != ayr::strlen(other)) return false;
 			return std::equal(begin(), end(), other);
@@ -616,22 +617,6 @@ namespace ayr
 		void __repr__(Buffer& buffer) const { buffer.append_bytes(data(), size()); }
 
 		constexpr self __str__() const { return *this; }
-
-		constexpr bool operator> (const self& other) const { return __cmp__(other) > 0; }
-
-		constexpr bool operator< (const self& other) const { return __cmp__(other) < 0; }
-
-		constexpr bool operator>= (const self& other) const { return __cmp__(other) >= 0; }
-
-		constexpr bool operator<= (const self& other) const { return __cmp__(other) <= 0; }
-
-		constexpr bool operator== (const self& other) const { return __cmp__(other) == 0; }
-
-		constexpr bool operator!= (const self& other) const { return __cmp__(other) != 0; }
-
-		constexpr bool operator== (const char* other) const { return __equals__(other); }
-
-		constexpr bool operator!= (const char* other) const { return __equals__(other); }
 	private:
 		/*
 		* @brief 根据length分配内存，返回首地址

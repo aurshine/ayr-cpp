@@ -2,6 +2,8 @@
 #define AYR_BASE_META_BUFFER_HPP
 
 #include <cstring>
+#include <string>
+#include <utility>
 
 #include "ayr_memory.hpp"
 #include "sprintf.h"
@@ -111,13 +113,13 @@ namespace ayr
 
 		/*
 		* @brief 寻找指定字符的位置
-		* 
+		*
 		* @param c 要查找的字符
-		* 
+		*
 		* @param pos 起始位置
-		* 
+		*
 		* @return 字符位置，如果没有找到则返回 -1
-		*/ 
+		*/
 		c_size find(char c, c_size pos = 0) const
 		{
 			pos = ifelse(pos < 0, 0, pos);
@@ -129,11 +131,11 @@ namespace ayr
 
 		/*
 		* @brief 寻找指定字符串的位置
-		* 
+		*
 		* @param pattern 要查找的字符串
-		* 
+		*
 		* @param pos 起始位置
-		* 
+		*
 		* @return 字符串位置，如果没有找到则返回 -1
 		*/
 		c_size find(const char* pattern, c_size pos = 0) const
@@ -178,10 +180,10 @@ namespace ayr
 			end_ptr_ = tmp + capacity;
 		}
 
-		private:
+	private:
 		/*
 		* @brief 分离缓冲区底部数据
-		* 
+		*
 		* @return 底部数据指针和缓冲区总大小
 		*/
 		void detach()

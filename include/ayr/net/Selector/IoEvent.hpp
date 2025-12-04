@@ -16,7 +16,7 @@ namespace ayr
 		*
 		* @tparam Flag 事件类型
 		*/
-		class IoEvent : public Object<IoEvent>
+		class IoEvent
 		{
 		public:
 			using Data = coro::Coroutine;
@@ -32,8 +32,6 @@ namespace ayr
 			constexpr static Flag ERRORABLE = 4;
 		private:
 			using self = IoEvent;
-
-			using super = Object<IoEvent>;
 
 			// 注册的事件和发生的事件
 			Flag registered_flags_, happened_flags_;

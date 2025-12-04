@@ -18,7 +18,7 @@ namespace ayr
 
 	// 在ptr上调用构造函数, 并返回ptr
 	template<typename T, typename ... Args>
-	def ayr_construct(T* ptr, Args&&... args) -> T*
+	constexpr def ayr_construct(T* ptr, Args&&... args) -> T*
 	{
 		::new(ptr) T(std::forward<Args>(args)...);
 		return ptr;
@@ -26,13 +26,13 @@ namespace ayr
 
 	// 分配一个T的内存, 并调用构造函数, 返回指针
 	template<typename T, typename ... Args>
-	def ayr_make(Args&&... args) -> T*
+	constexpr def ayr_make(Args&&... args) -> T*
 	{
 		return ayr_construct(ayr_alloc<T>(1), std::forward<Args>(args)...);
 	}
 
 	template<typename T>
-	def ayr_destroy(T* ptr)
+	constexpr def ayr_destroy(T* ptr)
 	{
 		if constexpr (Not<NoDestroy<T>>)
 			ptr->~T();
@@ -40,11 +40,14 @@ namespace ayr
 
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
-	def ayr_destroy(T* ptr, size_t size)
+	constexpr def ayr_destroy(T* ptr, size_t size)
 	{
 		if constexpr (Not<NoDestroy<T>>)
-			for (size_t i = 0; i < size; ++i, ++ptr)
+			while (size--)
+			{
 				ptr->~T();
+				++ptr;
+			}
 	}
 
 	// 释放ptr指向的内存

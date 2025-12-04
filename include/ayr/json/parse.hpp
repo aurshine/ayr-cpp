@@ -7,7 +7,7 @@ namespace ayr
 {
 	namespace json
 	{
-		class JsonParser : Object<JsonParser>
+		class JsonParser
 		{
 		public:
 			JsonParser() {}

@@ -25,7 +25,7 @@ namespace ayr
 			Coroutine previous_coro = nullptr;
 		};
 
-		struct CoroAwaiter : public std::suspend_always, public Object<CoroAwaiter>
+		struct CoroAwaiter : public std::suspend_always
 		{
 			CoroAwaiter() noexcept {};
 

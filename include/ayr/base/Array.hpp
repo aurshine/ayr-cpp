@@ -101,6 +101,10 @@ namespace ayr
 			size_ = 0;
 			return result;
 		}
+
+		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }
+
+		bool operator==(const self& other) const { return super::operator==(other); }
 	};
 
 	// 通过初始化列表构造数组

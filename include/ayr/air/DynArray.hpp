@@ -203,6 +203,10 @@ namespace ayr
 
 		self& operator+= (self&& other) { return extend(std::move(other)); }
 
+		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }
+
+		bool operator==(const self& other) const { return super::operator==(other); }
+
 		template<bool IsConst>
 		struct _Iterator : public IteratorInfo<_Iterator<IsConst>, add_const_t<IsConst, DynArray<Value_t>>, std::random_access_iterator_tag, add_const_t<IsConst, Value_t>>
 		{
@@ -318,17 +322,17 @@ namespace ayr
 				return res + inblock_index_ + 1;
 			}
 
-			bool __equals__(const self& other) const
+			constexpr bool operator==(const self& other) const
 			{
 				return block_index_ == other.block_index_ && inblock_index_ == other.inblock_index_ && dynarray_ == other.dynarray_;
 			}
 
-			cmp_t __cmp__(const self& other) const
+			constexpr std::strong_ordering operator<=>(const self& other) const
 			{
 				if (block_index_ != other.block_index_)
-					return block_index_ - other.block_index_;
+					return block_index_ <=> other.block_index_;
 				else
-					return inblock_index_ - other.inblock_index_;
+					return inblock_index_ <=> other.inblock_index_;
 			}
 		private:
 			c_size block_index_, inblock_index_;

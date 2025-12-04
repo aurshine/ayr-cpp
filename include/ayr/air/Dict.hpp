@@ -20,7 +20,7 @@ namespace ayr
 	* 保证key-value的顺序性，key-value的迭代顺序为插入顺序。
 	*/
 	template<Hashable K, typename V>
-	class Dict : public Object<Dict<K, V>>
+	class Dict
 	{
 		using self = Dict<K, V>;
 	public:
@@ -379,6 +379,16 @@ namespace ayr
 
 		self& operator^= (self&& other) { return *this = *this ^ std::move(other); }
 
+		bool operator==(const self& other) const
+		{
+			if (this == &other) return true;
+			if (size() != other.size()) return false;
+			for (auto& [key, value] : items())
+				if (!other.contains(key) || other.get(key) != value)
+					return false;
+			return true;
+		}
+
 		void __repr__(Buffer& buffer) const
 		{
 			buffer << "{";
@@ -392,16 +402,6 @@ namespace ayr
 				buffer << key << ": " << value;
 			}
 			buffer << "}";
-		}
-
-		bool __equals__(const self& other) const
-		{
-			if (this == &other) return true;
-			if (size() != other.size()) return false;
-			for (auto& [key, value] : items())
-				if (!other.contains(key) || other.get(key) != value)
-					return false;
-			return true;
 		}
 
 		Iterator begin() { return kv_chain_.begin(); }

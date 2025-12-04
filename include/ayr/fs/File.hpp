@@ -8,7 +8,7 @@ namespace ayr
 {
 	namespace fs
 	{
-		class AyrFile : public Object<AyrFile>
+		class AyrFile
 		{
 			using self = AyrFile;
 

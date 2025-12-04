@@ -12,20 +12,20 @@ namespace ayr
 	*
 	* @note 构造的对象必须是左值引用或View类型对象
 	*/
-	class View : public Object<View>
+	class View
 	{
 		using self = View;
 
 		void* view_ptr_;
 	public:
-		View() : view_ptr_(nullptr) {}
+		constexpr View() : view_ptr_(nullptr) {}
 
-		View(const self& other) : view_ptr_(other.view_ptr_) {}
+		constexpr View(const self& other) : view_ptr_(other.view_ptr_) {}
 
 		// View的构造对象只能是self或左值引用
 		template<typename U>
 			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
-		View(U&& obj) : view_ptr_(nullptr)
+		constexpr View(U&& obj) : view_ptr_(nullptr)
 		{
 			if constexpr (issame<std::remove_reference_t<U>, self>)
 				view_ptr_ = obj.view_ptr_;
@@ -33,7 +33,7 @@ namespace ayr
 				view_ptr_ = const_cast<std::decay_t<U>*>(std::addressof(obj));
 		}
 
-		self& operator=(const self& other)
+		constexpr self& operator=(const self& other)
 		{
 			view_ptr_ = other.view_ptr_;
 			return *this;
@@ -41,25 +41,25 @@ namespace ayr
 
 		template<typename U>
 			requires Or<issame<std::remove_reference_t<U>, self>, std::is_lvalue_reference_v<U>>
-		self& operator=(U&& obj)
+		constexpr self& operator=(U&& obj)
 		{
 			return *ayr_construct(this, std::forward<U>(obj));
 		}
 
 		template<typename T>
-		T& get() { return *static_cast<T*>(view_ptr_); }
+		constexpr T& get() { return *static_cast<T*>(view_ptr_); }
 
 		template<typename T>
-		const T& get() const { return *static_cast<const T*>(view_ptr_); }
+		constexpr const T& get() const { return *static_cast<const T*>(view_ptr_); }
 
 		template<typename T>
-		operator T& () { return get<T>(); }
+		constexpr operator T& () { return get<T>(); }
 
 		template<typename T>
-		operator const T& () const { return get<T>(); }
+		constexpr operator const T& () const { return get<T>(); }
 
 		template<typename T>
-		bool __equals__(const T& other) const { return view_ptr_ == &other || get<T>() == other; }
+		constexpr bool operator==(const T& other) const { return view_ptr_ == &other || get<T>() == other; }
 	};
 
 	// T类型的只读视图
@@ -78,15 +78,15 @@ namespace ayr
 
 		friend ViewOF<Value_t>;
 	public:
-		ViewOF(const Value_t& obj) : view_(obj) {}
+		constexpr ViewOF(const Value_t& obj) : view_(obj) {}
 
 		ViewOF(Value_t&& obj) = delete;
 
-		ViewOF(const ViewOF<Value_t>& other) : view_(other.view_) {}
+		constexpr ViewOF(const ViewOF<Value_t>& other) : view_(other.view_) {}
 
-		ViewOF(const ViewOF<const Value_t>& other) : view_(other.view_) {}
+		constexpr ViewOF(const ViewOF<const Value_t>& other) : view_(other.view_) {}
 
-		self& operator=(const Value_t& obj)
+		constexpr self& operator=(const Value_t& obj)
 		{
 			view_ = obj;
 			return *this;
@@ -94,35 +94,41 @@ namespace ayr
 
 		self& operator=(Value_t&& obj) = delete;
 
-		self& operator=(const ViewOF<Value_t>& other)
+		constexpr self& operator=(const ViewOF<Value_t>& other)
 		{
 			view_ = other.view_;
 			return *this;
 		}
 
-		self& operator=(const ViewOF<const Value_t>& other)
+		constexpr self& operator=(const ViewOF<const Value_t>& other)
 		{
 			view_ = other.view_;
 			return *this;
 		}
 
-		const Value_t& get() const { return view_.get<const Value_t>(); }
+		constexpr const Value_t& get() const { return view_.get<const Value_t>(); }
 
-		const Value_t* operator->() const { return static_cast<const Value_t*>(view_.view_ptr_); }
+		constexpr const Value_t* operator->() const { return static_cast<const Value_t*>(view_.view_ptr_); }
 
 		template<typename... Args>
-		auto operator()(Args&&... args) const
+		constexpr auto operator()(Args&&... args) const
 		{
 			return std::invoke(get(), std::forward<Args>(args)...);
 		}
 
-		operator const Value_t& () const { return get(); }
+		constexpr operator const Value_t& () const { return get(); }
+
+		constexpr std::strong_ordering operator<=>(const self& other) const { return get() <=> other.get(); }
+
+		constexpr std::strong_ordering operator<=>(const Value_t& other) const { return get() <=> other; }
+
+		constexpr bool operator==(const self& other) const { return get() == other.get(); }
+
+		constexpr bool operator==(const Value_t& other) const { return get() == other; }
 
 		CString __str__() const { return cstr(get()); }
 
 		void __repr__(Buffer& buffer) const { buffer << get(); }
-
-		bool __equals__(const Value_t& other) const { return view_.__equals__(other); }
 	};
 
 	template<typename T>

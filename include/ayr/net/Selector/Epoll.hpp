@@ -13,11 +13,9 @@ namespace ayr
 {
 	namespace net
 	{
-		class Epoll : public Object<Epoll>
+		class Epoll
 		{
 			using self = Epoll;
-
-			using super = Object<self>;
 
 			int epoll_fd_;
 

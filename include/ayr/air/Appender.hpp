@@ -108,6 +108,10 @@ namespace ayr
 			size_ = 0;
 			return arr;
 		}
+
+		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }
+
+		bool operator==(const self& other) const { return super::operator==(other); }
 	private:
 		c_size size_, capacity_;
 

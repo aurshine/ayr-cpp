@@ -14,11 +14,9 @@ namespace ayr
 		*
 		* 每个传入的socket都被设置为非阻塞模式
 		*/
-		class Socket : public Object<Socket>
+		class Socket
 		{
 			using self = Socket;
-
-			using super = Object<Socket>;
 
 			int read_fd_, write_fd_;
 
@@ -185,7 +183,9 @@ namespace ayr
 				}
 			}
 
-			cmp_t __cmp__(const self& other) const { return arr(read_fd_, write_fd_).__cmp__(arr(other.read_fd_, other.write_fd_)); }
+			constexpr std::strong_ordering operator<=>(const self& other) const { return read_fd_ <=> other.read_fd_; }
+
+			constexpr bool operator==(const self& other) const { return read_fd_ == other.read_fd_; }
 
 			hash_t __hash__() const
 			{
@@ -292,11 +292,9 @@ namespace ayr
 		/*
 		* @brief 用于监听窗口的类
 		*/
-		class Acceptor : public Object<Acceptor>
+		class Acceptor
 		{
 			using self = Acceptor;
-
-			using super = Object<Acceptor>;
 
 			int fd_;
 
@@ -366,7 +364,9 @@ namespace ayr
 				co_return sock;
 			}
 
-			cmp_t __cmp__(const self& other) const { return fd_ - other.fd_; }
+			constexpr std::strong_ordering operator<=>(const self& other) const { return fd_ <=> other.fd_; }
+
+			constexpr bool operator==(const self& other) const { return fd_ == other.fd_; }
 
 			hash_t __hash__() const { return fd_; }
 
@@ -414,7 +414,7 @@ namespace ayr
 		}
 #if defined(AYR_WIN)
 		// 用于初始化Winsock的类
-		class _StartSocket : public Object<_StartSocket>
+		class _StartSocket
 		{
 		public:
 			_StartSocket()

@@ -14,11 +14,11 @@ namespace ayr
 	{
 		struct TimerEntry
 		{
-			TimerEntry(Coroutine coro, const std::chrono::steady_clock::time_point& abs_time)
+			constexpr TimerEntry(Coroutine coro, const std::chrono::steady_clock::time_point& abs_time)
 				: coro_(coro), abs_time_(abs_time) {
 			}
 
-			bool operator< (const TimerEntry& other) const { return abs_time_ > other.abs_time_; }
+			constexpr std::strong_ordering operator<=>(const TimerEntry& other) const { return abs_time_ <=> other.abs_time_; }
 
 			Coroutine coro_;
 
@@ -30,11 +30,9 @@ namespace ayr
 		*
 		* @detail 可以使用add向事件循环里添加协程句柄，事件循环不会控制协程句柄的生命周期。
 		*/
-		class IoContext : public Object<IoContext>
+		class IoContext
 		{
 			using self = IoContext;
-
-			using super = Object<self>;
 
 			using TimePoint = std::chrono::steady_clock::time_point;
 
@@ -159,7 +157,7 @@ namespace ayr
 		/*
 		* @brief 等待时间的协程等代体
 		*/
-		class Sleep : public Object<Sleep>
+		class Sleep
 		{
 		public:
 			Sleep(const std::chrono::steady_clock::time_point& abs_time, IoContext* io_context) :

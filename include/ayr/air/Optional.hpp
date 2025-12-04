@@ -6,7 +6,7 @@
 namespace ayr
 {
 	template<typename T>
-	class Optional : public Object<T>
+	class Optional
 	{
 		using self = Optional<T>;
 
@@ -16,19 +16,19 @@ namespace ayr
 	public:
 		static_assert(!std::is_reference_v<T>, "Optional does not support reference types");
 
-		Optional() : has_value_(false) {}
+		constexpr Optional() : has_value_(false) {}
 
-		Optional(const T& value) : has_value_(false) { emplace(value); }
+		constexpr Optional(const T& value) : has_value_(false) { emplace(value); }
 
-		Optional(T&& value) : has_value_(false) { emplace(std::move(value)); }
+		constexpr Optional(T&& value) : has_value_(false) { emplace(std::move(value)); }
 
-		Optional(const self& other) : has_value_(false)
+		constexpr Optional(const self& other) : has_value_(false)
 		{
 			if (other.has_value())
 				emplace(*other.get_ptr());
 		}
 
-		Optional(self&& other) : has_value_(false)
+		constexpr Optional(self&& other) : has_value_(false)
 		{
 			if (other.has_value())
 			{
@@ -37,9 +37,9 @@ namespace ayr
 			}
 		}
 
-		~Optional() { reset(); }
+		constexpr ~Optional() { reset(); }
 
-		self& operator=(const self& other)
+		constexpr self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
 			if (other.has_value())
@@ -49,7 +49,7 @@ namespace ayr
 			return *this;
 		}
 
-		self& operator=(self&& other)
+		constexpr self& operator=(self&& other)
 		{
 			if (this == &other) return *this;
 			if (other.has_value())
@@ -62,23 +62,23 @@ namespace ayr
 			return *this;
 		}
 
-		self& operator=(const T& value) { emplace(value); return *this; }
+		constexpr self& operator=(const T& value) { emplace(value); return *this; }
 
-		self& operator=(T&& value) { emplace(std::move(value)); return *this; }
+		constexpr self& operator=(T&& value) { emplace(std::move(value)); return *this; }
 
-		operator bool() const { return has_value_; }
+		constexpr operator bool() const { return has_value_; }
 
-		T& operator*() { return value(); }
+		constexpr T& operator*() { return value(); }
 
-		const T& operator*() const { return value(); }
+		constexpr const T& operator*() const { return value(); }
 
-		T* operator->() { return &value(); }
+		constexpr T* operator->() { return &value(); }
 
-		const T* operator->() const { return &value(); }
+		constexpr const T* operator->() const { return &value(); }
 
-		bool has_value() const { return has_value_; }
+		constexpr bool has_value() const { return has_value_; }
 
-		void reset()
+		constexpr void reset()
 		{
 			if (has_value())
 			{
@@ -88,7 +88,7 @@ namespace ayr
 		}
 
 		template<typename... Args>
-		T& emplace(Args&&... args)
+		constexpr T& emplace(Args&&... args)
 		{
 			T* ptr = get_ptr();
 			if (has_value()) ayr_destroy(ptr);
@@ -98,21 +98,21 @@ namespace ayr
 			return *ptr;
 		}
 
-		T& value()
+		constexpr T& value()
 		{
 			if (has_value()) return *get_ptr();
 			RuntimeError("Optional does not have a value");
 			return None;
 		}
 
-		const T& value() const
+		constexpr const T& value() const
 		{
 			if (has_value()) return *get_ptr();
 			RuntimeError("Optional does not have a value");
 			return None;
 		}
 
-		T& value_or(T& default_value)
+		constexpr T& value_or(T& default_value)
 		{
 			if (has_value())
 				return *get_ptr();
@@ -120,7 +120,7 @@ namespace ayr
 				return default_value;
 		}
 
-		const T& value_or(const T& default_value) const
+		constexpr const T& value_or(const T& default_value) const
 		{
 			if (has_value())
 				return *get_ptr();
@@ -131,7 +131,7 @@ namespace ayr
 		// 返回值类型为func装饰的函数的返回值类型
 		// 如果有值，返回调用func(T&)的结果，否则返回空Optional
 		template<typename F>
-		auto map(F&& func) -> Optional<decltype(func(std::declval<T&>()))>
+		constexpr auto map(F&& func) -> Optional<decltype(func(std::declval<T&>()))>
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			if (has_value())
@@ -142,7 +142,7 @@ namespace ayr
 		// 返回值类型为func装饰的函数的返回值类型
 		// 如果有值，返回调用func(T&)的结果，否则返回空Optional
 		template<typename F>
-		auto map(F&& func) const -> Optional<decltype(func(std::declval<T&>()))>
+		constexpr auto map(F&& func) const -> Optional<decltype(func(std::declval<T&>()))>
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			if (has_value())
@@ -153,7 +153,7 @@ namespace ayr
 		// func(T&)返回值必须是Optional<U>
 		// 如果有值，返回调用func(T&)的结果，否则返回空Optional
 		template<typename F>
-		auto and_then(F&& func) -> decltype(func(std::declval<T&>()))
+		constexpr auto and_then(F&& func) -> decltype(func(std::declval<T&>()))
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			static_assert(is_optional_v<result_type>, "func must return an Optional");
@@ -165,7 +165,7 @@ namespace ayr
 		// func(T&)返回值必须是Optional<U>
 		// 如果有值，返回调用func(T&)的结果，否则返回空Optional
 		template<typename F>
-		auto and_then(F&& func) const -> decltype(func(std::declval<T&>()))
+		constexpr auto and_then(F&& func) const -> decltype(func(std::declval<T&>()))
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			static_assert(is_optional_v<result_type>, "func must return an Optional");
@@ -174,7 +174,7 @@ namespace ayr
 			return {};
 		}
 		template<typename F>
-		auto transform(F&& func)
+		constexpr auto transform(F&& func)
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			if constexpr (is_optional_v<result_type>)
@@ -184,7 +184,7 @@ namespace ayr
 		}
 
 		template<typename F>
-		auto transform(F&& func) const
+		constexpr auto transform(F&& func) const
 		{
 			using result_type = decltype(func(std::declval<T&>()));
 			if constexpr (is_optional_v<result_type>)
@@ -195,7 +195,7 @@ namespace ayr
 
 		// 如果有值，返回值，否则返回调用func()的结果
 		template<typename F>
-		self or_else(F&& func) const
+		constexpr self or_else(F&& func) const
 		{
 			if (has_value())
 				return *get_ptr();
@@ -204,27 +204,21 @@ namespace ayr
 
 		// 如果有值且func(T&)返回true，返回值，否则返回空Optional
 		template<typename F>
-		self filter(F&& func) const
+		constexpr self filter(F&& func) const
 		{
 			if (has_value() && func(*get_ptr()))
 				return *get_ptr();
 			return {};
 		}
 
-		cmp_t __cmp__(const self& other) const
+		constexpr std::strong_ordering operator<=>(const self& other) const
 		{
 			if (has_value() && other.has_value())
-				if (*get_ptr() > *other.get_ptr())
-					return 1;
-				else if (*get_ptr() < *other.get_ptr())
-					return -1;
-				else
-					return 0;
-
-			return has_value() - other.has_value();
+				return *get_ptr() <=> *other.get_ptr();
+			return has_value() <=> other.has_value();
 		}
 
-		bool __equals__(const self& other) const
+		constexpr bool operator==(const self& other) const
 		{
 			if (has_value() && other.has_value())
 				return *get_ptr() == *other.get_ptr();

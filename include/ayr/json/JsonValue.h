@@ -7,11 +7,9 @@ namespace ayr
 {
 	namespace json
 	{
-		class Json : public Object<Json>
+		class Json
 		{
 			using self = Json;
-
-			using super = Object<Json>;
 
 			void* json_item_;
 
@@ -29,11 +27,9 @@ namespace ayr
 			* IsConst 表示处理函数的参数是否传入const对象
 			*/
 			template<typename R, bool IsConst = false>
-			class JsonMethodsImpl : public Object<JsonMethodsImpl<R, IsConst>>
+			class JsonMethodsImpl
 			{
 				using self = JsonMethodsImpl;
-
-				using super = Object<self>;
 
 				using NullArgT = add_const_t<IsConst, JsonNull>&;
 
@@ -471,9 +467,7 @@ namespace ayr
 				return jmc(*this);
 			}
 
-			void __repr__(Buffer& buffer) const { fmt_buf(buffer, 0, "    "); }
-
-			bool __equals__(const Json& other) const
+			bool operator==(const Json& other) const
 			{
 				if (this == &other) return true;
 				if (json_type_id_ != other.json_type_id_) return false;
@@ -487,6 +481,8 @@ namespace ayr
 				jmc.for_dict([&other](const JsonDict& obj) { return obj == other.as_dict(); });
 				return jmc(*this);
 			}
+
+			void __repr__(Buffer& buffer) const { fmt_buf(buffer, 0, "    "); }
 
 			/*
 			* @brief 根据匹配模式设置Json对象的值

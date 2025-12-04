@@ -17,7 +17,7 @@ namespace ayr
 		typename Distance = std::ptrdiff_t,
 		typename Pointer = T*,
 		typename Reference = T&>
-	struct IteratorInfo : public Object<Iterator>
+	struct IteratorInfo
 	{
 	public:
 		using iterator_type = Iterator;

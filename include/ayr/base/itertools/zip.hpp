@@ -42,7 +42,7 @@ namespace ayr
 			return tmp;
 		}
 
-		constexpr bool __equals__(const self& other) const
+		constexpr bool operator==(const self& other) const
 		{
 			return ([&]<std::size_t... I>(std::index_sequence<I...>) {
 				return ((std::get<I>(this->its_) == std::get<I>(other.its_)) || ...);

@@ -7,7 +7,7 @@
 
 namespace ayr
 {
-	class Log : public Object<Log>
+	class Log
 	{
 	private:
 		Log() = delete;
@@ -16,7 +16,7 @@ namespace ayr
 
 		Log& operator=(const Log&) = delete;
 	public:
-		struct LogLevel : public Object<LogLevel>
+		struct LogLevel
 		{
 			constexpr static int TRACE = 0;
 
@@ -42,7 +42,7 @@ namespace ayr
 		};
 
 
-		class LogEvent : public Object<LogEvent>
+		class LogEvent
 		{
 		public:
 			constexpr LogEvent() : level_(LogLevel::INACTIVE), output_(nullptr) {}

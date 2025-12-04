@@ -9,7 +9,7 @@ coro::Generator<int> numbers(int n)
 	co_return n + 1;
 }
 
-struct NoDefaultConstructor : public Object<NoDefaultConstructor>
+struct NoDefaultConstructor
 {
 	NoDefaultConstructor(int x) : x(x) {}
 

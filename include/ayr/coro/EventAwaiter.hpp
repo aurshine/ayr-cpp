@@ -9,7 +9,7 @@ namespace ayr
 	namespace coro
 	{
 		// 事件驱动可等待对象
-		class EventAwaiter : public Object<EventAwaiter>
+		class EventAwaiter
 		{
 			using self = EventAwaiter;
 
