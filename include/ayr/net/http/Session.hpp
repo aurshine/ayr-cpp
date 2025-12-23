@@ -62,7 +62,8 @@ namespace ayr
 				HttpResponse res;
 				ResponseParser res_parser;
 				do {
-					co_await sock.read(resp_buffer);
+					if (co_await sock.read(resp_buffer) == 0)
+						break;
 				} while (!res_parser(res, resp_buffer));
 
 				co_return res;

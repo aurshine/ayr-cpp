@@ -101,9 +101,12 @@ namespace ayr
 				EXPECT_BODY,
 				DONE
 			}parse_expect;
-		public:
-			ResponseParser() : parse_expect(Expect::EXPECT_STATUS_LINE) {}
 
+			DynArray<Atring> chunks;
+		public:
+			ResponseParser() : parse_expect(Expect::EXPECT_STATUS_LINE), chunks() {}
+
+			// 自动解析 HTTP 响应
 			bool operator()(HttpResponse& response, Buffer& buffer)
 			{
 				switch (parse_expect)
@@ -127,11 +130,14 @@ namespace ayr
 				{
 					// 重置
 					parse_expect = Expect::EXPECT_STATUS_LINE;
+					chunks.clear();
 					return true;
 				}
 				return false;
 			}
 
+		private:
+			// 解析 status line
 			bool parse_status_line(HttpResponse& response, Buffer& buffer)
 			{
 				c_size i = buffer.find_crlf();
@@ -150,6 +156,7 @@ namespace ayr
 				return true;
 			}
 
+			// 解析header
 			bool parse_header(HttpResponse& response, Buffer& buffer)
 			{
 				while (true)
@@ -170,16 +177,40 @@ namespace ayr
 				}
 			}
 
+			// 解析body
 			bool parse_body(HttpResponse& response, Buffer& buffer)
 			{
-				if (!response.headers.contains("Content-Length"as))
-					return true;
+				if (response.headers.contains("Content-Length"as))
+					return parse_content_length_body(response, buffer);
+				else if (response.headers.get("Transfer-Encoding"as, ""as) == "chunked"as)
+					return parse_chunk_body(response, buffer);
+			}
+
+			// 解析有 Content-Length 头的 body
+			bool parse_content_length_body(HttpResponse& response, Buffer& buffer)
+			{
 				c_size content_length = response.headers.get("Content-Length"as).to_int();
 
 				if (buffer.readable_size() < content_length)
 					return false;
 				response.body = Atring::from(vstr(buffer.peek(), content_length));
 				buffer.retrieve(content_length);
+				return true;
+			}
+
+			// 解析 chunked 编码的 body
+			bool parse_chunk_body(HttpResponse& response, Buffer& buffer)
+			{
+				c_size i = buffer.find_crlf();
+				if (i == -1) return false;
+				c_size chunk_size = vstr(buffer.peek(), i).toint(16);
+				buffer.retrieve(i + 2);
+				chunks.append(Atring::from(vstr(buffer.peek(), chunk_size)));
+				buffer.retrieve(chunk_size + 2);
+				if (chunk_size != 0)
+					return false;
+
+				response.body = Atring::ajoin(chunks);
 				return true;
 			}
 		};
