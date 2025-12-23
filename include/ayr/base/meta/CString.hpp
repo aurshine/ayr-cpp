@@ -1,6 +1,7 @@
 ﻿#ifndef AYR_BASE_CSTRING_HPP
 #define AYR_BASE_CSTRING_HPP
 
+#include <charconv>
 #include <format>
 #include <sstream>
 
@@ -541,6 +542,22 @@ namespace ayr
 				++ptr;
 			}
 			return res;
+		}
+
+		// 将字符串转换为base进制整数
+		c_size toint(int base = 10) const
+		{
+			c_size val = 0;
+			std::from_chars(begin(), end(), val, base);
+			return val;
+		}
+
+		// 将字符串转换为浮点数
+		double tofloat() const
+		{
+			double val = 0;
+			std::from_chars(begin(), end(), val);
+			return val;
 		}
 
 		// 通过*this，连接可迭代对象中的字符串
