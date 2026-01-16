@@ -82,7 +82,7 @@ using namespace ayr::literals;
 
 int main()
 {
-	auto parser = json::JsonParser();
+	auto parser = json::JsonLoader();
 	Timer_ms tm;
 	auto twitter_file = fs::join(fs::dirname(__FILE__), "twitter.json");
 	auto datas = fs::AyrFile(twitter_file, "r").read();

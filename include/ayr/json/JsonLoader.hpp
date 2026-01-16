@@ -1,13 +1,13 @@
-﻿#ifndef AYR_JSON_PARSE_HPP
-#define AYR_JSON_PARSE_HPP
+﻿#ifndef AYR_JSON_JSONLOADER_HPP
+#define AYR_JSON_JSONLOADER_HPP
 
-#include "JsonValue.h"
+#include "JsonValue.hpp"
 
 namespace ayr
 {
 	namespace json
 	{
-		class JsonParser
+		class JsonLoader
 		{
 			// 需要解析的json字符串
 			Atring json_str_;
@@ -15,7 +15,7 @@ namespace ayr
 			// 当前解析位置，[pos_, ]为未解析部分
 			c_size pos_;
 		public:
-			JsonParser(const Atring& json_str): json_str_(json_str.strip()), pos_(0) {}
+			JsonLoader(const Atring& json_str): json_str_(json_str.strip()), pos_(0) {}
 
 			/*
 			* @brief 解析json字符串
@@ -224,7 +224,7 @@ namespace ayr
 		*/
 		Json load(const Atring& json_str)
 		{
-			JsonParser parser(json_str);
+			JsonLoader parser(json_str);
 			return parser().first;
 		}
 
@@ -237,11 +237,11 @@ namespace ayr
 		*/
 		std::pair<Json, Atring> loads(const Atring& json_str)
 		{
-			JsonParser parser(json_str);
+			JsonLoader parser(json_str);
 			auto [json_obj, pos] = parser();
 			return { json_obj, json_str.vslice(pos) };
 		}
 	}
 }
 
-#endif
+#endif // AYR_JSON_JSONLOADER_HPP

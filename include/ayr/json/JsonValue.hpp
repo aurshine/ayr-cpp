@@ -1,5 +1,5 @@
-#ifndef AYR_JSON_JSONVALUE_H
-#define AYR_JSON_JSONVALUE_H
+#ifndef AYR_JSON_JSONVALUE_HPP
+#define AYR_JSON_JSONVALUE_HPP
 
 #include <variant>
 
@@ -26,10 +26,60 @@ namespace ayr
 
 		using JsonDict = Dict<JsonStr, Json>;
 
-
 		template<typename T>
 		concept JsonTypeConcept = issame<T, JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict>;
 
+		template<typename T>
+		struct _IsJsonLike : std::false_type {};
+
+		template<>
+		struct _IsJsonLike<Json> : std::true_type {};
+
+		template<>
+		struct _IsJsonLike<JsonNull> : std::true_type {};
+
+		template<>
+		struct _IsJsonLike<JsonInt> : std::true_type {};
+
+		template<>
+		struct _IsJsonLike<JsonFloat> : std::true_type {};
+
+		template<>
+		struct _IsJsonLike<JsonBool> : std::true_type {};
+
+		template<>
+		struct _IsJsonLike<JsonStr> : std::true_type {};
+
+		template<typename T>
+		struct _IsJsonLike<DynArray<T>> : std::bool_constant<_IsJsonLike<T>::value> {};
+
+		template<typename T>
+		struct _IsJsonLike<Dict<JsonStr, T>> : std::bool_constant<_IsJsonLike<T>::value> {};
+
+		/*
+		* @brief 近似Json的概念
+		*
+		* @details Json, JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, DynArray<JsonLike>, Dict<JsonStr, JsonLike>均符合该概念
+		*/
+		template<typename T>
+		concept JsonLikeConcept = _IsJsonLike<std::decay_t<T>>::value;
+
+		template<JsonLikeConcept T>
+		bool sample_type(const T& obj)
+		{
+			if constexpr (issame<T, JsonArray, JsonDict>)
+				return false;
+			if constexpr (issame<T, Json>)
+				if (obj.is_array() || obj.is_dict())
+					return false;
+			return true;
+		}
+
+		/*
+		* @brief JSON值类型
+		* 
+		* @details 支持Null, Int, Float, Bool, Str, Array, Dict类型
+		*/
 		class Json
 		{
 			using self = Json;
@@ -315,92 +365,8 @@ namespace ayr
 
 			bool operator==(const Json& other) const { return json_var_ == other.json_var_; }
 
-			void __repr__(Buffer& buffer) const { fmt_buf(buffer, 0, "    "); }
-		private:
-			// 格式化输出json对象
-			void fmt_buf(Buffer& buffer, int depth, const CString& indent) const
-			{
-				struct Visitor
-				{
-					Buffer& vb;
-
-					int depth;
-
-					const CString& indent;
-
-					void operator()(const JsonNull& obj) { vb << "null"; }
-
-					void operator()(const JsonInt& obj) { vb << obj; }
-
-					void operator()(const JsonFloat& obj) { vb << obj; }
-
-					void operator()(const JsonBool& obj) { vb << obj; }
-
-					void operator()(const JsonStr& obj) { vb << "\"" << obj << "\""; }
-
-					void operator()(const JsonArray& obj)
-					{
-						vb << "[";
-						bool is_ds = any(obj, [](const Json& item) {
-							return item.is_array() || item.is_dict();
-							});
-
-						if (is_ds) fmt_new_line(vb, depth + 1, indent);
-
-						bool flag = false;
-						for (auto& item : obj)
-						{
-							if (flag)
-							{
-								vb << ", ";
-								if (is_ds) fmt_new_line(vb, depth + 1, indent);
-							}
-							flag = true;
-							item.fmt_buf(vb, depth + 1, indent);
-						}
-
-						if (is_ds) fmt_new_line(vb, depth, indent);
-
-						vb << "]";
-					}
-
-					void operator()(const JsonDict& obj)
-					{
-						vb << "{";
-						bool is_ds = any(obj.values(), [](const Json& item) {
-							return item.is_array() || item.is_dict();
-							});
-
-						if (is_ds) fmt_new_line(vb, depth + 1, indent);
-
-						bool flag = false;
-						for (auto& [k, v] : obj.items())
-						{
-							if (flag)
-							{
-								vb << ", ";
-								if (is_ds) fmt_new_line(vb, depth + 1, indent);
-							}
-							flag = true;
-							vb << "\"" << k << "\": ";
-							v.fmt_buf(vb, depth + 1, indent);
-						}
-
-						if (is_ds) fmt_new_line(vb, depth, indent);
-						vb << "}";
-					}
-
-					// 格式化输出换行
-					void fmt_new_line(Buffer& buffer, int depth, const CString& indent) const
-					{
-						buffer << "\n";
-						while (depth--)
-							buffer << indent;
-					}
-				};
-				visit(Visitor{ buffer, depth, indent });
-			}
+			void __repr__(Buffer& buffer) const;
 		};
 	}
 }
-#endif  AYR_JSON_JSONVALUE_H
+#endif  AYR_JSON_JSONVALUE_HPP
