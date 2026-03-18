@@ -50,7 +50,7 @@ namespace ayr
 
 				Socket sock = co_await open_connect(
 					req.host().encode(),
-					req.port().to_int(),
+					req.port().toint().first,
 					io_context,
 					ssl_ctx(req.uri().scheme() == "https"as)
 				);

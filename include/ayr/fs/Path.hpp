@@ -136,7 +136,7 @@ namespace ayr
 
 			HANDLE handle = FindFirstFileA(join(path, "*").c_str(), &find_data);
 
-			ExTask task([&handle] { FindClose(handle); });
+			exitask([&handle] { FindClose(handle); });
 
 			if (handle == INVALID_HANDLE_VALUE)
 				raise_error_msg_for_path(path);
@@ -151,7 +151,7 @@ namespace ayr
 			} while (FindNextFileA(handle, &find_data));
 #else
 			DIR* dir = opendir(path.c_str());
-			ExTask task([&dir] { closedir(dir); });
+			exitask([&dir] { closedir(dir); });
 
 			if (dir == nullptr)
 				raise_error_msg_for_path(path);

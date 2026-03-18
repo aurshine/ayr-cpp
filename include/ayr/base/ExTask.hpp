@@ -6,28 +6,31 @@
 namespace ayr
 {
 	/*
-	* ExitTask 退出任务
-	* 用于延迟执行退出操作，防止程序退出时发生未知错误
-	* 调用 cancel() 取消任务
-	* 调用 run() 执行任务
-	* 调用 set() 设置任务
+	* @brief 作用域结束时执行的任务类
+	* 
+	* @tparam F 可调用对象类型，必须满足Invocable概念，即无参数的可调用对象
 	*/
+	template <Invocable F>
 	class ExTask
 	{
 		using self = ExTask;
 
-		using Task_t = std::function<void()>;
-
-		Task_t task_;
+		F task_;
 	public:
+		ExTask(F task) : task_(std::move(task)) {}
 
-		ExTask() {}
-
-		ExTask(Task_t task) : task_(std::move(task)) {}
+		ExTask(const self& other) : task_(other.task_) {}
 
 		ExTask(self&& other) noexcept : task_(std::move(other.task_)) {}
 
-		~ExTask() { if (task_) task_(); }
+		~ExTask() { task_(); }
+
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+			task_ = other.task_;
+			return *this;
+		}
 
 		self& operator=(self&& other) noexcept
 		{
@@ -35,19 +38,11 @@ namespace ayr
 			task_ = std::move(other.task_);
 			return *this;
 		}
-
-		// 取消任务
-		void cancel() { task_ = nullptr; }
-
-		// 提前执行任务
-		void run()
-		{
-			if (task_) task_();
-			cancel();
-		}
-
-		// 设置任务
-		void set(Task_t task) { task_ = std::move(task); }
 	};
+
+	template<Invocable F>
+	ExTask<std::remove_reference_t<F>> make_extask(F&& fn) { return ExTask<std::remove_reference_t<F>>(std::forward<F>(fn)); }
+
+#define exitask(task) auto CONCAT(_ex_task_, __LINE__) = make_extask(task);
 }
 #endif // AYR_BASE_EXTASK_HPP

@@ -97,5 +97,43 @@ namespace ayr
 	// 释放内存不需要析构概念
 	template<typename T>
 	concept NoDestroy = Or<BaseType<T>, isinstance<T, NoDestroyObj>>;
+
+	/*
+	* @brief 可调用类型的概念
+	* 
+	* @tparam R 可调用对象的返回类型
+	* 
+	* @tparam Args 可调用对象的参数类型列表
+	*/
+	template <typename F, typename R, typename... Args>
+	concept Callable = requires(F&& fn, Args&&... args)
+	{
+		{ std::invoke(std::forward<F>(fn), std::forward<Args>(args)...) } -> std::same_as<R>;
+	};
+	
+	/*
+	* @brief 可调用类型的概念
+	*
+	* @tparam R 可调用对象的返回类型
+	*
+	* @tparam Args 可调用对象的参数类型列表
+	*/
+	template <typename F, typename R, typename... Args>
+	concept AnyRCallable = requires(F && fn, Args&&... args)
+	{
+		{ std::invoke(std::forward<F>(fn), std::forward<Args>(args)...) };
+	};
+
+	// 可调用对象的返回类型为void，参数数量任意的概念
+	template<typename F, typename... Args>
+	concept VoidCallable = Callable<F, void, Args...>;
+
+	// 可调用对象的返回类型为R，无参数的概念
+	template<typename F, typename R>
+	concept NoArgsCallable = Callable<F, R>;
+
+	// 可调用对象的返回类型为void，无参数的概念
+	template<typename F>
+	concept Invocable = std::invocable<F>;
 }
 #endif // AYR_BASE_META_AYR_CONCEPTS_HPP
