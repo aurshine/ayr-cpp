@@ -189,7 +189,7 @@ namespace ayr
 			// 解析有 Content-Length 头的 body
 			bool parse_content_length_body(HttpResponse& response, Buffer& buffer)
 			{
-				c_size content_length = response.headers.get("Content-Length"as).to_int();
+				c_size content_length = response.headers.get("Content-Length"as).toint().first;
 
 				if (buffer.readable_size() < content_length)
 					return false;

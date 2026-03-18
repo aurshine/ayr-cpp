@@ -394,7 +394,7 @@ namespace ayr
 
 			if (getaddrinfo(host.c_str(), std::to_string(port).c_str(), &hints, &res) == 0)
 			{
-				ExTask exit([&res] { freeaddrinfo(res); });
+				exitask([&res] { freeaddrinfo(res); });
 
 				for (addrinfo* p = res; p; p = p->ai_next)
 				{

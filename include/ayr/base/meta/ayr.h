@@ -13,7 +13,7 @@ namespace ayr
 
 #define dtype(T) typeid(T).name()
 
-	// 取模运算, 运算结果为 [0, size]
+// 取模运算, 运算结果为 [0, size]
 #define neg_index(index, size) (((index) == (size)) ? (index): (((index) + (size)) % (size)))
 
 #define ifelse(expr, t, f) ((expr)? (t) : (f))
@@ -28,6 +28,10 @@ namespace ayr
 #define hasmethod(T, method, ...) requires(T t) { t.method( __VA_OPT__( ) __VA_ARGS__); }
 #endif 
 #define hasattr(T, attr) hasmember(T, attr) || hastype(T, attr)
+
+// 连接两个标识符
+#define _CONCAT_(x, y) x##y
+#define CONCAT(x, y) _CONCAT_(x, y)
 
 	// container size type 
 	using c_size = int64_t;
