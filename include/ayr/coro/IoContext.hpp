@@ -28,7 +28,10 @@ namespace ayr
 		/*
 		* @brief 协程事件循环
 		*
-		* @detail 可以使用add向事件循环里添加协程句柄，事件循环不会控制协程句柄的生命周期。
+		* @detail 可以使用add向事件循环里添加协程句柄
+		* 事件循环不会控制协程句柄的生命周期。
+		* 
+		* 不设计 add_task添加协程的接口，因为事件循环不控制协程句柄的生命周期，如果task是右值，可能会导致协程句柄被销毁，造成悬空指针。
 		*/
 		class IoContext
 		{
@@ -48,13 +51,14 @@ namespace ayr
 
 			/*
 			* @brief 添加一个协程到Loop中, 返回协程的promise
-			* 如果协程的promise类型为void, 则返回void
-			*
+			* 
+			* 事件循环不会控制协程句柄的生命周期
+			* 
 			* @tparam P 协程的promise类型
 			*
 			* @param coro 协程句柄
 			*
-			* @return 协程的promise
+			* @return 协程的promise，如果协程的promise类型为void, 则返回void
 			*/
 			template<typename P>
 			void_or_ref_t<P> add(std::coroutine_handle<P> coro)
@@ -64,17 +68,19 @@ namespace ayr
 					return coro.promise();
 			}
 
+
 			/*
-			* @brief 添加一个等待协程到Loop中, 返回协程的promise
-			* 如果协程的promise类型为void, 则返回void
+			* @brief 添加一个协程到Loop中, 返回协程的promise
+			*
+			* 事件循环不会控制协程句柄的生命周期
 			*
 			* @tparam P 协程的promise类型
 			*
 			* @param coro 协程句柄
-			*
+			* 
 			* @param abs_time 协程被唤醒的绝对时间点
 			*
-			* @return 协程的promise
+			* @return 协程的promise，如果协程的promise类型为void, 则返回void
 			*/
 			template<typename P>
 			void_or_ref_t<P> add(std::coroutine_handle<P> coro, const std::chrono::steady_clock::time_point& abs_time)
@@ -134,17 +140,9 @@ namespace ayr
 			template<typename T>
 			T run(const Task<T>& task)
 			{
-				if constexpr (std::is_void_v<T>)
-				{
-					add(task.coro_);
-					run();
-				}
-				else
-				{
-					Promise<T>& p = add(task.coro_);
-					run();
-					return p.result();
-				}
+				Promise<T>& p = add(task.coro_);
+				run();
+				return p.result();
 			}
 
 			// 构造读等待对象
@@ -173,7 +171,7 @@ namespace ayr
 
 			void await_suspend(std::coroutine_handle<void> coroutine)
 			{
-				io_context_->add<void>(coroutine, abs_time_);
+				io_context_->add(coroutine, abs_time_);
 			}
 
 			void await_resume() const {}
