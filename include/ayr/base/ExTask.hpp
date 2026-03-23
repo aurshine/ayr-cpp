@@ -19,8 +19,6 @@ namespace ayr
 	public:
 		ExTask(F task) : task_(std::move(task)) {}
 
-		ExTask(F&& task) : task_(std::move(task)) {}
-
 		ExTask(const self& other) : task_(other.task_) {}
 
 		ExTask(self&& other) noexcept : task_(std::move(other.task_)) {}
@@ -43,7 +41,7 @@ namespace ayr
 	};
 
 	template<Invocable F>
-	ExTask<F> make_extask(F&& fn) { return ExTask<F>(std::forward<F>(fn)); }
+	ExTask<std::remove_reference_t<F>> make_extask(F&& fn) { return ExTask<std::remove_reference_t<F>>(std::forward<F>(fn)); }
 
 #define exitask(task) auto CONCAT(_ex_task_, __LINE__) = make_extask(task);
 }

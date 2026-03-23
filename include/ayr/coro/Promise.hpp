@@ -55,6 +55,8 @@ namespace ayr
 			void return_void() noexcept {}
 
 			co_type get_return_object() noexcept { return co_type::from_promise(*this); }
+
+			void result() noexcept {}
 		};
 
 		template<typename T = void>
