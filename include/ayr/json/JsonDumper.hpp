@@ -89,7 +89,7 @@ namespace ayr
 			// 输出换行和缩进
 			void newline()
 			{
-				buffer.expand_util(1 + depth * 4);
+				buffer.adjust_util(1 + depth * 4);
 				buffer.append_bytes("\n", 1, 1);
 				buffer.append_bytes(" ", 1, depth * 4);
 			}

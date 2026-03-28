@@ -115,7 +115,7 @@ namespace ayr
 
 			void __repr__(Buffer& buffer) const
 			{
-				buffer.expand_util(body.size() + 1024);
+				buffer.adjust_util(body.size() + 1024);
 				buffer << method_ << " " << path() << " " << version_ << "\r\n";
 				for (auto& [k, v] : headers.items())
 					buffer << k << ": " << v << "\r\n";

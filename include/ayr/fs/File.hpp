@@ -132,7 +132,7 @@ namespace ayr
 			c_size read(Buffer& buffer, c_size size = -1) const
 			{
 				size = ifelse(size > 0, size, file_size());
-				buffer.expand_util(size);
+				buffer.adjust_util(size);
 				// 初始buffer里的字节数
 				c_size begin_buffer_size = buffer.readable_size();
 #if defined(AYR_WIN)

@@ -81,7 +81,7 @@ namespace ayr
 
 			void __repr__(Buffer& buffer) const
 			{
-				buffer.expand_util(body.size() + 1024);
+				buffer.adjust_util(body.size() + 1024);
 				buffer << version << " " << status_code << " " << status_message << "\r\n";
 				for (auto& [key, value] : headers.items())
 					buffer << key << ": " << value << "\r\n";

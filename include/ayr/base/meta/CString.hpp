@@ -726,7 +726,7 @@ namespace ayr
 	*/
 	def from_buffer(Buffer&& buffer) -> CString
 	{
-		if (buffer.begin() == buffer.peek())
+		if (buffer.data() == buffer.peek())
 		{
 			CString res = ostr(buffer.peek(), buffer.readable_size());
 			buffer.detach();

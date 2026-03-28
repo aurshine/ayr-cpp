@@ -212,7 +212,7 @@ namespace ayr
 			if (read_size <= 0)
 				read_size = buffer.writeable_size();
 			else
-				buffer.expand_util(read_size);
+				buffer.adjust_util(read_size);
 
 			int num_read = ::recv(fd, buffer.write_ptr(), read_size, flags);
 			if (num_read == -1)
@@ -240,7 +240,7 @@ namespace ayr
 			if (read_size <= 0)
 				read_size = buffer.writeable_size();
 			else
-				buffer.expand_util(read_size);
+				buffer.adjust_util(read_size);
 
 			int num_read = SSL_read(ssl, buffer.write_ptr(), read_size);
 			if (num_read < 0)

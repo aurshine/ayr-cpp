@@ -27,7 +27,7 @@ namespace ayr
 			end_ptr_(data_ + capacity) {
 		}
 
-		Buffer(const Buffer& other) : Buffer(other.capacity()) { append_bytes(other.peek(), other.readable_size()); }
+		Buffer(const Buffer& other) : Buffer(other.readable_size()) { append_bytes(other.peek(), other.readable_size()); }
 
 		Buffer(Buffer&& other) noexcept :
 			data_(std::exchange(other.data_, nullptr)),
@@ -36,7 +36,7 @@ namespace ayr
 			end_ptr_(std::exchange(other.end_ptr_, nullptr)) {
 		}
 
-		~Buffer() { ayr_desloc(data_, capacity()); }
+		~Buffer() { ayr_desloc(data_); }
 
 		Buffer& operator=(const Buffer& other)
 		{
@@ -54,17 +54,31 @@ namespace ayr
 			return *ayr_construct(this, std::move(other));
 		}
 
+		// 关闭写缓冲区，只能读取数据，不能写入数据
+		void close() { end_ptr_ = nullptr; }
+
+		// 判断缓冲区是否被关闭
+		bool closed() const { return end_ptr_ == nullptr; }
+
+		// 清空读缓冲区
+		void clear() { read_ptr_ = write_ptr_ = data_; }
+
 		// 读缓冲区的大小
 		c_size readable_size() const { return write_ptr_ - read_ptr_; }
 
-		// 写缓冲区的大小
-		c_size writeable_size() const { return end_ptr_ - write_ptr_; }
+		/*
+		* @brief 写缓冲区的大小
+		* 
+		* @return 写缓冲区的大小，如果缓冲区被关闭则返回 -1
+		*/
+		c_size writeable_size() const { return ifelse(closed(), -1, end_ptr_ - write_ptr_); }
 
-		// 缓冲区的容量
-		c_size capacity() const { return end_ptr_ - data_; }
-
-		// 清空缓冲区
-		void clear() { read_ptr_ = write_ptr_ = data_; }
+		/*
+		* @brief 缓冲区的总容量
+		* 
+		* @return 缓冲区的总容量，如果缓冲区被关闭则返回 -1
+		*/
+		c_size capacity() const { return ifelse(closed(), -1, end_ptr_ - data_); }
 
 		// 读缓冲区起始位置
 		const char* peek() const { return read_ptr_; }
@@ -72,24 +86,27 @@ namespace ayr
 		// 写缓冲区起始位置
 		char* write_ptr() const { return write_ptr_; }
 
-		// 缓冲区起始位置
-		char* begin() const { return data_; }
+		// 缓冲区首地址
+		char* data() const { return data_; }
 
-		// 缓冲区结束位置
-		char* end() const { return end_ptr_; }
-
-		// 已经写过的字节数
+		/*
+		* @brief 向写缓冲区中写入指定数量的字节
+		* 
+		* @param size 要写入的字节数
+		* 
+		* @note 如果写入的字节数大于缓冲区中可写字节数，则只写入到缓冲区末尾
+		*/
 		void written(c_size size)
 		{
 			if (size <= 0) return;
-			else if (size <= writeable_size())
+			if (size <= writeable_size())
 				write_ptr_ += size;
 			else
 				write_ptr_ = end_ptr_;
 		}
 
 		/*
-		* @brief 从缓冲区中取出指定数量的字节
+		* @brief 从读缓冲区中取出指定数量的字节
 		*
 		* @param size 要取出的字节数
 		*
@@ -99,20 +116,20 @@ namespace ayr
 		{
 			if (size <= 0)
 				return;
-			else if (size >= readable_size())
+			if (size >= readable_size())
 				clear();
 			else
 				read_ptr_ += size;
 		}
 
-		// 返回 '\n' 位置
+		// 返回读缓冲区中 '\n' 位置
 		c_size find_eol(c_size pos = 0) { return find('\n', pos); }
 
-		// 返回 '\r\n' 位置
+		// 返回读缓冲区中 '\r\n' 位置
 		c_size find_crlf(c_size pos = 0) { return find("\r\n", pos); }
 
 		/*
-		* @brief 寻找指定字符的位置
+		* @brief 寻找读缓冲区中指定字符的位置
 		*
 		* @param c 要查找的字符
 		*
@@ -130,7 +147,7 @@ namespace ayr
 		}
 
 		/*
-		* @brief 寻找指定字符串的位置
+		* @brief 寻找读缓冲区中指定字符串的位置
 		*
 		* @param pattern 要查找的字符串
 		*
@@ -149,17 +166,22 @@ namespace ayr
 		}
 
 		/*
-		* @brief 向缓冲区追加字节
+		* @brief 向写缓冲区追加字节
+		* 
+		* @details 如果追加的字节数超过写缓冲区的可写字节数，则自动扩容写缓冲区到至少size * n大小
 		* 
 		* @param bytes 要追加的字节指针
 		* 
 		* @param size 追加字节的大小
 		* 
 		* @param n 追加字节的数量
+		* 
+		* @note 如果写缓冲区被关闭，则不执行任何操作
 		*/
 		void append_bytes(const void* bytes, c_size size, c_size n=1)
 		{
-			expand_util(size * n);
+			if (closed()) return;
+			adjust_util(size * n);
 			while (n --)
 			{
 				std::memcpy(write_ptr_, bytes, size);
@@ -168,41 +190,45 @@ namespace ayr
 		}
 
 		/*
-		* @brief 扩容写缓冲区到至少min_capacity大小
+		* @brief 调整可写的写缓冲区到至少min_write_size大小
 		*
-		* @param min_capacity 期望最小容量
+		* @param min_write_size 写缓冲区期望最小可写容量
+		* 
+		* @note 如果当前可写容量已经大于等于min_write_size或写缓冲区被关闭，则不执行任何操作
 		*/
-		void expand_util(c_size min_write_size)
+		void adjust_util(c_size min_write_size)
 		{
-			// 写缓冲区足够
-			if (min_write_size <= writeable_size())
+			if (closed() || min_write_size <= writeable_size())
 				return;
 
-			c_size capacity = this->capacity() * 2, read_size = readable_size();
-			while (capacity < read_size + min_write_size) capacity *= 2;
+			// 如果当前容量足够容纳现有数据和新数据，则将现有数据移动到缓冲区起始位置
+			if (capacity() >= readable_size() + min_write_size)
+			{
+				std::memmove(data_, peek(), readable_size());
+				read_ptr_ = data_;
+				write_ptr_ = data_ + readable_size();
+			}
+			else
+			{
+				c_size capacity_ = capacity() * 2, read_size = readable_size();
+				while (capacity_ < read_size + min_write_size) capacity_ *= 2;
 
-			char* tmp = ayr_alloc<char>(capacity);
-			std::memcpy(tmp, peek(), readable_size());
-			ayr_desloc(data_, this->capacity());
+				char* tmp = ayr_alloc<char>(capacity_);
+				std::memcpy(tmp, peek(), readable_size());
+				ayr_desloc(data_);
 
-			data_ = tmp;
-			read_ptr_ = tmp;
-			write_ptr_ = tmp + read_size;
-			end_ptr_ = tmp + capacity;
+				data_ = read_ptr_ = tmp;
+				write_ptr_ = tmp + read_size;
+				end_ptr_ = tmp + capacity_;
+			}
 		}
-
 	private:
 		/*
 		* @brief 分离缓冲区底部数据
 		*
 		* @return 底部数据指针和缓冲区总大小
 		*/
-		void detach()
-		{
-			char* tmp = begin();
-			c_size size = capacity();
-			data_ = write_ptr_ = read_ptr_ = end_ptr_ = nullptr;
-		}
+		void detach() { data_ = write_ptr_ = read_ptr_ = end_ptr_ = nullptr; }
 	};
 
 	void _repr_int(Buffer& buffer, c_size value)
