@@ -13,29 +13,33 @@ namespace ayr
 {
 	namespace async
 	{
-		struct StopFlag
-		{
-			// 不停止
-			static constexpr int8_t WAIT_FOREVER = -1;
-
-			// 立即停止
-			static constexpr int8_t STOP_NOW = 0;
-
-			// 等待所有任务完成后停止
-			static constexpr int8_t STOP_FINISHED = 1;
-		};
-
-
-		/*线程池类, 当线程池对象被销毁时, 任务队列的里的任务将会被清空*/
+		/*
+		* @brief 线程池类，管理一组线程并执行提交的任务
+		* 
+		* 当线程池对象被销毁时，未完成的任务将被丢弃，正在执行的任务将继续执行直到完成。
+		*/
 		class ThreadPool
 		{
 			using self = ThreadPool;
 
-		public:
 			using PoolTask = std::function<void()>;
 
+			// 停止标志，表示线程池的停止状态
+			bool stoped_;
+
+			// 当前正在运行的任务数量
+			std::atomic<int32_t> num_running_;
+
+			Array<std::thread> threads;
+
+			std::condition_variable condition;
+
+			std::mutex mtx;
+
+			std::queue<PoolTask> tasks;
+		public:
 			// 线程池构造函数，传入线程池的线程数量
-			ThreadPool(size_t num_pool) :threads(num_pool), stop_flag(StopFlag::WAIT_FOREVER)
+			ThreadPool(size_t num_pool) : stoped_(false), num_running_(0), threads(num_pool)
 			{
 				auto work = [this]()
 					{
@@ -43,48 +47,94 @@ namespace ayr
 						{
 							std::unique_lock<std::mutex> lock(this->mtx);
 							this->condition.wait(lock, [this]() {
-								return this->check_stop_now() || this->check_task_finished() || this->check_has_task();
+								// 当有等待的任务或者线程池已经停止时，线程可以继续执行
+								return this->has_waiting_task() || this->stoped_ok();
 								});
 
-							if (this->check_stop_now() || this->check_task_finished())	return;
+							if (this->stoped_ok())
+							{
+								// 通知其他线程检查停止状态
+								this->condition.notify_all(); 
+								return;
+							}
+
 							PoolTask task = std::move(this->tasks.front());
 							this->tasks.pop();
 
 							lock.unlock();
+							++this->num_running_;
 							task();
+							--this->num_running_;
 						}
 					};
 				for (auto& t : this->threads)
 					t = std::thread(work);
 			}
 
-			~ThreadPool() { stop(); }
+			~ThreadPool() { if (!stoped_ok()) stop(); }
 
-			template<class F, class ...Args>
-			auto push(F&& task, Args&& ...args) -> std::future<std::invoke_result_t<F, Args...>> {
-				using ResultType = std::invoke_result_t<F, Args...>;
-
-				auto pkg_task = std::make_shared<std::packaged_task<ResultType()>>(
-					std::bind(std::forward<F>(task), std::forward<Args>(args)...)
-				);
-
-				std::future<ResultType> future = pkg_task->get_future();
+			template<AnyRCallable F>
+			std::future<std::invoke_result_t<F>> push_future(F&& task) {
+				if (stoped_ok())
+					RuntimeError("Cannot push task to a stopped ThreadPool");
+				using R = std::invoke_result_t<F>;
+				Shared<std::packaged_task<R()>> pkg_task(task);
 
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
-					tasks.push([pkg_task]() { (*pkg_task)(); });
+					tasks.push([pkg_task] { (*pkg_task)(); });
 				}
-
 				condition.notify_one();
-				return future;
+				return pkg_task->get_future();
 			}
 
-			// 立即停止线程池
-			void stop() { set_stop_flag(StopFlag::STOP_NOW); join(); }
+			template<AnyRCallable F>
+			void push(F&& task)
+			{
+				if (stoped_ok())
+					RuntimeError("Cannot push task to a stopped ThreadPool");
 
-			// 等待所有任务完成后停止线程池
-			void wait() { set_stop_flag(StopFlag::STOP_FINISHED); join(); }
+				Shared<PoolTask> shared_task(std::forward<F>(task));
+				{
+					std::lock_guard<std::mutex> lock(this->mtx);
+					tasks.push([shared_task] { (*shared_task)(); });
+				}
+				condition.notify_one();
+			}
+
+			// 运行线程池，等待所有任务完成
+			void run()
+			{
+				{
+					std::unique_lock<std::mutex> lock(this->mtx);
+					condition.wait(lock, [this]() { return !has_waiting_task() && !has_running_task(); });
+				}
+			}
+
+			// 立即停止线程池，正在执行的任务将继续执行，丢弃所有未开始的任务
+			void stop() 
+			{
+				{
+					std::lock_guard<std::mutex> lock(this->mtx);
+					stoped_ = true;
+					while (!tasks.empty()) tasks.pop();
+				}
+
+				join(); 
+			}
+
+			// 等待线程池中的所有任务完成后停止线程池
+			void wait() 
+			{ 
+				{
+					std::lock_guard<std::mutex> lock(this->mtx);
+					stoped_ = true;
+				}
+	
+				join(); 
+			}
 		private:
+			// 等待所有线程完成
 			void join()
 			{
 				for (auto& t : threads)
@@ -92,42 +142,18 @@ namespace ayr
 						t.join();
 			}
 
-			void set_stop_flag(int8_t flag)
-			{
-				{
-					std::lock_guard<std::mutex> lock(mtx);
-					stop_flag = flag;
-				}
-				condition.notify_all();
-			}
+			// 检查是否有任务正在等待执行
+			bool has_waiting_task() const { return !tasks.empty(); }
 
-			// 检查是否立即停止
-			// 默认此时持有锁
-			bool check_stop_now() const
-			{
-				return stop_flag == StopFlag::STOP_NOW;
-			}
+			// 检查是否有任务正在执行
+			bool has_running_task() const { return num_running_ > 0; }
 
-			// 检查任务是否完成
-			bool check_task_finished() const
-			{
-				return stop_flag == StopFlag::STOP_FINISHED && tasks.empty();
-			}
-
-			bool check_has_task() const
-			{
-				return !tasks.empty();
-			}
-
-			Array<std::thread> threads;
-
-			std::queue<PoolTask> tasks;
-
-			std::mutex mtx;
-
-			std::condition_variable condition;
-
-			int8_t stop_flag;
+			/*
+			* @brief 检查线程池是否可以安全停止
+			* 
+			* 当线程池被标记为停止，并且没有正在等待的任务和正在执行的任务时，线程池可以安全停止。
+			*/
+			bool stoped_ok() const { return stoped_ == true && !has_waiting_task() && !has_running_task(); }
 		};
 	}
 }
