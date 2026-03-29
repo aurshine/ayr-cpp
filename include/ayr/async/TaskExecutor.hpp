@@ -87,7 +87,11 @@ namespace ayr
 			Shared<AsyncTask> create_task(std::function<void()> task)
 			{
 				Shared<AsyncTask> t(this, std::move(task));
+<<<<<<< HEAD
 				root->then(t);
+=======
+				root->add_child(t);
+>>>>>>> c97719c ([ADD]新增异步任务执行框架，使用拓扑排序支持任务依赖关系梳理)
 				return t;
 			}
 
@@ -97,7 +101,11 @@ namespace ayr
 				using R = std::invoke_result_t<F>;
 				Shared<std::packaged_task<R()>> f(std::forward<F>(task));
 				Shared<AsyncTask> t(this, [f] { (*f)(); });
+<<<<<<< HEAD
 				root->then(t);
+=======
+				root->add_child(t);
+>>>>>>> c97719c ([ADD]新增异步任务执行框架，使用拓扑排序支持任务依赖关系梳理)
 				return { t, f->get_future() };
 			}
 
@@ -109,7 +117,14 @@ namespace ayr
 			}
 
 			// 清空所有任务
+<<<<<<< HEAD
 			void clear() { root->childs_.clear(); }
+=======
+			void clear()
+			{
+				root->childs_.clear();
+			}
+>>>>>>> c97719c ([ADD]新增异步任务执行框架，使用拓扑排序支持任务依赖关系梳理)
 		};
 	}
 }

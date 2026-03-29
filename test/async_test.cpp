@@ -23,6 +23,5 @@ int main()
 	t2->then(t4);
 	t3->then(t4);
 	t4->then(t5);
-	
 	exec.run();
 }
