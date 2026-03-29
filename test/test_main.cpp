@@ -1,4 +1,5 @@
 #include <ayr/base.hpp>
+#include <ayr/async.hpp>
 
 using namespace ayr;
 

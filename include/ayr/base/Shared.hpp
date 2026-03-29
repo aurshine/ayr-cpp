@@ -70,15 +70,7 @@ namespace ayr
         }
 
 		// 提供解引用操作符，允许访问被管理的对象
-        T& operator*() 
-        {
-            if (counter_ == nullptr)
-                RuntimeError("Dereferencing a null Shared Resource");
-            return counter_->value; 
-        }
-
-		// 提供const版本的解引用操作符
-        const T& operator*() const 
+        T& operator*() const
         {
             if (counter_ == nullptr)
                 RuntimeError("Dereferencing a null Shared Resource");
@@ -86,15 +78,7 @@ namespace ayr
         }
 
 		// 提供指针语义访问资源
-		T* operator->() 
-        {
-            if (counter_ == nullptr)
-                RuntimeError("Dereferencing a null Shared Resource");
-            return &counter_->value; 
-        }
-
-		// 提供指针语义访问资源的const版本
-		const T* operator->() const 
+		T* operator->() const
         {
             if (counter_ == nullptr)
                 RuntimeError("Dereferencing a null Shared Resource");

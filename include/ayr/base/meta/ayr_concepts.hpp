@@ -118,7 +118,7 @@ namespace ayr
 	*
 	* @tparam Args 可调用对象的参数类型列表
 	*/
-	template <typename F, typename R, typename... Args>
+	template <typename F, typename... Args>
 	concept AnyRCallable = requires(F && fn, Args&&... args)
 	{
 		{ std::invoke(std::forward<F>(fn), std::forward<Args>(args)...) };
