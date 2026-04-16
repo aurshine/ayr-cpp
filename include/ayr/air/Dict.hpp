@@ -243,6 +243,7 @@ namespace ayr
 
 			auto kv_node = kv_chain_.append(std::forward<_K>(key), std::forward<_V>(default_value));
 			htable_.insert_value_on_index(index, hashv, move_dist, kv_node);
+			return kv_node->value.second;
 		}
 
 		/*

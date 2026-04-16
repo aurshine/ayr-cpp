@@ -61,7 +61,7 @@ namespace ayr
 				struct epoll_event ev;
 				// 默认监听错误事件，挂起连接
 				ev.events = EPOLLERR | EPOLLHUP | EPOLLRDHUP | EPOLLET;
-				// 读事件，LT模式
+				// 读事件，ET模式
 				if (io_event.registered_events() & IoEvent::READABLE)
 					ev.events |= EPOLLIN;
 				// 写事件

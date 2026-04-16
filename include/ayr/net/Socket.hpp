@@ -246,10 +246,7 @@ namespace ayr
 					if (num_written < 0)
 						co_await ssl_eagain_wait(num_written);
 					else
-					{
-						buffer.retrieve(num_written);
 						co_return num_written;
-					}
 				}
 			}
 
@@ -280,10 +277,7 @@ namespace ayr
 					if (num_written < 0)
 						co_await write_awaiter_;
 					else
-					{
-						buffer.retrieve(num_written);
 						co_return num_written;
-					}
 				}
 			}
 		};
