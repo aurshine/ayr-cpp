@@ -7,15 +7,17 @@ using namespace ayr::literals;
 
 int main()
 {
+	json::JsonLoader::MAX_DEPTH = 2;
 	Timer_ms tm;
-	auto twitter_file = fs::join(fs::dirname(__FILE__), "json/canada.json");
+	CString json_file_name = "json/citm_catalog.json";
+	auto twitter_file = fs::join(fs::dirname(__FILE__), json_file_name);
 	auto datas = fs::AyrFile(twitter_file, "r").read();
 
 	auto a_str = Atring::from_utf8(datas);
 	tm.into();
 	json::load(a_str);
 	auto s = tm.escape();
-	print("parse canada.json time elapsed: ", s, "ms\n");
+	print("parse", json_file_name, "time elapsed:", s, "ms\n");
 	return 0;
 	print.setend("\n\n");
 	tlog(json::load("123"as));

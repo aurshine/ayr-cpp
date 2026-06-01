@@ -14,7 +14,12 @@ namespace ayr
 
 			// 当前解析位置，[pos_, ]为未解析部分
 			c_size pos_;
+
+			// 解析深度，超过一定深度抛出异常，防止恶意输入导致栈溢出
+			c_size depth_ = 0;
 		public:
+			static c_size MAX_DEPTH;
+
 			JsonLoader(const Atring& json_str): json_str_(json_str.strip()), pos_(0) {}
 
 			/*
@@ -191,6 +196,9 @@ namespace ayr
 			*/
 			Json parse_obj()
 			{
+				++depth_;
+				assert_depth();
+				exitask([&] { --depth_; });
 				if (first_char() == '{')  // dict类型
 					return _parse_dict();
 				else if (first_char() == '[')  // array类型)
@@ -213,7 +221,16 @@ namespace ayr
 			
 			// 获取剩余字符串的第一个字符
 			AChar first_char() const { return json_str_.at(pos_); }
-	};
+
+			// 检查解析深度
+			void assert_depth()
+			{
+				if (depth_ > MAX_DEPTH)
+					JsonValueError(std::format("exceed max depth: {}", MAX_DEPTH));
+			}
+		};
+
+		c_size JsonLoader::MAX_DEPTH = 65535;
 
 		/*
 		* @brief 解析json字符串

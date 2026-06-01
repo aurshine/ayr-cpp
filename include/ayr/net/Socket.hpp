@@ -83,6 +83,7 @@ namespace ayr
 			self& operator=(self&& other) noexcept
 			{
 				if (this == &other) return *this;
+				ayr_destroy(this);
 				return *ayr_construct(this, std::move(other));
 			}
 

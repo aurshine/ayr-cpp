@@ -106,7 +106,8 @@ namespace ayr
 			void run()
 			{
 				pool_.push([&] { this->root->action(pool_); });
-				pool_.wait();
+				pool_.run();
+				pool_.stop();
 			}
 
 			// 清空所有任务

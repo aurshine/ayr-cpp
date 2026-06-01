@@ -52,11 +52,7 @@ namespace ayr
 								});
 
 							if (this->stoped_ok())
-							{
-								// 通知其他线程检查停止状态
-								this->condition.notify_all(); 
 								return;
-							}
 
 							PoolTask task = std::move(this->tasks.front());
 							this->tasks.pop();
@@ -65,6 +61,7 @@ namespace ayr
 							++this->num_running_;
 							task();
 							--this->num_running_;
+							condition.notify_all();
 						}
 					};
 				for (auto& t : this->threads)
@@ -103,6 +100,7 @@ namespace ayr
 			}
 
 			// 运行线程池，等待所有任务完成
+			// run完成后，线程池仍然可以接受新的任务，除非调用了 stop 或 wait 方法
 			void run()
 			{
 				{
@@ -112,11 +110,12 @@ namespace ayr
 			}
 
 			// 立即停止线程池，正在执行的任务将继续执行，丢弃所有未开始的任务
+			// 调用 stop 后，线程池将不再接受新的任务
 			void stop() 
 			{
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
-					stoped_ = true;
+					pool_stoped();
 					while (!tasks.empty()) tasks.pop();
 				}
 
@@ -124,11 +123,12 @@ namespace ayr
 			}
 
 			// 等待线程池中的所有任务完成后停止线程池
+			// 调用 wait 后，线程池将不再接受新的任务
 			void wait() 
 			{ 
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
-					stoped_ = true;
+					pool_stoped();
 				}
 	
 				join(); 
@@ -142,6 +142,14 @@ namespace ayr
 						t.join();
 			}
 
+			// 线程池停止标志设置为 true，并通知所有线程检查停止状态
+			void pool_stoped()
+			{
+				if (stoped_) return;
+				stoped_ = true;
+				condition.notify_all();
+			}
+
 			// 检查是否有任务正在等待执行
 			bool has_waiting_task() const { return !tasks.empty(); }
 
@@ -151,9 +159,9 @@ namespace ayr
 			/*
 			* @brief 检查线程池是否可以安全停止
 			* 
-			* 当线程池被标记为停止，并且没有正在等待的任务和正在执行的任务时，线程池可以安全停止。
+			* 当线程池被标记为停止时，线程池可以安全停止。
 			*/
-			bool stoped_ok() const { return stoped_ == true && !has_waiting_task() && !has_running_task(); }
+			bool stoped_ok() const { return stoped_ == true; }
 		};
 	}
 }
