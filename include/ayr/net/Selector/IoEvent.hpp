@@ -29,7 +29,11 @@ namespace ayr
 
 			constexpr static Flag WRITABLE = 2;
 
-			constexpr static Flag ERRORABLE = 4;
+			constexpr static Flag ACCEPTABLE = 4;
+
+			constexpr static Flag CONNECTABLE = 8;
+
+			constexpr static Flag ERRORABLE = 16;
 		private:
 			using self = IoEvent;
 

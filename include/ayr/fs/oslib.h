@@ -5,8 +5,9 @@
 #define AYR_WIN
 
 #include <io.h>
-#include <WinSock2.h>
-#include <Windows.h>
+#include <winsock2.h>
+#include <mswsock.h>
+#include <windows.h>
 #include <fileapi.h>
 #include <WS2tcpip.h>
 
@@ -71,5 +72,12 @@ namespace ayr
 		return errorno2str(errno);
 #endif // 平台判断
 	}
+
+#if defined(AYR_WIN)
+	using BaseSocket = SOCKET;
+#elif defined(AYR_LINUX) || defined(AYR_MAC)
+	using BaseSocket = int;
+#endif // 平台判断
+
 }
 #endif  // AYR_FS_OSLIB_H

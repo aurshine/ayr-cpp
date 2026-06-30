@@ -4,7 +4,6 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 
-#include "../coro/IoContext.hpp"
 #include "../fs/oslib.h"
 
 namespace ayr
@@ -58,7 +57,7 @@ namespace ayr
 		}
 
 		// 复制文件描述符
-		int dup(int fd)
+		int dup(BaseSocket fd)
 		{
 #if defined(AYR_WIN)
 			WSAPROTOCOL_INFO info;
@@ -67,7 +66,7 @@ namespace ayr
 				RuntimeError(get_error_msg());
 
 			// 创建一个新的 socket，等价于 dup
-			SOCKET new_sock = WSASocket(info.iAddressFamily,
+			BaseSocket new_sock = WSASocket(info.iAddressFamily,
 				info.iSocketType,
 				info.iProtocol,
 				&info,
@@ -89,7 +88,7 @@ namespace ayr
 		*
 		* @param blocking 是否阻塞模式，true为阻塞模式，false为非阻塞模式
 		*/
-		def setblocking(int fd, bool blocking)
+		def setblocking(BaseSocket fd, bool blocking)
 		{
 #if defined(AYR_WIN)
 			u_long mode = blocking ? 0 : 1;
@@ -121,7 +120,7 @@ namespace ayr
 		*
 		* @param optlen 选项长度
 		*/
-		def setsockopt(int fd, int level, int optname, const void* optval, socklen_t optlen)
+		def setsockopt(BaseSocket fd, int level, int optname, const void* optval, socklen_t optlen)
 		{
 #if defined(AYR_WIN)
 			return ::setsockopt(fd, level, optname, static_cast<const char*>(optval), optlen);
@@ -143,7 +142,7 @@ namespace ayr
 		*
 		* @param optlen 选项长度
 		*/
-		def getsockopt(int fd, int level, int optname, void* optval, socklen_t* optlen)
+		def getsockopt(BaseSocket fd, int level, int optname, void* optval, socklen_t* optlen)
 		{
 #if defined(AYR_WIN)
 			return ::getsockopt(fd, level, optname, static_cast<char*>(optval), optlen);
@@ -161,7 +160,7 @@ namespace ayr
 		*
 		* @param mode 缓冲区模式，'r'表示接收缓冲区，'w'表示发送缓冲区
 		*/
-		def setbuffer(int fd, int size, const CString& mode)
+		def setbuffer(BaseSocket fd, int size, const CString& mode)
 		{
 			if (mode == "r")
 				setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
@@ -178,18 +177,18 @@ namespace ayr
 		*
 		* @param on 是否复用地址，true为复用地址，false为不复用地址
 		*/
-		def reuse_addr(int fd, bool on)
+		def reuse_addr(BaseSocket fd, bool on)
 		{
 			int optval = ifelse(on, 1, 0);
 			setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
 		}
 
-		def socket(int domain, int type, int protocol) -> int
+		def socket(int domain, int type, int protocol) -> BaseSocket
 		{
 #if defined(AYR_WIN)
-			int fd = WSASocket(domain, type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
+			BaseSocket fd = WSASocket(domain, type, protocol, nullptr, 0, WSA_FLAG_OVERLAPPED);
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-			int fd = ::socket(domain, type, protocol);
+			BaseSocket fd = ::socket(domain, type, protocol);
 #endif
 			if (fd == -1)
 				RuntimeError(get_error_msg());
@@ -207,7 +206,7 @@ namespace ayr
 		*
 		* @return 实际读取的字节数, -1表示非阻塞模式下读缓冲区为空
 		*/
-		def read(int fd, Buffer& buffer, c_size read_size, int flags = 0)
+		def read(BaseSocket fd, Buffer& buffer, c_size read_size, int flags = 0)
 		{
 			if (read_size <= 0)
 				read_size = buffer.writeable_size();
@@ -262,7 +261,7 @@ namespace ayr
 		*
 		* @return 实际写入的字节数, -1表示非阻塞模式下写缓冲区已满
 		*/
-		def write(int fd, const CString& data, int flags = 0) -> int
+		def write(BaseSocket fd, const CString& data, int flags = 0) -> int
 		{
 			int num_written = ::send(fd, data.data(), data.size(), flags);
 			if (num_written == -1)
@@ -303,7 +302,7 @@ namespace ayr
 		*
 		* @return 实际写入的字节数, -1表示非阻塞模式下写缓冲区已满
 		*/
-		def write(int fd, Buffer& buffer, int flags = 0) -> int
+		def write(BaseSocket fd, Buffer& buffer, int flags = 0) -> int
 		{
 			int num_written = ::send(fd, buffer.peek(), buffer.readable_size(), flags);
 			if (num_written == -1)
@@ -327,35 +326,8 @@ namespace ayr
 			return num_written;
 		}
 
-		/*
-		* @brief 与服务器建立连接
-		*
-		* @param fd 要等待可读的文件描述符
-		*
-		* @param addr 服务器地址
-		*
-		* @param len 服务器地址长度
-		*
-		* @param io_context 协程上下文
-		*/
-		def co_connect(int fd, const sockaddr* addr, socklen_t len, coro::IoContext* io_context) -> coro::Task<bool>
-		{
-			int ret = ::connect(fd, addr, len);
-			if (ret == 0) co_return true;
-			if (ret == -1 && !is_einprogress())
-				RuntimeError(get_error_msg());
-			co_await io_context->wait_for_write(fd);
-
-			int result = 0;
-			socklen_t result_len = sizeof(result);
-			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &result, &result_len) < 0)
-				co_return false;
-
-			co_return result == 0;
-		}
-
 		// 关闭socket文件描述符
-		def close(int fd)
+		def close(BaseSocket fd)
 		{
 #if defined(AYR_WIN)
 			::closesocket(fd);
@@ -363,6 +335,159 @@ namespace ayr
 			::close(fd);
 #endif
 		}
+
+#if defined(AYR_WIN)
+		// 用于初始化Winsock的类
+		class _StartSocket
+		{
+			using self = _StartSocket;
+
+			// 扩展函数指针（因为它们是动态加载的）
+			LPFN_ACCEPTEX lpfnAcceptEx4 = nullptr;
+			
+			LPFN_ACCEPTEX lpfnAcceptEx6 = nullptr;
+			
+			LPFN_CONNECTEX lpfnConnectEx4 = nullptr;
+			
+			LPFN_CONNECTEX lpfnConnectEx6 = nullptr;
+
+			_StartSocket()
+			{
+				WSADATA wsaData;
+				if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+					RuntimeError("WSAStartup failed");
+			}
+
+			_StartSocket(const self&) = delete;
+
+			_StartSocket(self&&) = delete;
+		public:
+			~_StartSocket() { WSACleanup(); }
+
+			static self& singleton()
+			{
+				static self instance;
+				return instance;
+			}
+
+			LPFN_ACCEPTEX acceptex4()
+			{
+				if (lpfnAcceptEx4) return lpfnAcceptEx4;
+
+				DWORD bytes = 0;
+				GUID guidAcceptEx = WSAID_ACCEPTEX;
+
+				// 加载 AcceptEx4
+				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
+					&lpfnAcceptEx4, sizeof(lpfnAcceptEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
+				{
+					RuntimeError("Failed to load AcceptEx for IPv4");
+				}
+
+				return lpfnAcceptEx4;
+			}
+
+			LPFN_ACCEPTEX acceptex6()
+			{
+				if (lpfnAcceptEx6) return lpfnAcceptEx6;
+
+				DWORD bytes = 0;
+				GUID guidAcceptEx = WSAID_ACCEPTEX;
+
+				// 加载 AcceptEx6
+				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
+					&lpfnAcceptEx6, sizeof(lpfnAcceptEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
+				{
+					RuntimeError("Failed to load AcceptEx for IPv6");
+				}
+
+				return lpfnAcceptEx6;
+			}
+
+			LPFN_CONNECTEX connectex4()
+			{
+				if (lpfnConnectEx4) return lpfnConnectEx4;
+				DWORD bytes = 0;
+				GUID guidConnectEx = WSAID_CONNECTEX;
+				// 加载 ConnectEx4
+				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
+					&lpfnConnectEx4, sizeof(lpfnConnectEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
+				{
+					RuntimeError("Failed to load ConnectEx for IPv4");
+				}
+				return lpfnConnectEx4;
+			}
+
+
+			LPFN_CONNECTEX connectex6()
+			{
+				if (lpfnConnectEx6) return lpfnConnectEx6;
+				DWORD bytes = 0;
+				GUID guidConnectEx = WSAID_CONNECTEX;
+				// 加载 ConnectEx6
+				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
+					&lpfnConnectEx6, sizeof(lpfnConnectEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
+				{
+					RuntimeError("Failed to load ConnectEx for IPv6");
+				}
+				return lpfnConnectEx6;
+			}
+		};
+
+		// 生成一个静态实例，确保在程序启动时初始化Winsock
+		static const _StartSocket& __startsocket = _StartSocket::singleton();
+
+		BOOL acceptex(SOCKET sListenSocket,
+			SOCKET sAcceptSocket,
+			PVOID lpOutputBuffer,
+			DWORD dwReceiveDataLength,
+			DWORD dwLocalAddressLength,
+			DWORD dwRemoteAddressLength,
+			LPDWORD lpdwBytesReceived,
+			LPOVERLAPPED lpOverlapped)
+		{
+			sockaddr_storage addr{};
+			int len = sizeof(addr);
+
+			::getsockname(sListenSocket, (sockaddr*)&addr, &len);
+			int famliy = addr.ss_family;
+
+			switch (famliy)
+			{
+			case AF_INET:
+				return _StartSocket::singleton().acceptex4()(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, lpOverlapped);
+			case AF_INET6:
+				return _StartSocket::singleton().acceptex6()(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, lpOverlapped);
+			default:
+				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+			}
+		}
+
+		BOOL connectex(SOCKET sConnectSocket,
+			const struct sockaddr* name,
+			int namelen,
+			PVOID lpSendBuffer,
+			DWORD dwSendDataLength,
+			LPDWORD lpdwBytesSent,
+			LPOVERLAPPED lpOverlapped)
+		{
+			sockaddr_storage addr{};
+			int len = sizeof(addr);
+
+			::getsockname(sConnectSocket, (sockaddr*)&addr, &len);
+			int famliy = addr.ss_family;
+
+			switch (famliy)
+			{
+			case AF_INET:
+				return _StartSocket::singleton().connectex4()(sConnectSocket, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
+			case AF_INET6:
+				return _StartSocket::singleton().connectex6()(sConnectSocket, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
+			default:
+				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+			}
+		}
+#endif // AYR_WIN
 	}
 }
 #endif // AYR_NET_UTILS_HPP

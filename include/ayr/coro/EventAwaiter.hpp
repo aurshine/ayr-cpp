@@ -13,7 +13,7 @@ namespace ayr
 		{
 			using self = EventAwaiter;
 
-			int fd_;
+			BaseSocket fd_;
 
 			net::IoEvent::Flag flags_;
 
@@ -24,7 +24,7 @@ namespace ayr
 		public:
 			EventAwaiter() : fd_(-1), flags_(net::IoEvent::NONE), io_waiter_(nullptr) {}
 
-			EventAwaiter(int fd, net::IoEvent::Flag flags, net::IoWaiter* io_waiter) :
+			EventAwaiter(BaseSocket fd, net::IoEvent::Flag flags, net::IoWaiter* io_waiter) :
 				fd_(fd),
 				flags_(flags),
 				io_waiter_(io_waiter) {

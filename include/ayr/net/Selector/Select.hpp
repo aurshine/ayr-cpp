@@ -23,7 +23,7 @@ namespace ayr
 			// fd_set[3]占128 * 3 = 384字节，使用堆区内存
 			std::unique_ptr<fd_set[]> fds_;
 
-			std::map<int, IoEvent> fd_events;
+			std::map<BaseSocket, IoEvent> fd_events;
 		public:
 			Select() :
 				fds_(std::make_unique<fd_set[]>(3)),
@@ -53,7 +53,7 @@ namespace ayr
 			bool empty() const { return fd_events.empty(); }
 
 			// 是否包含fd
-			bool contains(int fd) const { return fd_events.find(fd) != fd_events.end(); }
+			bool contains(BaseSocket fd) const { return fd_events.find(fd) != fd_events.end(); }
 
 			/*
 			* @brief 添加fd的事件，如果fd已经存在，则更新事件
@@ -62,7 +62,7 @@ namespace ayr
 			*
 			* @param io_event 要设置的事件
 			*/
-			void insert(int fd, const IoEvent& io_event)
+			void insert(BaseSocket fd, const IoEvent& io_event)
 			{
 				FD_CLR(fd, read_set());
 				FD_CLR(fd, write_set());
@@ -84,7 +84,7 @@ namespace ayr
 			*
 			* @return 被删除的socket
 			*/
-			int pop(int fd)
+			BaseSocket pop(BaseSocket fd)
 			{
 				FD_CLR(fd, read_set());
 				FD_CLR(fd, write_set());
@@ -94,7 +94,7 @@ namespace ayr
 			}
 
 			// 移除并关闭fd
-			void close(int fd)
+			void close(BaseSocket fd)
 			{
 				pop(fd);
 #if defined(AYR_WIN)
@@ -156,7 +156,7 @@ namespace ayr
 			}
 
 		private:
-			int max_fd() const { return fd_events.rbegin()->first; }
+			BaseSocket max_fd() const { return fd_events.rbegin()->first; }
 
 			/*
 			* @brief 等待事件发生

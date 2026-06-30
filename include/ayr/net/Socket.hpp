@@ -2,6 +2,7 @@
 #define AYR_NET_SOCKET_HPP
 
 #include "utils.hpp"
+#include "../coro/IoContext.hpp"
 
 namespace ayr
 {
@@ -29,7 +30,7 @@ namespace ayr
 
 			SSL* ssl_;
 		public:
-			Socket(int fd, coro::IoContext* io_context, SSL_CTX* ctx = nullptr) :
+			Socket(BaseSocket fd, coro::IoContext* io_context, SSL_CTX* ctx = nullptr) :
 				read_fd_(fd),
 				write_fd_(net::dup(fd)),
 				read_awaiter_(io_context->wait_for_read(read_fd_)),
@@ -291,7 +292,7 @@ namespace ayr
 		{
 			using self = Acceptor;
 
-			int fd_;
+			BaseSocket fd_;
 
 			coro::IoContext* io_context_;
 
@@ -320,10 +321,12 @@ namespace ayr
 			Acceptor(self&& other) noexcept :
 				fd_(other.fd_),
 				read_awaiter_(std::move(other.read_awaiter_)),
-				io_context_(other.io_context_)
+				io_context_(other.io_context_),
+				ssl_ctx_(other.ssl_ctx_)
 			{
 				other.fd_ = -1;
 				other.io_context_ = nullptr;
+				other.ssl_ctx_ = nullptr;
 			}
 
 			~Acceptor() { close(fd_); }
@@ -334,7 +337,7 @@ namespace ayr
 				return *ayr_construct(this, std::move(other));
 			}
 
-			int fd() const { return fd_; }
+			BaseSocket fd() const { return fd_; }
 
 			void listen(int backlog = SOMAXCONN) const
 			{
@@ -344,7 +347,7 @@ namespace ayr
 
 			coro::Task<Socket> accept()
 			{
-				int fd = ::accept(fd_, nullptr, nullptr);
+				BaseSocket fd = ::accept(fd_, nullptr, nullptr);
 				if (fd == -1)
 				{
 					if (!is_eagain())
@@ -367,6 +370,33 @@ namespace ayr
 
 			void __repr__(Buffer& buffer) const { buffer << "Acceptor(" << fd_ << ")"; }
 		};
+
+		/*
+		* @brief 与服务器建立连接
+		*
+		* @param fd 要等待可读的文件描述符
+		*
+		* @param addr 服务器地址
+		*
+		* @param len 服务器地址长度
+		*
+		* @param io_context 协程上下文
+		*/
+		def co_connect(BaseSocket fd, const sockaddr* addr, socklen_t len, coro::IoContext* io_context) -> coro::Task<bool>
+		{
+			int ret = ::connect(fd, addr, len);
+			if (ret == 0) co_return true;
+			if (ret == -1 && !is_einprogress())
+				RuntimeError(get_error_msg());
+			co_await io_context->wait_for_write(fd);
+
+			int result = 0;
+			socklen_t result_len = sizeof(result);
+			if (getsockopt(fd, SOL_SOCKET, SO_ERROR, &result, &result_len) < 0)
+				co_return false;
+
+			co_return result == 0;
+		}
 
 		/*
 		* @brief 提供主机名和端口，连接到服务器
@@ -393,7 +423,7 @@ namespace ayr
 
 				for (addrinfo* p = res; p; p = p->ai_next)
 				{
-					int fd = net::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
+					BaseSocket fd = net::socket(p->ai_family, p->ai_socktype, p->ai_protocol);
 					if (co_await co_connect(fd, p->ai_addr, p->ai_addrlen, io_context))
 					{
 						Socket sock(fd, io_context, ssl_ctx);
@@ -407,24 +437,6 @@ namespace ayr
 			RuntimeError("Failed to connect to server.");
 			co_return Socket(-1, io_context);
 		}
-#if defined(AYR_WIN)
-		// 用于初始化Winsock的类
-		class _StartSocket
-		{
-		public:
-			_StartSocket()
-			{
-				WSADATA wsaData;
-				if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-					RuntimeError("WSAStartup failed");
-			}
-
-			~_StartSocket() { WSACleanup(); }
-
-		};
-
-		static const _StartSocket __startsocket;
-#endif // AYR_WIN
 	}
 }
 #endif // AYR_NET_SOCKET_HPP

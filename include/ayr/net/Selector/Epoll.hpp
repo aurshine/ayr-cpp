@@ -17,10 +17,10 @@ namespace ayr
 		{
 			using self = Epoll;
 
-			int epoll_fd_;
+			BaseSocket epoll_fd_;
 
 			// 保存fd和事件的映射
-			Dict<int, IoEvent> fd_events;
+			Dict<BaseSocket, IoEvent> fd_events;
 		public:
 			Epoll() : epoll_fd_(::epoll_create1(0)) {}
 
@@ -46,7 +46,7 @@ namespace ayr
 			bool empty() const { return size() == 0; }
 
 			// 是否包含fd
-			bool contains(int fd) const { return fd_events.contains(fd); }
+			bool contains(BaseSocket fd) const { return fd_events.contains(fd); }
 
 			/*
 			* @brief 添加一个fd事件到epoll中，如果fd已经存在，则更新事件
@@ -56,7 +56,7 @@ namespace ayr
 			* @param events 要注册的事件
 			*
 			*/
-			void insert(int fd, const IoEvent& io_event)
+			void insert(BaseSocket fd, const IoEvent& io_event)
 			{
 				struct epoll_event ev;
 				// 默认监听错误事件，挂起连接
@@ -85,7 +85,7 @@ namespace ayr
 			*
 			* @return 被删除的socket
 			*/
-			int pop(int fd)
+			BaseSocket pop(BaseSocket fd)
 			{
 				::epoll_ctl(epoll_fd_, EPOLL_CTL_DEL, fd, nullptr);
 				fd_events.pop(fd);
@@ -93,7 +93,7 @@ namespace ayr
 			}
 
 			// 移除并关闭fd
-			void close(int fd)
+			void close(BaseSocket fd)
 			{
 				pop(fd);
 				::close(fd);
