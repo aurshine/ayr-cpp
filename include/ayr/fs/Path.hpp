@@ -20,7 +20,7 @@ namespace ayr
 
 		bool is_sep(char c) { return c == '\\' || c == '/'; }
 
-		void raise_error_msg_for_path(const CString& path) { SystemError(std::format("{}: {}", get_error_msg(), path)); }
+		void raise_error_msg_for_path(const CString& path) { SystemError(ayr::format("{}: {}", get_error_msg(), path)); }
 
 		// 拼接两个路径
 		def join(const CString& path1, const CString& path2)
@@ -99,13 +99,13 @@ namespace ayr
 			DWORD len = GetFullPathNameA(path.c_str(), MAX_PATH, abs_path, nullptr);
 
 			if (len == 0 || len > MAX_PATH)
-				SystemError(std::format("abspath failed for path: {}", path));
+				SystemError(ayr::format("abspath failed for path: {}", path));
 			return dstr(abs_path, len);
 #else
 			char* abs_path = realpath(path.c_str(), nullptr);
 
 			if (abs_path == nullptr)
-				SystemError(std::format("abspath failed for path: {}", path));
+				SystemError(ayr::format("abspath failed for path: {}", path));
 			return ostr(abs_path);
 #endif 
 		}

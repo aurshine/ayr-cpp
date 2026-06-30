@@ -1,4 +1,4 @@
-﻿#ifndef AYR_BASE_PRINTER_HPP
+#ifndef AYR_BASE_PRINTER_HPP
 #define AYR_BASE_PRINTER_HPP
 #include <source_location>
 
@@ -119,6 +119,19 @@ namespace ayr
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 }
 
+#if AYR_USE_FMT
+template<typename T>
+	requires hasattr(T, __str__) || hasattr(T, __repr__)
+struct fmt::formatter<T> : fmt::formatter<ayr::CString>
+{
+	template<typename FormatContext>
+	auto format(const T& value, FormatContext& ctx) const
+	{
+		ayr::CString str = ayr::cstr(value);
+		return fmt::formatter<ayr::CString>::format(str, ctx);
+	}
+};
+#else
 template<typename T>
 	requires hasattr(T, __str__) || hasattr(T, __repr__)
 struct std::formatter<T> : std::formatter<ayr::CString>
@@ -129,6 +142,7 @@ struct std::formatter<T> : std::formatter<ayr::CString>
 		return std::formatter<ayr::CString>::format(str, ctx);
 	}
 };
+#endif
 
 #define tlog(expr) print(#expr, " = ", expr)
 

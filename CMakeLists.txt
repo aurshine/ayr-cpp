@@ -7,12 +7,20 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # https需要使用openssl
 find_package(OpenSSL REQUIRED)
+find_package(fmt QUIET)
 
 add_library(ayr INTERFACE)
 target_include_directories(ayr INTERFACE ${PROJECT_SOURCE_DIR}/include)
 
 # 给库加上 OpenSSL
 target_link_libraries(ayr INTERFACE OpenSSL::SSL OpenSSL::Crypto)
+
+if (fmt_FOUND)
+    target_link_libraries(ayr INTERFACE fmt::fmt)
+    target_compile_definitions(ayr INTERFACE AYR_USE_FMT=1)
+else()
+    target_compile_definitions(ayr INTERFACE AYR_USE_FMT=0)
+endif()
 
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     

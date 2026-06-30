@@ -168,7 +168,7 @@ namespace ayr
 			else if (mode == "w")
 				setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 			else
-				ValueError(std::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
+				ValueError(ayr::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
 		}
 
 		/*

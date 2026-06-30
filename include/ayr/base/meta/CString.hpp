@@ -1,11 +1,12 @@
-﻿#ifndef AYR_BASE_CSTRING_HPP
+#ifndef AYR_BASE_CSTRING_HPP
 #define AYR_BASE_CSTRING_HPP
 
 #include <charconv>
-#include <format>
 #include <sstream>
+#include <string_view>
 
 #include "Buffer.hpp"
+#include "format.h"
 #include "hash.hpp"
 
 namespace ayr
@@ -744,6 +745,17 @@ namespace ayr
 
 der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os.write(str.data(), str.size()); }
 
+#if AYR_USE_FMT
+template<>
+struct fmt::formatter<ayr::CString> : fmt::formatter<std::string_view>
+{
+	template<typename FormatContext>
+	auto format(const ayr::CString& value, FormatContext& ctx) const
+	{
+		return fmt::formatter<std::string_view>::format(std::string_view(value.data(), value.size()), ctx);
+	}
+};
+#else
 template<>
 struct std::formatter<ayr::CString> : std::formatter<std::string_view>
 {
@@ -752,5 +764,6 @@ struct std::formatter<ayr::CString> : std::formatter<std::string_view>
 		return std::formatter<std::string_view>::format(std::string_view(value.data(), value.size()), ctx);
 	}
 };
+#endif
 
 #endif // AYR_BASE_CSTRING_HPP

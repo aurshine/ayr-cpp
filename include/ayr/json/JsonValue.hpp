@@ -202,7 +202,7 @@ namespace ayr
 			{
 				if (is_array())
 					return as_array().append(json);
-				JsonValueError(std::format("type {} cannot call append", type_name()));
+				JsonValueError(ayr::format("type {} cannot call append", type_name()));
 				return None;
 			}
 
@@ -222,7 +222,7 @@ namespace ayr
 			{
 				if (is_dict())
 					return as_dict()[key];
-				JsonValueError(std::format("type {} cannot call operator[key]", type_name()));
+				JsonValueError(ayr::format("type {} cannot call operator[key]", type_name()));
 				return None;
 			}
 
@@ -242,7 +242,7 @@ namespace ayr
 			{
 				if (is_dict())
 					return as_dict()[key];
-				JsonValueError(std::format("type {} cannot call operator[key]", type_name()));
+				JsonValueError(ayr::format("type {} cannot call operator[key]", type_name()));
 				return None;
 			}
 
@@ -262,7 +262,7 @@ namespace ayr
 			{
 				if (is_array())
 					return as_array()[index];
-				JsonValueError(std::format("type {} cannot call operator[index]", type_name()));
+				JsonValueError(ayr::format("type {} cannot call operator[index]", type_name()));
 				return None;
 			}
 
@@ -282,7 +282,7 @@ namespace ayr
 			{
 				if (is_array())
 					return as_array()[index];
-				JsonValueError(std::format("type {} cannot call operator[index]", type_name()));
+				JsonValueError(ayr::format("type {} cannot call operator[index]", type_name()));
 				return None;
 			}
 
@@ -300,7 +300,7 @@ namespace ayr
 			{
 				if (is_array())
 					as_array().pop(index);
-				JsonValueError(std::format("type {} cannot call pop(index)", type_name()));
+				JsonValueError(ayr::format("type {} cannot call pop(index)", type_name()));
 			}
 
 			/*
@@ -314,7 +314,7 @@ namespace ayr
 			{
 				if (is_dict())
 					as_dict().pop(key);
-				JsonValueError(std::format("type {} cannot call pop(key)", type_name()));
+				JsonValueError(ayr::format("type {} cannot call pop(key)", type_name()));
 			}
 
 			/*
@@ -328,7 +328,7 @@ namespace ayr
 					using T = decltype(v);
 					if constexpr (issame<T, JsonArray, JsonDict>)
 						return v.clear();
-					JsonValueError(std::format("type {} cannot call clear", type_name()));
+					JsonValueError(ayr::format("type {} cannot call clear", type_name()));
 					});
 			}
 
@@ -350,7 +350,7 @@ namespace ayr
 					using T = decltype(v);
 					if constexpr (issame<T, JsonStr, JsonArray, JsonDict>)
 						return v.size();
-					JsonValueError(std::format("type {} cannot call clear", type_name()));
+					JsonValueError(ayr::format("type {} cannot call clear", type_name()));
 					return None;
 					});
 			}

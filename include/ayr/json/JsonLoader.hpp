@@ -1,4 +1,4 @@
-﻿#ifndef AYR_JSON_JSONLOADER_HPP
+#ifndef AYR_JSON_JSONLOADER_HPP
 #define AYR_JSON_JSONLOADER_HPP
 
 #include "JsonValue.hpp"
@@ -81,7 +81,7 @@ namespace ayr
 					pos_ = json_str_.size() - remain_str.size();
 					return Json(num);
 				}
-				ValueError(std::format("invalid simple parse: {}", json_str.at(0)));
+				ValueError(ayr::format("invalid simple parse: {}", json_str.at(0)));
 				return None;
 			}
 
@@ -105,7 +105,7 @@ namespace ayr
 					++pos_;
 				}
 					
-				JsonValueError(std::format("invalid str parse: {}", json_str_.vslice(start_pos)));
+				JsonValueError(ayr::format("invalid str parse: {}", json_str_.vslice(start_pos)));
 				return None;
 			}
 
@@ -132,7 +132,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1); // 去掉 ,
 					else
-						JsonValueError(std::format("invalid array parse: {}", remain_str()));
+						JsonValueError(ayr::format("invalid array parse: {}", remain_str()));
 				}
 				
 				// 去掉 ]
@@ -160,12 +160,12 @@ namespace ayr
 					// 解析到key
 					Json key = parse_obj();
 					if (!key.is_str())
-						JsonValueError(std::format("invalid dict key parse: {}", key));
+						JsonValueError(ayr::format("invalid dict key parse: {}", key));
 					
 					// 找到 ':'
 					first_non_space();
 					if (first_char() != ':')
-						JsonValueError(std::format("invalid dict parse: {}, expect ':'", first_char()));
+						JsonValueError(ayr::format("invalid dict parse: {}, expect ':'", first_char()));
 
 					// 去掉 ':'
 					first_non_space(1);
@@ -179,7 +179,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1);
 					else
-						JsonValueError(std::format("invalid dict parse: {}", remain_str()));
+						JsonValueError(ayr::format("invalid dict parse: {}", remain_str()));
 				}
 
 				// 去掉 }
@@ -226,7 +226,7 @@ namespace ayr
 			void assert_depth()
 			{
 				if (depth_ > MAX_DEPTH)
-					JsonValueError(std::format("exceed max depth: {}", MAX_DEPTH));
+					JsonValueError(ayr::format("exceed max depth: {}", MAX_DEPTH));
 			}
 		};
 

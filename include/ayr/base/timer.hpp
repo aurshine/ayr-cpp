@@ -1,4 +1,4 @@
-﻿#ifndef AYR_BASE_TIMER_HPP
+#ifndef AYR_BASE_TIMER_HPP
 #define AYR_BASE_TIMER_HPP
 
 #include <ctime>
@@ -72,7 +72,7 @@ namespace ayr
 
 		bool operator==(const Date& date) const { return year_ == date.year_ && month_ == date.month_ && day_ == date.day_;}
 
-		CString __str__() const { return dstr(std::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_)); }
+		CString __str__() const { return dstr(ayr::format("{} {:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}", WEEK_STR[week_], year_, month_, day_, hour_, minute_, second_)); }
 		// 计算星期
 		static int calc_week(int year, int month, int day)
 		{

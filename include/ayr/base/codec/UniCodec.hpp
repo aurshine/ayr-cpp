@@ -63,7 +63,7 @@ namespace ayr
 			{
 				uint32_t unicode = code[i].ord();
 				if (unicode < 0 || unicode > 0x10FFFF)
-					EncodingError(std::format("Invalid AChar: {}", unicode));
+					EncodingError(ayr::format("Invalid AChar: {}", unicode));
 
 				if (unicode <= 0x7F)
 				{
@@ -159,7 +159,7 @@ namespace ayr
 			{
 				uint32_t unicode = code[i].ord();
 				if (unicode < 0 || unicode > 0x10FFFF)
-					EncodingError(std::format("Invalid AChar: {}", unicode));
+					EncodingError(ayr::format("Invalid AChar: {}", unicode));
 
 				if (unicode <= 0xFFFF)
 				{

@@ -115,32 +115,32 @@ int main()
 	tlog(da.append(10));
 
 	da.pop();
-	tlog(std::format("popped -1: {}", da));
+	tlog(ayr::format("popped -1: {}", da));
 	da.pop(2);
-	tlog(std::format("popped 2: {}", da));
+	tlog(ayr::format("popped 2: {}", da));
 	da.clear();
-	tlog(std::format("cleared: {}", da));
+	tlog(ayr::format("cleared: {}", da));
 	da.insert(0, 1);
-	tlog(std::format("inserted 1 at 0: {}", da));
+	tlog(ayr::format("inserted 1 at 0: {}", da));
 	da.insert(0, 2);
-	tlog(std::format("inserted 2 at 0: {}", da));
+	tlog(ayr::format("inserted 2 at 0: {}", da));
 	da.insert(0, 3);
-	tlog(std::format("inserted 3 at 0: {}", da));
+	tlog(ayr::format("inserted 3 at 0: {}", da));
 	da.insert(0, 4);
-	tlog(std::format("inserted 4 at 0: {}", da));
+	tlog(ayr::format("inserted 4 at 0: {}", da));
 	da.insert(0, 5);
-	tlog(std::format("inserted 5 at 0: {}", da));
+	tlog(ayr::format("inserted 5 at 0: {}", da));
 	da.insert(10, 6);
-	tlog(std::format("inserted 6 at 10: {}", da));
+	tlog(ayr::format("inserted 6 at 10: {}", da));
 	da.insert(10, 7);
-	tlog(std::format("inserted 7 at 10: {}", da));
+	tlog(ayr::format("inserted 7 at 10: {}", da));
 
 	da.clear();
 
 	da.extend(range(1e6));
 	for (int i = 0; i < 1e6; ++i)
 		if (i != da[i])
-			tlog(std::format("da[{}] == {}", i, da[i]));
+			tlog(ayr::format("da[{}] == {}", i, da[i]));
 
 	DynArray<int> da2({ 1, 2, 3, 4, 5 });
 	tlog(DynArray<int>({ 1, 2, 3, 4, 5 }));

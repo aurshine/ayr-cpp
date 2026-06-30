@@ -54,7 +54,7 @@ namespace ayr
 					dwCreationDisposition = OPEN_ALWAYS;
 				}
 				else
-					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
+					ValueError(ayr::format("Invalid value {}, that only support [w, r, a]", mode));
 
 				fd_ = CreateFileA(
 					filename.c_str(),
@@ -80,7 +80,7 @@ namespace ayr
 				else if (mode == "a")
 					flags = O_WRONLY | O_CREAT | O_APPEND;
 				else
-					ValueError(std::format("Invalid value {}, that only support [w, r, a]", mode));
+					ValueError(ayr::format("Invalid value {}, that only support [w, r, a]", mode));
 
 				fd_ = ::open(filename.c_str(), flags, 0666);
 
@@ -151,7 +151,7 @@ namespace ayr
 					ok = read_bytes >= 0;
 #endif
 					if (!ok)
-						SystemError(std::format("Failed to read from file, {}", get_error_msg()));
+						SystemError(ayr::format("Failed to read from file, {}", get_error_msg()));
 					// 读完了
 					if (read_bytes == 0) break;
 					buffer.written(read_bytes);
@@ -285,7 +285,7 @@ namespace ayr
 					ok = written_bytes >= 0;
 #endif 
 					if (!ok)
-						SystemError(std::format("Failed to write from file, {}", get_error_msg()));
+						SystemError(ayr::format("Failed to write from file, {}", get_error_msg()));
 					num_written += written_bytes;
 				}
 			}

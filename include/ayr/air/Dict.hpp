@@ -104,7 +104,7 @@ namespace ayr
 		{
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
-			RuntimeError(std::format("Key '{}' not found in dictionary.", key));
+			RuntimeError(ayr::format("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 
@@ -119,7 +119,7 @@ namespace ayr
 		{
 			TableValue_t item = get_impl(ayrhash(key));
 			if (item) return item->value.second;
-			RuntimeError(std::format("Key '{}' not found in dictionary.", key));
+			RuntimeError(ayr::format("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 

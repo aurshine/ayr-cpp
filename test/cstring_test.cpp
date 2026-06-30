@@ -7,7 +7,7 @@ using namespace ayr;
 
 void print_info(const CString& s, const CString& name)
 {
-	print(std::format("owner: {}, sso: {}, size: {}, {}: {}", s.owner(), s.sso(), s.size(), name, s));
+	print(ayr::format("owner: {}, sso: {}, size: {}, {}: {}", s.owner(), s.sso(), s.size(), name, s));
 }
 
 void cstr_test()
