@@ -2,7 +2,7 @@
 #define AYR_NET_SELECTOR_IOCP_HPP
 
 #include "IOCP_utils.hpp"
-#include "../../air/Dict.hpp"
+#include "../../air/Set.hpp"
 
 namespace ayr
 {
@@ -18,6 +18,9 @@ namespace ayr
 
 			// IOCP的完成端口句柄
 			HANDLE iocp_handle_;
+
+			// 已经绑定到IOCP的socket集合
+			Set<BaseSocket> registered_sockets_;
 		public:
 			IOCP(): iocp_handle_(nullptr), num_post_(0)
 			{
@@ -63,21 +66,22 @@ namespace ayr
 				{
 				case EventOperation::READ:
 					post_read(ctx);
-					return;
+					break;
 				case EventOperation::WRITE:
 					post_write(ctx);
-					return;
+					break;
 				case EventOperation::ACCEPT:
 					post_accept(ctx);
-					return;
+					break;
 				case EventOperation::CONNECT:
 					post_connect(ctx);
-					return;
+					break;
 				}
+				++num_post_;
 			}
 
 			// 移除并关闭fd
-			void close(BaseSocket fd) { net::close(fd); }
+			void close(BaseSocket fd) { registered_sockets_.pop(fd); net::close(fd); }
 
 			/*
 			* @brief 设置超时，等待事件发送
@@ -101,18 +105,31 @@ namespace ayr
 				{
 					IOCP_OVERLAPPED* overlapped_ptr = reinterpret_cast<IOCP_OVERLAPPED*>(entries[i].lpOverlapped);
 					results[i] = overlapped_ptr->context();
-					results[i].bytes(entries[i].dwNumberOfBytesTransferred);
+					int bytes = static_cast<int>(entries[i].dwNumberOfBytesTransferred);
+					DWORD error = static_cast<DWORD>(entries[i].Internal);
 					
-					// 完成accept和connect事件后，需要调用setsockopt更新socket的上下文
-					if (results[i].event() == EventOperation::ACCEPT)
-						complete_accept(results[i].socket(), results[i].accept_socket());
-					else if (results[i].event() == EventOperation::CONNECT)
-						complete_connect(results[i].socket());
+					switch (results[i].event())
+					{
+					case EventOperation::READ:
+						complete_read(results[i], bytes, error);
+						break;
+					case EventOperation::WRITE:
+						complete_write(results[i], bytes, error);
+						break;
+					case EventOperation::ACCEPT:
+						complete_accept(results[i], bytes, error);
+						break;
+					case EventOperation::CONNECT:
+						complete_connect(results[i], bytes, error);
+						break;
+					default:
+						RuntimeError(ayr::format("Unknown event type: {}", static_cast<int>(results[i].event())));
+					}
 
 					// 释放IOCP_OVERLAPPED对象的内存
 					ayr_desloc(overlapped_ptr);
 				}
-
+				num_post_ -= n;
 				return results;
 			}
 
@@ -132,22 +149,70 @@ namespace ayr
 			}
 		private:
 			// 添加completion key到iocp中， 如果已经存在则不添加
-			void add_completion_key(BaseSocket* fd)
+			void add_completion_key(BaseSocket fd)
 			{
-				if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(fd), iocp_handle_, (ULONG_PTR)fd, 0))
+				if (registered_sockets_.contains(fd))
+					return;
+				
+				auto& cache_key_ = registered_sockets_.insert(fd);
+
+				if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(fd), iocp_handle_, (ULONG_PTR)cache_key_, 0))
+				{
+					registered_sockets_.pop(cache_key_);
 					RuntimeError(ayr::format("Failed to associate socket with IOCP: {}", get_error_msg()));
+				}
+					
+			}
+
+			// 完成read后，更新read的上下文
+			void complete_read(EventContext& ctx, int bytes, DWORD error)
+			{
+				ctx.result(bytes, error);
+				if (ctx.result()->ok())
+					ctx.buffer()->written(bytes);
+			}
+
+			// 完成write后，更新write的上下文
+			void complete_write(EventContext& ctx, int bytes, DWORD error)
+			{
+				ctx.result(bytes, error);
+				if (ctx.result()->ok())
+					ctx.buffer()->retrieve(bytes);
 			}
 
 			// 完成accept后，更新accept_fd的accept上下文
-			void complete_accept(BaseSocket listen_fd, BaseSocket accept_fd)
+			void complete_accept(EventContext& ctx, int bytes, DWORD error)
 			{
-				net::setsockopt(accept_fd, SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, &listen_fd, sizeof(listen_fd));
+				ctx.result(bytes, error);
+				if (ctx.result()->ok())
+				{
+					BaseSocket listen_fd = ctx.socket();
+					if (net::setsockopt(ctx.accept_socket(), SOL_SOCKET, SO_UPDATE_ACCEPT_CONTEXT, &listen_fd, sizeof(listen_fd)) != 0)
+						ctx.result(bytes, WSAGetLastError());
+				}
 			}
 
 			// 完成connect后，更新connect_fd的connect上下文
-			void complete_connect(BaseSocket connect_fd)
+			void complete_connect(EventContext& ctx, int bytes, DWORD error)
 			{
-				net::setsockopt(connect_fd, SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0);
+				ctx.result(bytes, error);
+				if (ctx.result()->ok())
+				{
+					int connect_error = 0;
+					socklen_t connect_error_len = sizeof(connect_error);
+					if (net::getsockopt(ctx.socket(), SOL_SOCKET, SO_ERROR, &connect_error, &connect_error_len) != 0)
+					{
+						ctx.result(bytes, WSAGetLastError());
+						return;
+					}
+					if (connect_error != 0)
+					{
+						ctx.result(bytes, connect_error);
+						return;
+					}
+					if (net::setsockopt(ctx.socket(), SOL_SOCKET, SO_UPDATE_CONNECT_CONTEXT, nullptr, 0) != 0)
+						ctx.result(bytes, WSAGetLastError());
+				}
 			}
 
 			/*
@@ -158,7 +223,7 @@ namespace ayr
 			void post_read(EventContext& ctx)
 			{
 				// 将socket添加到完成端口中
-				add_completion_key(ctx.socket_ptr());
+				add_completion_key(ctx.socket());
 
 				DWORD bytes_received = ctx.buffer()->writeable_size();
 				// 创建一个IOCP_OVERLAPPED对象
@@ -167,9 +232,9 @@ namespace ayr
 				auto& overlapped_data = overlapped_ptr->emplace_data(IOCP_OVERLAPPED_BUF_DATA());
 				overlapped_data.wsa_buf.buf = ctx.buffer()->write_ptr();
 				overlapped_data.wsa_buf.len = ctx.buffer()->writeable_size();
-
+				DWORD flags = 0;
 				// 投递读请求到IOCP
-				int ret = WSARecv(ctx.socket(), &overlapped_data.wsa_buf, 1, &bytes_received, nullptr, overlapped_ptr->overlapped_address(), nullptr);
+				int ret = WSARecv(ctx.socket(), &overlapped_data.wsa_buf, 1, &bytes_received, &flags, overlapped_ptr->overlapped_address(), nullptr);
 				// 检查投递事件的返回值，如果失败则抛出异常
 				if (ret == SOCKET_ERROR && GetLastError() != WSA_IO_PENDING)
 				{
@@ -186,7 +251,7 @@ namespace ayr
 			void post_write(EventContext& ctx)
 			{
 				// 将socket添加到完成端口中
-				add_completion_key(ctx.socket_ptr());
+				add_completion_key(ctx.socket());
 
 				DWORD bytes_sent = ctx.buffer()->readable_size();
 				// 创建一个IOCP_OVERLAPPED对象
@@ -196,8 +261,8 @@ namespace ayr
 				overlapped_data.wsa_buf.buf = const_cast<char*>(ctx.buffer()->peek());
 				overlapped_data.wsa_buf.len = ctx.buffer()->readable_size();
 
-				// 投递读请求到IOCP
-				int ret = WSARecv(ctx.socket(), &overlapped_data.wsa_buf, 1, &bytes_sent, nullptr, overlapped_ptr->overlapped_address(), nullptr);
+				// 投递写请求到IOCP
+				int ret = WSASend(ctx.socket(), &overlapped_data.wsa_buf, 1, &bytes_sent, 0, overlapped_ptr->overlapped_address(), nullptr);
 				// 检查投递事件的返回值，如果失败则抛出异常
 				if (ret == SOCKET_ERROR && GetLastError() != WSA_IO_PENDING)
 				{
@@ -215,7 +280,7 @@ namespace ayr
 			{
 				constexpr int ADDR_SIZE = sizeof(sockaddr_in) + 16;
 				// 将socket添加到完成端口中
-				add_completion_key(ctx.socket_ptr());
+				add_completion_key(ctx.socket());
 
 				DWORD bytes = 0;
 				// 创建一个IOCP_OVERLAPPED对象
@@ -240,13 +305,14 @@ namespace ayr
 			void post_connect(EventContext& ctx)
 			{
 				// 将socket添加到完成端口中
-				add_completion_key(ctx.socket_ptr());
+				add_completion_key(ctx.socket());
 
 				// 绑定到本地地址，端口为0，表示由系统自动分配
 				sockaddr_storage local_addr{};
 				socklen_t len = 0;
 
-				if (ctx.remote_addrinfo()->ai_family == AF_INET) {
+				if (ctx.remote_addrinfo()->ai_family == AF_INET) 
+				{
 					auto* addr = reinterpret_cast<sockaddr_in*>(&local_addr);
 					addr->sin_family = AF_INET;
 					addr->sin_addr.s_addr = htonl(INADDR_ANY);
@@ -266,7 +332,8 @@ namespace ayr
 					RuntimeError("Unsupported address family");
 				}
 
-				::bind(ctx.socket(), (sockaddr*)&local_addr, len);
+				if (::bind(ctx.socket(), (sockaddr*)&local_addr, len) != 0)
+					RuntimeError(get_error_msg());
 
 				DWORD bytes = 0;
 				// 创建一个IOCP_OVERLAPPED对象
@@ -274,7 +341,8 @@ namespace ayr
 				// 创建一个IOCP_OVERLAPPED_CONNECT_DATA对象，保存connect信息
 				auto& overlapped_data = overlapped_ptr->emplace_data(IOCP_OVERLAPPED_CONNECT_DATA());
 				// 投递读请求到IOCP
-				int ret = connectex(ctx.socket(), ctx.remote_addrinfo()->ai_addr, sizeof(ctx.remote_addrinfo()), nullptr, 0, &bytes, overlapped_ptr->overlapped_address());
+				int ret = connectex(ctx.socket(), ctx.remote_addrinfo()->ai_addr, len, nullptr, 0, &bytes, overlapped_ptr->overlapped_address());
+				
 				// 检查投递事件的返回值，如果失败则抛出异常
 				if (ret == 0 && GetLastError() != WSA_IO_PENDING)
 				{

@@ -56,11 +56,12 @@ namespace ayr
 			nullptr
 		);
 
-		std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, error_msg);
+		int n = std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, error_msg);
 
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-		std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, strerror(errorno));
+		int n = std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, strerror(errorno));
 #endif // 平台判断
+		buf.written(n);
 		return from_buffer(std::move(buf));
 	}
 

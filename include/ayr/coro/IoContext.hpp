@@ -131,7 +131,7 @@ namespace ayr
 					{
 						auto io_events = io_waiter_.wait(timeout_ms);
 						for (auto& io_event : io_events)
-							ready_coros_.push(io_event.data);
+							ready_coros_.push(io_event.coroutine());
 					}
 				}
 			}
@@ -144,11 +144,13 @@ namespace ayr
 				return p.result();
 			}
 
-			// 构造读等待对象
-			EventAwaiter wait_for_read(int fd) { return EventAwaiter(fd, net::IoEvent::READABLE, &io_waiter_); }
+			ReadWaiter read_awaiter(BaseSocket socket, Buffer* buffer) { return ReadWaiter(socket, buffer, &io_waiter_); }
+		
+			WriteWaiter write_awaiter(BaseSocket socket, Buffer* buffer) { return WriteWaiter(socket, buffer, &io_waiter_); }
 
-			// 构造写等待对象
-			EventAwaiter wait_for_write(int fd) { return EventAwaiter(fd, net::IoEvent::WRITABLE, &io_waiter_); }
+			AcceptWaiter accept_awaiter(BaseSocket socket, int family) { return AcceptWaiter(socket, family, &io_waiter_); }
+
+			ConnectWaiter connect_awaiter(BaseSocket socket, addrinfo* remote_addrinfo) { return ConnectWaiter(socket, remote_addrinfo, &io_waiter_); }
 		};
 
 		/*

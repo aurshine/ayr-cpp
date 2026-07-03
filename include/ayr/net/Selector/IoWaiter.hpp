@@ -5,11 +5,13 @@
 
 #if defined(AYR_WIN)
 #include "Select.hpp"
+#include "IOCP.hpp"
+
 namespace ayr
 {
 	namespace net
 	{
-		using IoWaiter = Select;
+		using IoWaiter = IOCP;
 	}
 }
 #elif defined(AYR_LINUX)

@@ -8,49 +8,123 @@ namespace ayr
 {
 	namespace coro
 	{
-		// 事件驱动可等待对象
-		class EventAwaiter
+		class ReadWaiter
 		{
-			using self = EventAwaiter;
+			using self = ReadWaiter;
 
-			BaseSocket fd_;
+			net::IoResult result_;
 
-			net::IoEvent::Flag flags_;
+			BaseSocket socket_;
+
+			Buffer* buffer_;
+
+			net::IoWaiter* io_waiter_;
+		public:
+			ReadWaiter(BaseSocket socket, Buffer* buffer, net::IoWaiter* io_waiter) :
+				socket_(socket),
+				buffer_(buffer),
+				io_waiter_(io_waiter) {}
+
+			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+
+			void await_suspend(Coroutine coro)
+			{
+				auto read_context = net::EventContext::create_read_context(socket_, coro, buffer_, &result_);
+				io_waiter_->post_event(read_context);
+			}
+
+			// 返回读取事件的完成结果
+			net::IoResult await_resume() const noexcept { return result_; }
+		};
+
+		class WriteWaiter
+		{
+			using self = WriteWaiter;
+
+			net::IoResult result_;
+
+			BaseSocket socket_;
+
+			Buffer* buffer_;
+
+			net::IoWaiter* io_waiter_;
+		public:
+			WriteWaiter(BaseSocket socket, Buffer* buffer, net::IoWaiter* io_waiter) :
+				socket_(socket),
+				buffer_(buffer),
+				io_waiter_(io_waiter) {}
+
+			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+
+			void await_suspend(Coroutine coro)
+			{
+				auto write_context = net::EventContext::create_write_context(socket_, coro, buffer_, &result_);
+				io_waiter_->post_event(write_context);
+			}
+
+			// 返回写入事件的完成结果
+			net::IoResult await_resume() const noexcept { return result_; }
+		};
+
+		class AcceptWaiter
+		{
+			using self = AcceptWaiter;
+
+			int family_;
+
+			BaseSocket socket_;
+			
+			BaseSocket accept_socket_;
+
+			net::IoResult result_;
+			
+			net::IoWaiter* io_waiter_;
+		public:
+			AcceptWaiter(BaseSocket socket, int family, net::IoWaiter* io_waiter) :
+				family_(family),
+				socket_(socket),
+				io_waiter_(io_waiter) {}
+			
+			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+			
+			void await_suspend(Coroutine coro)
+			{
+				auto accept_context = net::EventContext::create_accept_context(socket_, coro, family_, &accept_socket_, &result_);
+				io_waiter_->post_event(accept_context);
+			}
+
+			// 返回accept事件的完成结果
+			net::IoResult await_resume() const noexcept { return result_; }
+		};
+
+		class ConnectWaiter
+		{
+			using self = ConnectWaiter;
+
+			BaseSocket socket_;
+
+			addrinfo* remote_addrinfo_;
+
+			net::IoResult result_;
 
 			net::IoWaiter* io_waiter_;
 
-			// 记录最后一个被挂起的协程
-			Coroutine last_coro_ = nullptr;
 		public:
-			EventAwaiter() : fd_(-1), flags_(net::IoEvent::NONE), io_waiter_(nullptr) {}
+			ConnectWaiter(BaseSocket socket, addrinfo* remote_addrinfo, net::IoWaiter* io_waiter) :
+				socket_(socket),
+				remote_addrinfo_(remote_addrinfo),
+				io_waiter_(io_waiter) {}
 
-			EventAwaiter(BaseSocket fd, net::IoEvent::Flag flags, net::IoWaiter* io_waiter) :
-				fd_(fd),
-				flags_(flags),
-				io_waiter_(io_waiter) {
-			}
+			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
 
-			EventAwaiter(const self& other) : fd_(other.fd_), flags_(other.flags_), io_waiter_(other.io_waiter_) {}
-
-			~EventAwaiter() { io_waiter_->pop(fd_); }
-
-			self& operator=(const self& other)
+			void await_suspend(Coroutine coro)
 			{
-				if (this == &other) return *this;
-				return *ayr_construct(this, other);
+				auto connect_context = net::EventContext::create_connect_context(socket_, coro, remote_addrinfo_, &result_);
+				io_waiter_->post_event(connect_context);
 			}
 
-			bool await_ready() const noexcept { return fd_ == -1 || io_waiter_ == nullptr; }
-
-			void await_suspend(Coroutine coro) noexcept
-			{
-				if (last_coro_ == coro) return;
-				last_coro_ = coro;
-				// 只在协程发生变化时才重新注册事件
-				io_waiter_->insert(fd_, net::IoEvent(flags_, coro));
-			}
-
-			void await_resume() const noexcept {}
+			// 返回connect事件的完成结果
+			net::IoResult await_resume() const noexcept { return result_; }
 		};
 	}
 }

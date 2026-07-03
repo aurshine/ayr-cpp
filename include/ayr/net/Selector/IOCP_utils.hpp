@@ -64,7 +64,7 @@ namespace ayr
 
 			IOCP_OVERLAPPED(const self&) = delete;
 
-			IOCP_OVERLAPPED(self&& other) noexcept : ov_(std::move(other.ov_)), ctx_(std::move(other.ctx_)), data_(std::move(other.data_)) {})
+			IOCP_OVERLAPPED(self&& other) noexcept : ov_(std::move(other.ov_)), ctx_(std::move(other.ctx_)), data_(std::move(other.data_)) {}
 
 			self& operator=(const self&) = delete;
 
