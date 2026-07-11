@@ -1,7 +1,9 @@
 #ifndef AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 #define AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 
+#if defined(AYR_WIN)
 #include <WinSock2.h>
+#endif 
 
 #include "../../coro/co_utils.hpp"
 
@@ -39,11 +41,18 @@ namespace ayr
 		{
 			int bytes = 0;
 
-			DWORD error = ERROR_SUCCESS;
+#ifdef AYR_WIN
+			// Windows下使用DWORD表示错误码
+			using Error_t = DWORD;
+#elif defined(AYR_LINUX)
+			// Linux下使用int表示错误码
+			using Error_t = int;
+#endif
+			Error_t error = 0;
 
 			BaseSocket socket = -1;
 
-			bool ok() const { return error == ERROR_SUCCESS; }
+			bool ok() const { return error == 0; }
 		};
 
 		/*
@@ -56,14 +65,14 @@ namespace ayr
 			// 提交的事件
 			EventOperation post_event_;
 
-			// 事件完成结果
-			IoResult* result_;
-
 			// 事件对应的socket
 			BaseSocket event_socket_;
 
 			// 事件对应的协程
 			coro::Coroutine coro_;
+
+			// 事件完成结果
+			IoResult* result_;
 
 			// Buffer*, addrinfo*, BaseSocket
 			union {
@@ -154,9 +163,14 @@ namespace ayr
 			static self create_accept_context(BaseSocket socket, coro::Coroutine coro, int family, BaseSocket* accept_socket, IoResult* result)
 			{
 				self item(EventOperation::ACCEPT, socket, coro, result);
+#ifdef AYR_WIN
 				*accept_socket = net::socket(family, SOCK_STREAM, IPPROTO_TCP);
 				item.data_.accept_socket_ = accept_socket;
 				item.result_->socket = *accept_socket;
+#elif defined(AYR_LINUX)
+				item.data_.accept_socket_ = accept_socket;
+				item.result_->socket = -1;
+#endif
 				return item;
 			}
 
@@ -186,7 +200,7 @@ namespace ayr
 			// 事件完成结果
 			IoResult* result() const { return result_; }
 
-			IoResult& result(int bytes, DWORD error)
+			IoResult& result(int bytes, IoResult::Error_t error)
 			{
 				result_->bytes = bytes;
 				result_->error = error;
@@ -229,6 +243,13 @@ namespace ayr
 			{
 				if (post_event_ == EventOperation::ACCEPT)
 					return *data_.accept_socket_;
+				RuntimeError("Event not EventOperation::ACCEPT");
+			}
+
+			BaseSocket* accept_socket_ptr() const
+			{
+				if (post_event_ == EventOperation::ACCEPT)
+					return data_.accept_socket_;
 				RuntimeError("Event not EventOperation::ACCEPT");
 			}
 		};

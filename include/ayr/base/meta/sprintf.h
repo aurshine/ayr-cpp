@@ -2,6 +2,7 @@
 #define AYR_BASE_META_SPRINTF_H
 
 #include <cstdio>
+#include <cinttypes>
 
 #include "ayr.h"
 
@@ -12,7 +13,7 @@ namespace ayr
 #ifdef _MSC_VER
 		sprintf_s(buffer, size, "%lld", value);
 #else
-		std::sprintf(buffer, "%lld", value);
+		std::sprintf(buffer, "%ld", value);
 #endif
 	}
 

@@ -1,11 +1,10 @@
-#ifndef AYR_NET_SELECTOR_IOCP_UTILS_HPP
-#define AYR_NET_SELECTOR_IOCP_UTILS_HPP
+#ifndef AYR_NET_SELECTOR_IOCP_DATA_HPP
+#define AYR_NET_SELECTOR_IOCP_DATA_HPP
 
 #include <variant>
 
-#include "EventContext.hpp"
-#include "../utils.hpp"
-#include "../../fs/oslib.h"
+#include "../EventContext.hpp"
+#include "../../utils.hpp"
 
 namespace ayr
 {
@@ -28,7 +27,8 @@ namespace ayr
 		// IOCP的OVERLAPPED结构体的扩展数据类型，用于保存accept信息
 		struct IOCP_OVERLAPPED_ACCEPT_DATA
 		{
-			char addrin[(sizeof(sockaddr_in) + 16) * 2];
+			constexpr static int ADDR_SIZE = sizeof(sockaddr_in6) + 16;
+			char addrin[ADDR_SIZE * 2];
 		};
 
 		// IOCP的OVERLAPPED结构体的扩展数据类型，用于保存connect信息
@@ -98,4 +98,4 @@ namespace ayr
 		};
 	}
 }
-#endif // AYR_NET_SELECTOR_IOCP_UTILS_HPP
+#endif // AYR_NET_SELECTOR_IOCP_DATA_HPP

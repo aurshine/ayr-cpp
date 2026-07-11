@@ -673,7 +673,7 @@ namespace ayr
 	constexpr  def vstr(const char* str, c_size len = -1) { return CString(str, len, false); }
 
 	// 浅拷贝，不拥有str内存
-	constexpr  def vstr(const std::string& str) { return CString(str.c_str(), str.size(), false); }
+	def vstr(const std::string& str) { return CString(str.c_str(), str.size(), false); }
 
 	// 浅拷贝，不拥有str内存
 	constexpr  def vstr(const std::string_view& str) { return CString(str.data(), str.size(), false); }
@@ -683,7 +683,7 @@ namespace ayr
 	constexpr def dstr(const char* str, c_size len = -1) { return vstr(str, len).clone(); }
 
 	// 深拷贝, 并拥有str内存
-	constexpr def dstr(const std::string& str) { return vstr(str.c_str(), str.size()).clone(); }
+	def dstr(const std::string& str) { return vstr(str.c_str(), str.size()).clone(); }
 
 	// 深拷贝, 并拥有str内存
 	constexpr def dstr(const std::string_view& str) { return vstr(str.data(), str.size()).clone(); }
@@ -701,7 +701,7 @@ namespace ayr
 	constexpr der(CString) cstr(const char* value, c_size len = -1) { return dstr(value, len); }
 
 	// 将std::string 转换为 CString 对象
-	constexpr der(CString) cstr(const std::string& value) { return dstr(value); }
+	der(CString) cstr(const std::string& value) { return dstr(value); }
 
 	// 将std::string_view 转换为 CString 对象
 	constexpr der(CString) cstr(const std::string_view& value) { return dstr(value); }

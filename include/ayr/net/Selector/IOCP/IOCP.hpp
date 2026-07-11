@@ -1,8 +1,8 @@
 #ifndef AYR_NET_SELECTOR_IOCP_HPP
 #define AYR_NET_SELECTOR_IOCP_HPP
 
-#include "IOCP_utils.hpp"
-#include "../../air/Set.hpp"
+#include "Data.hpp"
+#include "../../../air/Set.hpp"
 
 namespace ayr
 {
@@ -31,7 +31,7 @@ namespace ayr
 
 			IOCP(const self&) = delete;
 
-			IOCP(self&& other) noexcept : iocp_handle_(other.iocp_handle_), num_post_(other.num_post_)
+			IOCP(self&& other) noexcept : iocp_handle_(other.iocp_handle_), num_post_(other.num_post_), registered_sockets_(std::move(other.registered_sockets_))
 			{
 				other.iocp_handle_ = nullptr;
 				other.num_post_ = 0;
@@ -48,9 +48,8 @@ namespace ayr
 			self& operator=(self&& other) noexcept
 			{
 				if (this == &other) return *this;
-				iocp_handle_ = std::exchange(other.iocp_handle_, nullptr);
-				num_post_ = std::exchange(other.num_post_, 0);
-				return *this;
+				ayr_destroy(this);
+				return *ayr_construct(this, std::move(other));
 			}
 
 			// 监听的fd数量
@@ -90,7 +89,7 @@ namespace ayr
 			*
 			* @return Array<EventContext> 发生的事件上下文
 			*/
-			Array<EventContext> wait(int timeout_ms)
+			DynArray<EventContext> wait(int timeout_ms)
 			{
 				OVERLAPPED_ENTRY entries[128];
 				
@@ -100,30 +99,30 @@ namespace ayr
 				if (!ret && GetLastError() != WAIT_TIMEOUT)
 					RuntimeError(get_error_msg());
 
-				Array<EventContext> results(n);
+				DynArray<EventContext> results;
 				for (int i = 0; i < n; ++i)
 				{
 					IOCP_OVERLAPPED* overlapped_ptr = reinterpret_cast<IOCP_OVERLAPPED*>(entries[i].lpOverlapped);
-					results[i] = overlapped_ptr->context();
+					auto& result = results.append(overlapped_ptr->context());
 					int bytes = static_cast<int>(entries[i].dwNumberOfBytesTransferred);
 					DWORD error = static_cast<DWORD>(entries[i].Internal);
 					
-					switch (results[i].event())
+					switch (result.event())
 					{
 					case EventOperation::READ:
-						complete_read(results[i], bytes, error);
+						complete_read(result, bytes, error);
 						break;
 					case EventOperation::WRITE:
-						complete_write(results[i], bytes, error);
+						complete_write(result, bytes, error);
 						break;
 					case EventOperation::ACCEPT:
-						complete_accept(results[i], bytes, error);
+						complete_accept(result, bytes, error);
 						break;
 					case EventOperation::CONNECT:
-						complete_connect(results[i], bytes, error);
+						complete_connect(result, bytes, error);
 						break;
 					default:
-						RuntimeError(ayr::format("Unknown event type: {}", static_cast<int>(results[i].event())));
+						RuntimeError(ayr::format("Unknown event type: {}", static_cast<int>(result.event())));
 					}
 
 					// 释放IOCP_OVERLAPPED对象的内存
@@ -142,7 +141,7 @@ namespace ayr
 			*
 			* @return 发生的事件列表
 			*/
-			Array<EventContext> wait_until(std::chrono::steady_clock::time_point time_point)
+			DynArray<EventContext> wait_until(std::chrono::steady_clock::time_point time_point)
 			{
 				int timeout_ms = std::chrono::duration_cast<std::chrono::milliseconds>(time_point - std::chrono::steady_clock::now()).count();
 				return wait(std::max(timeout_ms, 0));
@@ -278,7 +277,6 @@ namespace ayr
 			*/
 			void post_accept(EventContext& ctx)
 			{
-				constexpr int ADDR_SIZE = sizeof(sockaddr_in) + 16;
 				// 将socket添加到完成端口中
 				add_completion_key(ctx.socket());
 
@@ -288,7 +286,7 @@ namespace ayr
 				// 创建一个IOCP_OVERLAPPED_ACCEPT_DATA对象，保存accept信息
 				auto& overlapped_data = overlapped_ptr->emplace_data(IOCP_OVERLAPPED_ACCEPT_DATA());
 				// 投递读请求到IOCP
-				int ret = acceptex(ctx.socket(), ctx.accept_socket(), overlapped_data.addrin, 0, ADDR_SIZE, ADDR_SIZE, &bytes, overlapped_ptr->overlapped_address());
+				int ret = acceptex(ctx.socket(), ctx.accept_socket(), overlapped_data.addrin, 0, IOCP_OVERLAPPED_ACCEPT_DATA::ADDR_SIZE, IOCP_OVERLAPPED_ACCEPT_DATA::ADDR_SIZE, &bytes, overlapped_ptr->overlapped_address());
 				// 检查投递事件的返回值，如果失败则抛出异常
 				if (ret == 0 && GetLastError() != WSA_IO_PENDING)
 				{

@@ -2,7 +2,7 @@
 #define AYR_CORO_EVENTAWAITER_HPP
 
 #include "Task.hpp"
-#include "../net/Selector/IoWaiter.hpp"
+#include "../net/Selector/Selector.hpp"
 
 namespace ayr
 {
@@ -18,19 +18,19 @@ namespace ayr
 
 			Buffer* buffer_;
 
-			net::IoWaiter* io_waiter_;
+			net::Selector* selector_;
 		public:
-			ReadWaiter(BaseSocket socket, Buffer* buffer, net::IoWaiter* io_waiter) :
+			ReadWaiter(BaseSocket socket, Buffer* buffer, net::Selector* selector) :
 				socket_(socket),
 				buffer_(buffer),
-				io_waiter_(io_waiter) {}
+				selector_(selector) {}
 
-			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+			bool await_ready() const noexcept { return socket_ == -1 || selector_ == nullptr; }
 
 			void await_suspend(Coroutine coro)
 			{
 				auto read_context = net::EventContext::create_read_context(socket_, coro, buffer_, &result_);
-				io_waiter_->post_event(read_context);
+				selector_->post_event(read_context);
 			}
 
 			// 返回读取事件的完成结果
@@ -47,19 +47,19 @@ namespace ayr
 
 			Buffer* buffer_;
 
-			net::IoWaiter* io_waiter_;
+			net::Selector* selector_;
 		public:
-			WriteWaiter(BaseSocket socket, Buffer* buffer, net::IoWaiter* io_waiter) :
+			WriteWaiter(BaseSocket socket, Buffer* buffer, net::Selector* selector) :
 				socket_(socket),
 				buffer_(buffer),
-				io_waiter_(io_waiter) {}
+				selector_(selector) {}
 
-			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+			bool await_ready() const noexcept { return socket_ == -1 || selector_ == nullptr; }
 
 			void await_suspend(Coroutine coro)
 			{
 				auto write_context = net::EventContext::create_write_context(socket_, coro, buffer_, &result_);
-				io_waiter_->post_event(write_context);
+				selector_->post_event(write_context);
 			}
 
 			// 返回写入事件的完成结果
@@ -78,19 +78,19 @@ namespace ayr
 
 			net::IoResult result_;
 			
-			net::IoWaiter* io_waiter_;
+			net::Selector* selector_;
 		public:
-			AcceptWaiter(BaseSocket socket, int family, net::IoWaiter* io_waiter) :
+			AcceptWaiter(BaseSocket socket, int family, net::Selector* selector) :
 				family_(family),
 				socket_(socket),
-				io_waiter_(io_waiter) {}
+				selector_(selector) {}
 			
-			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+			bool await_ready() const noexcept { return socket_ == -1 || selector_ == nullptr; }
 			
 			void await_suspend(Coroutine coro)
 			{
 				auto accept_context = net::EventContext::create_accept_context(socket_, coro, family_, &accept_socket_, &result_);
-				io_waiter_->post_event(accept_context);
+				selector_->post_event(accept_context);
 			}
 
 			// 返回accept事件的完成结果
@@ -107,20 +107,20 @@ namespace ayr
 
 			net::IoResult result_;
 
-			net::IoWaiter* io_waiter_;
+			net::Selector* selector_;
 
 		public:
-			ConnectWaiter(BaseSocket socket, addrinfo* remote_addrinfo, net::IoWaiter* io_waiter) :
+			ConnectWaiter(BaseSocket socket, addrinfo* remote_addrinfo, net::Selector* selector) :
 				socket_(socket),
 				remote_addrinfo_(remote_addrinfo),
-				io_waiter_(io_waiter) {}
+				selector_(selector) {}
 
-			bool await_ready() const noexcept { return socket_ == -1 || io_waiter_ == nullptr; }
+			bool await_ready() const noexcept { return socket_ == -1 || selector_ == nullptr; }
 
 			void await_suspend(Coroutine coro)
 			{
 				auto connect_context = net::EventContext::create_connect_context(socket_, coro, remote_addrinfo_, &result_);
-				io_waiter_->post_event(connect_context);
+				selector_->post_event(connect_context);
 			}
 
 			// 返回connect事件的完成结果

@@ -69,7 +69,7 @@ namespace ayr
 
 				if (valid())
 				{
-					net::close(fd_);
+					io_context_->close(this->fd_);
 					fd_ = -1;
 				}
 			}
@@ -141,10 +141,7 @@ namespace ayr
 
 			constexpr bool operator==(const self& other) const { return fd_ == other.fd_; }
 
-			hash_t __hash__() const
-			{
-				return fd_;
-			}
+			hash_t __hash__() const { return fd_; }
 
 			void __repr__(Buffer& buffer) const { buffer << "Socket(" << fd_ << ")"; }
 		};
@@ -171,14 +168,31 @@ namespace ayr
 				io_context_(io_context),
 				ssl_ctx_(ssl_ctx)
 			{
-				sockaddr_in addr;
-				std::memset(&addr, 0, sizeof(addr));
-				addr.sin_family = family_;
-				addr.sin_port = htons(port);
-				if (inet_pton(addr.sin_family, ip.c_str(), &addr.sin_addr) != 1)
-					RuntimeError("Invalid host address.");
-				if (::bind(fd_, (sockaddr*)&addr, sizeof(addr)) != 0)
-					RuntimeError(get_error_msg());
+				net::reuse_addr(fd_, true);
+
+				if (family == AF_INET)
+				{
+					sockaddr_in addr;
+					std::memset(&addr, 0, sizeof(addr));
+					addr.sin_family = family_;
+					addr.sin_port = htons(port);
+					if (inet_pton(addr.sin_family, ip.c_str(), &addr.sin_addr) != 1)
+						RuntimeError("Invalid host address.");
+					if (::bind(fd_, (sockaddr*)&addr, sizeof(addr)) != 0)
+						RuntimeError(get_error_msg());
+				}
+				else if (family == AF_INET6)
+				{
+					sockaddr_in6 addr;
+					std::memset(&addr, 0, sizeof(addr));
+					addr.sin6_family = family_;
+					addr.sin6_port = htons(port);
+					if (inet_pton(addr.sin6_family, ip.c_str(), &addr.sin6_addr) != 1)
+						RuntimeError(format("Invalid host address. {}", get_error_msg()));
+					if (::bind(fd_, (sockaddr*)&addr, sizeof(addr)) != 0)
+						RuntimeError(get_error_msg());
+				}
+				
 
 				net::setblocking(fd_, false);
 			}
@@ -193,13 +207,22 @@ namespace ayr
 				other.ssl_ctx_ = nullptr;
 			}
 
-			~Acceptor() { close(fd_); }
+			~Acceptor()
+			{
+				if (valid())
+				{
+					io_context_->close(fd_);
+					fd_ = -1;
+				}
+			}
 
 			self& operator=(self&& other) noexcept
 			{
 				if (this == &other) return *this;
 				return *ayr_construct(this, std::move(other));
 			}
+
+			bool valid() const { return fd_ != -1; }
 
 			BaseSocket fd() const { return fd_; }
 

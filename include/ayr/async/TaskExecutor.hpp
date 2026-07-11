@@ -8,6 +8,8 @@ namespace ayr
 {
 	namespace async
 	{
+		class AsyncExecutor;
+
 		class AsyncTask
 		{
 			using self = AsyncTask;

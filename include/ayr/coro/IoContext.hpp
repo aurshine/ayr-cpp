@@ -10,6 +10,11 @@
 
 namespace ayr
 {
+	namespace net
+	{
+		class Socket;
+	}
+
 	namespace coro
 	{
 		struct TimerEntry
@@ -45,7 +50,7 @@ namespace ayr
 			// 等待协程队列
 			std::multimap<TimePoint, Coroutine> wait_coros_;
 
-			net::IoWaiter io_waiter_;
+			net::Selector selector_;
 		public:
 			IoContext() {}
 
@@ -90,7 +95,7 @@ namespace ayr
 			}
 
 			// 事件循环是否为空
-			bool empty() const { return ready_coros_.empty() && wait_coros_.empty() && io_waiter_.empty(); }
+			bool empty() const { return ready_coros_.empty() && wait_coros_.empty() && selector_.empty(); }
 
 			// 启动事件循环，直到所有协程都执行完毕
 			void run()
@@ -116,7 +121,7 @@ namespace ayr
 						ready_coros_.pop();
 					}
 
-					int timeout_ms = ifelse(io_waiter_.empty(), 0, -1);
+					int timeout_ms = ifelse(selector_.empty(), 0, -1);
 					// 计算超时时间
 					if (!wait_coros_.empty())
 					{
@@ -125,11 +130,11 @@ namespace ayr
 						timeout_ms = std::max(timeout_ms, 0);
 					}
 
-					if (io_waiter_.empty())
+					if (selector_.empty())
 						std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
 					else
 					{
-						auto io_events = io_waiter_.wait(timeout_ms);
+						auto io_events = selector_.wait(timeout_ms);
 						for (auto& io_event : io_events)
 							ready_coros_.push(io_event.coroutine());
 					}
@@ -144,13 +149,15 @@ namespace ayr
 				return p.result();
 			}
 
-			ReadWaiter read_awaiter(BaseSocket socket, Buffer* buffer) { return ReadWaiter(socket, buffer, &io_waiter_); }
+			void close(const BaseSocket& socket) { selector_.close(socket); }
+
+			ReadWaiter read_awaiter(BaseSocket socket, Buffer* buffer) { return ReadWaiter(socket, buffer, &selector_); }
 		
-			WriteWaiter write_awaiter(BaseSocket socket, Buffer* buffer) { return WriteWaiter(socket, buffer, &io_waiter_); }
+			WriteWaiter write_awaiter(BaseSocket socket, Buffer* buffer) { return WriteWaiter(socket, buffer, &selector_); }
 
-			AcceptWaiter accept_awaiter(BaseSocket socket, int family) { return AcceptWaiter(socket, family, &io_waiter_); }
+			AcceptWaiter accept_awaiter(BaseSocket socket, int family) { return AcceptWaiter(socket, family, &selector_); }
 
-			ConnectWaiter connect_awaiter(BaseSocket socket, addrinfo* remote_addrinfo) { return ConnectWaiter(socket, remote_addrinfo, &io_waiter_); }
+			ConnectWaiter connect_awaiter(BaseSocket socket, addrinfo* remote_addrinfo) { return ConnectWaiter(socket, remote_addrinfo, &selector_); }
 		};
 
 		/*

@@ -1,5 +1,5 @@
-#ifndef AYR_CORO_CO_UTILS_HPP_
-#define AYR_CORO_CO_UTILS_HPP_
+#ifndef AYR_CORO_CO_UTILS_HPP
+#define AYR_CORO_CO_UTILS_HPP
 
 #include <coroutine>
 
@@ -43,4 +43,4 @@ namespace ayr
 		};
 	}
 }
-#endif;
+#endif // AYR_CORO_CO_UTILS_HPP
