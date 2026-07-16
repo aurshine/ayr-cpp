@@ -256,7 +256,7 @@ namespace ayr
 		{
 			JsonLoader parser(json_str);
 			auto [json_obj, pos] = parser();
-			return { json_obj, json_str.vslice(pos) };
+			return { std::move(json_obj), json_str.vslice(pos) };
 		}
 	}
 }

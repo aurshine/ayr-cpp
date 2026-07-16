@@ -83,7 +83,7 @@ namespace ayr
 		class Json
 		{
 			using self = Json;
-
+		public:
 			std::variant<JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict> json_var_;
 		public:
 			constexpr Json() : json_var_(JsonNull()) {}
@@ -299,7 +299,7 @@ namespace ayr
 			void pop(c_size index)
 			{
 				if (is_array())
-					as_array().pop(index);
+					return as_array().pop(index);
 				JsonValueError(ayr::format("type {} cannot call pop(index)", type_name()));
 			}
 
@@ -313,7 +313,7 @@ namespace ayr
 			void pop(const JsonStr& key)
 			{
 				if (is_dict())
-					as_dict().pop(key);
+					return as_dict().pop(key);
 				JsonValueError(ayr::format("type {} cannot call pop(key)", type_name()));
 			}
 

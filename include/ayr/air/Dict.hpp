@@ -48,7 +48,11 @@ namespace ayr
 				insert(key, value);
 		}
 
-		Dict(const self& other) : htable_(other.htable_), kv_chain_(other.kv_chain_) {}
+		Dict(const self& other) : htable_(other.size()), kv_chain_(other.kv_chain_) 
+		{
+			for (const auto& [key, value] : other.items())
+				insert(key, value);
+		}
 
 		Dict(self&& other) noexcept : htable_(std::move(other.htable_)), kv_chain_(std::move(other.kv_chain_)) {}
 

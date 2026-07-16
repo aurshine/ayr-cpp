@@ -101,10 +101,15 @@ namespace ayr
 		void operator()(const Args&... args) const
 		{
 			Buffer buffer(BUFFER_SIZE);
-			buffer << color_;
 			super::write_in_buffer(buffer, args...);
-			buffer << Color::CLOSE;
 			write_from_buffer(buffer);
+		}
+
+		void write_from_buffer(const Buffer& buffer) const
+		{
+			std::fwrite(color_.data(), 1, color_.size(), output_file_);
+			super::write_from_buffer(buffer);
+			std::fwrite(Color::CLOSE, 1, 5, output_file_);
 		}
 
 		void setcolor(CString color) { color_ = std::move(color); }
@@ -143,7 +148,4 @@ struct std::formatter<T> : std::formatter<ayr::CString>
 	}
 };
 #endif
-
-#define tlog(expr) print(#expr, " = ", expr)
-
 #endif // AYR_BASE_PRINTER_HPP

@@ -727,6 +727,9 @@ namespace ayr
 				else if (at(i) >= 'a' && at(i) <= 'z')
 					digit = at(i).ord() - 'a' + 10;
 				else
+					digit = base;
+
+				if (digit < 0 || digit >= base)
 				{
 					remain_length = i;
 					break;

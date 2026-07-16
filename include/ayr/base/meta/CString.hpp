@@ -14,9 +14,11 @@ namespace ayr
 	// 结尾带\0的c风格字符串
 	class StringZero
 	{
+		using self = StringZero;
+
 		union {
 			char short_str[16];
-			const char* long_str;
+			char* long_str;
 		};
 
 		// 是否sso优化
@@ -42,7 +44,11 @@ namespace ayr
 			}
 		}
 
-		constexpr StringZero(const StringZero& other) : StringZero(other.c_str(), other.size()) {}
+		constexpr StringZero(const self& other) = delete;
+
+		constexpr ~StringZero() { if (!sso) { ayr_desloc(long_str); } }
+		
+		self& operator= (const self& other) = delete;
 
 		constexpr c_size size() const
 		{
@@ -468,9 +474,10 @@ namespace ayr
 		constexpr bool isspace() const
 		{
 			for (const char& ch : *this)
-				if (ch < 9 || ch > 13 || (ch != '\0' && ch != ' '))
-					return false;
-			return true;
+				if ((ch > 9 && ch < 13) || ch == ' ' || ch == '\0')
+					return true;
+				
+			return false;
 		}
 
 		// 判断是否为数字字符串

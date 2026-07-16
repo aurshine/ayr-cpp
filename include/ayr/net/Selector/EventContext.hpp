@@ -1,11 +1,9 @@
 #ifndef AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 #define AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 
-#if defined(AYR_WIN)
-#include <WinSock2.h>
-#endif 
-
+#include "../utils.hpp"
 #include "../../coro/co_utils.hpp"
+
 
 namespace ayr
 {

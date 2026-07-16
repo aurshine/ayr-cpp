@@ -188,7 +188,7 @@ namespace ayr
 
 		self& operator^=(self&& other) { return *this = *this ^ std::move(other); }
 
-		bool operator==(const self& other)
+		bool operator==(const self& other) const
 		{
 			if (size() != other.size())
 				return false;

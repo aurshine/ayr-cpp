@@ -1,93 +1,70 @@
-#include "ayr/coro.hpp"
+#include <vector>
+
+#include <ayr/coro.hpp>
+
+#include <ayr/base/utest.hpp>
 
 using namespace ayr;
 
-coro::Generator<int> numbers(int n)
+coro::Generator<int> descending_numbers(int n)
 {
-	for (int i = n; i; i--)
+	for (int i = n; i > 0; --i)
 		co_yield i;
 	co_return n + 1;
 }
 
-struct NoDefaultConstructor
+coro::Generator<int> empty_generator()
 {
-	NoDefaultConstructor(int x) : x(x) {}
+	if (false)
+		co_yield 1;
+}
 
-	NoDefaultConstructor(const NoDefaultConstructor& other) : x(other.x) {}
-
-	void __repr__(Buffer& buffer) const
+struct MoveOnly
+{
+	MoveOnly(int value) : value(value) {}
+	MoveOnly(const MoveOnly&) = delete;
+	MoveOnly(MoveOnly&& other) noexcept : value(other.value) { other.value = -1; }
+	MoveOnly& operator=(const MoveOnly&) = delete;
+	MoveOnly& operator=(MoveOnly&& other) noexcept
 	{
-		buffer << "NoDefaultConstructor(" << x << ")";
+		value = other.value;
+		other.value = -1;
+		return *this;
 	}
 
-	int x;
+	int value;
 };
 
-coro::Generator<NoDefaultConstructor> no_default_constructor()
+coro::Generator<MoveOnly> move_only_values()
 {
-	for (int i = 0; i < 10; i++)
-	{
-		NoDefaultConstructor obj(i);
-		co_yield std::move(obj);
-	}
-
-}
-
-struct GenTest
-{
-	GenTest() { print("GenTest()"); }
-
-	//GenTest(GenTest&) { print("GenTest(GenTest&)"); }
-
-	GenTest(GenTest&&) { print("GenTest(GenTest&&)"); }
-
-	~GenTest() { print("~GenTest()"); }
-
-	//GenTest& operator=(GenTest&) { print("GenTest& operator=(GenTest&)"); }
-
-	GenTest& operator=(GenTest&&) { print("GenTest& operator=(GenTest&&)"); }
-};
-
-coro::Generator<GenTest> gen_test()
-{
-	print("--- gen_test() begin");
-	for (int i = 0; i < 2; i++)
-	{
-		print("+++ gen_test() yield");
-		co_yield GenTest();
-		print("*** gen_test() yield end");
-	}
-}
-
-coro::Generator<int> no_yield()
-{
-	if (false) co_yield 1;
-}
-
-coro::Generator<int> only_return()
-{
-	co_return 1;
+	co_yield MoveOnly(1);
+	co_yield MoveOnly(2);
 }
 
 int main()
 {
-	/*for (int i : numbers(10))
-		print(i);
+	// 测试 co_yield 序列和 co_return 末尾值都会被迭代出来。
+	std::vector<int> values;
+	for (int value : descending_numbers(3))
+		values.push_back(value);
+	AYR_TEST_EXPECT_EQ(values.size(), 4);
+	AYR_TEST_EXPECT_EQ(values[0], 3);
+	AYR_TEST_EXPECT_EQ(values[1], 2);
+	AYR_TEST_EXPECT_EQ(values[2], 1);
+	AYR_TEST_EXPECT_EQ(values[3], 4);
 
-	for (auto obj : no_default_constructor())
-		print(obj);*/
-
-	auto gen = gen_test();
-	print("gen");
-	for (auto& obj : gen)
+	// 测试没有 yield/return 的生成器为空。
+	int count = 0;
+	for (int value : empty_generator())
 	{
-		print("loop\n");
+		(void)value;
+		++count;
 	}
+	AYR_TEST_EXPECT_EQ(count, 0);
 
-	for (auto& i : no_yield())
-		print(i);
-	for (auto& i : only_return())
-		print(i);
-
-	return 0;
+	// 测试生成器支持不可拷贝、仅可移动的类型。
+	int sum = 0;
+	for (auto& item : move_only_values())
+		sum += item.value;
+	AYR_TEST_EXPECT_EQ(sum, 3);
 }

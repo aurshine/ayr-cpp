@@ -1,76 +1,73 @@
 #include <array>
+#include <string>
 
-#include "ayr/base.hpp"
+#include <ayr/base.hpp>
 
+#include <ayr/base/utest.hpp>
 
 using namespace ayr;
 
-void print_info(const CString& s, const CString& name)
-{
-	print(ayr::format("owner: {}, sso: {}, size: {}, {}: {}", s.owner(), s.sso(), s.size(), name, s));
-}
-
-void cstr_test()
-{
-	Timer_ms timer;
-	constexpr int N = 1e6;
-	timer.into();
-	for (double i = 0; i < N; ++i)
-		cstr(i);
-	auto t1 = timer.escape();
-
-	timer.into();
-	for (double i = 0; i < N; ++i)
-		std::to_string(i);
-	auto t2 = timer.escape();
-
-	print("cstr:", t1, "ms");
-	print("std::to_string:", t2, "ms");
-}
-
 int main()
 {
-	auto s1 = vstr("Hello, world!");
-	auto s2 = s1.clone();
-	auto s3 = dstr("你好，世界！");
-	char* p = ayr_alloc<char>(19);
-	std::memcpy(p, "你好，世界！", 19);
-	auto s4 = ostr(p, 19);
+	// 测试 SSO、视图字符串、深拷贝字符串和外部所有权字符串的基础状态。
+	CString short_view = vstr("hello");
+	CString short_copy = short_view.clone();
+	CString long_copy = dstr("this string is longer than the sso buffer");
+	char* owned_ptr = ayr_alloc<char>(6);
+	std::memcpy(owned_ptr, "world", 6);
+	CString owned = ostr(owned_ptr, 5);
+	AYR_TEST_EXPECT(short_view.viewer());
+	AYR_TEST_EXPECT(short_copy.sso());
+	AYR_TEST_EXPECT(long_copy.owner());
+	AYR_TEST_EXPECT(owned.owner());
+	AYR_TEST_EXPECT_EQ(owned, "world");
 
-	print_info(s1, "s1");
-	print_info(s2, "s2");
-	print_info(s3, "s3");
-	print_info(s4, "s4");
-	print_info(s1 + s3, "s5");
-	print_info(vstr("hello") + vstr("world"), "s6");
-	print_info(CString::cjoin(arr(vstr("h"), vstr("e"), vstr("l"), vstr("l"), vstr("o"))), "s7");
-	print_info(vstr("-").join(arr(vstr("h"), vstr("e"), vstr("l"), vstr("l"), vstr("o"))), "s8");
+	// 测试拼接、追加、重复和负数下标。
+	CString combined = vstr("hello") + vstr(", ") + owned;
+	AYR_TEST_EXPECT_EQ(combined, "hello, world");
+	combined += '!';
+	AYR_TEST_EXPECT_EQ(combined[-1], '!');
+	AYR_TEST_EXPECT_EQ(vstr("ha") * 3, "hahaha");
 
-	print("s1 == s2: ", s1 == s2);
-	print("s1 == s3: ", s1 == s3);
-	print("s3 == s4: ", s3 == s4);
+	// 测试查找、反向查找、计数和前后缀。
+	CString text = vstr("one two one");
+	AYR_TEST_EXPECT(text.contains("two"));
+	AYR_TEST_EXPECT(text.contains('w'));
+	AYR_TEST_EXPECT_EQ(text.index("one"), 0);
+	AYR_TEST_EXPECT_EQ(text.index("one", 1), 8);
+	AYR_TEST_EXPECT_EQ(text.rindex("one"), 8);
+	AYR_TEST_EXPECT_EQ(text.count("one"), 2);
+	AYR_TEST_EXPECT_EQ(text.count('o'), 3);
+	AYR_TEST_EXPECT(text.startswith("one"));
+	AYR_TEST_EXPECT(text.endswith("one"));
+	AYR_TEST_EXPECT_EQ(text.index("missing"), -1);
 
-	std::swap(s1, s3);
-	print_info(s1, "s1 after swap");
-	print_info(s3, "s3 after swap");
-	print_info(s1.slice(0, 6), "s1.slice(0, 6)");
-	print_info(s3.slice(0, 5), "s3.slice(0, 5)");
-	print_info(s1.vslice(0, 6), "s1.vslice(0, 6)");
-	print_info(s3.vslice(0, 5), "s3.vslice(0, 5)");
-	print_info(s1.slice(9), "s1.slice(9)");
-	print_info(s3.slice(7), "s3.slice(7)");
-	print_info(s1.vslice(9), "s1.vslice(9)");
-	print_info(s3.vslice(7), "s3.vslice(7)");
+	// 测试 slice/vslice 在短字符串和长字符串上的内容正确性。
+	AYR_TEST_EXPECT_EQ(text.vslice(0, 3), "one");
+	AYR_TEST_EXPECT_EQ(text.slice(4), "two one");
+	AYR_TEST_EXPECT_EQ(long_copy.vslice(5, 11), "string");
 
-	tlog(cstr(1));
-	tlog(cstr('a'));
-	tlog(cstr(1.0));
-	tlog(cstr(true));
-	tlog(cstr(nullptr));
-	tlog(cstr(std::pair(1, 2)));
-	tlog(cstr(std::tuple(1, 2, 3)));
-	tlog(cstr(std::array<int, 3>{1, 2, 3}));
+	// 测试大小写转换和字符分类。
+	AYR_TEST_EXPECT_EQ(vstr("AbC").lower(), "abc");
+	AYR_TEST_EXPECT_EQ(vstr("AbC").upper(), "ABC");
+	AYR_TEST_EXPECT(vstr("123").isdigit());
+	AYR_TEST_EXPECT(vstr("abc").isalpha());
+	AYR_TEST_EXPECT(vstr(" \t\n").isspace());
 
-	cstr_test();
-	return 0;
+	// 测试 join/cjoin 对连续元素和空元素的处理。
+	auto chars = arr(vstr("h"), vstr("e"), vstr("l"), vstr("l"), vstr("o"));
+	AYR_TEST_EXPECT_EQ(CString::cjoin(chars), "hello");
+	AYR_TEST_EXPECT_EQ(vstr("-").join(chars), "h-e-l-l-o");
+	AYR_TEST_EXPECT_EQ(vstr(",").join(arr(vstr("a"), vstr(""), vstr("b"))), "a,,b");
+
+	// 测试 cstr 对常用类型的格式化入口。
+	AYR_TEST_EXPECT_EQ(cstr(nullptr), "nullptr");
+	AYR_TEST_EXPECT_EQ(cstr(true), "true");
+	AYR_TEST_EXPECT_EQ(cstr(false), "false");
+	AYR_TEST_EXPECT_EQ(cstr('x'), "x");
+	AYR_TEST_EXPECT_EQ(cstr(42), "42");
+
+	// 测试移动构造后内容仍由新对象持有。
+	CString moved = std::move(long_copy);
+	AYR_TEST_EXPECT_EQ(moved, "this string is longer than the sso buffer");
 }

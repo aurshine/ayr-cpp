@@ -1,109 +1,77 @@
-#include <unordered_map>
-
+#include <string>
 
 #include <ayr/air/Dict.hpp>
 
+#include <ayr/base/utest.hpp>
+
 using namespace ayr;
-
-void dict_run_speed_test()
-{
-	Timer_ms t;
-	Dict<std::string, std::string> d;
-	std::vector<std::string> vs;
-	constexpr int N = 1e6;
-
-	for (int i = 0; i < N; i++)
-		vs.push_back(std::to_string(i));
-
-	t.into();
-	for (int i = 0; i < N; i++)
-		d[vs[i]] = vs[i];
-	print("Dict insert time: ", t.escape(), "ms");
-	t.into();
-	for (int i = 0; i < N; i++)
-		assert(d.contains(vs[i]));
-	print("Dict query time: ", t.escape(), "ms");
-	t.into();
-	for (int i = 0; i < N; i++)
-	{
-		d.pop(vs[i]);
-	}
-
-	print("Dict pop time: ", t.escape(), "ms");
-
-	std::unordered_map<std::string, std::string> u;
-	t.into();
-	for (int i = 0; i < N; i++)
-		u.insert(std::make_pair(vs[i], vs[i]));
-	print("std::unordered_map insert time: ", t.escape(), "ms");
-	t.into();
-	for (int i = 0; i < N; i++)
-		u[vs[i]];
-	print("std::unordered_map query time: ", t.escape(), "ms");
-	t.into();
-	for (int i = 0; i < N; i++)
-		u.erase(vs[i]);
-	print("std::unordered_map pop time: ", t.escape(), "ms");
-}
-
-void dict_and_or_xor_test()
-{
-	Dict<int, int> d1{ {1, 1}, {2, 2}, {3, 3}, {4, 4}, {5, 5} };
-	Dict<int, int> d2{ {3, 3}, {4, 4}, {5, 5}, {6, 6}, {7, 7} };
-
-	print("d1: ", d1);
-	print("d2: ", d2);
-
-	print("d1 & d2: ", d1 & d2);
-	print("d1 | d2: ", d1 | d2);
-	print("d1 ^ d2: ", d1 ^ d2);
-
-	print("d1 &= d2: ", d1 &= d2);
-	print("d1 |= d2: ", d1 |= d2);
-	print("d1 ^= d2: ", d1 ^= d2);
-}
 
 int main()
 {
-	Dict<int, int> d{ {1, 1}, {2, 2}, {3, 3}, {4, 4	} };
-	print(d.size());
-	print("d:", d, "\n");
-	print.setend(" ");
-	for (auto& k : d.keys())
-		print(k);
-	print("\n");
-	for (auto& v : d.values())
-		print(v);
-	print("\n");
-	for (auto [k, v] : d.items())
-		print(k, v);
+	// 测试初始化、查询、默认值查询和 contains。
+	Dict<int, CString> d{ {1, "one"}, {2, "two"} };
+	AYR_TEST_EXPECT_EQ(d.size(), 2);
+	AYR_TEST_EXPECT(d.contains(1));
+	AYR_TEST_EXPECT(!d.contains(9));
+	AYR_TEST_EXPECT_EQ(d.get(1), "one");
+	AYR_TEST_EXPECT_EQ(d.get(9, vstr("fallback")), "fallback");
 
-	print.setend("\n");
+	// 测试 insert 覆盖已有 key，operator[] 自动创建默认值。
+	d.insert(2, "TWO");
+	AYR_TEST_EXPECT_EQ(d.get(2), "TWO");
+	d[3] = "three";
+	AYR_TEST_EXPECT_EQ(d.size(), 3);
+	AYR_TEST_EXPECT_EQ(d[3], "three");
 
-	d.insert(5, 5);
-	d.insert(6, 6);
-	d.insert(7, 7);
-	d.insert(8, 8);
-	print(d.size());
-	print("after insert {5, 5}, {6, 6}, {7, 7}, {8, 8}:", d, "\n");
+	// 测试 setdefault 对已有 key 不覆盖，对新 key 写入默认值。
+	d.setdefault(3, "changed");
+	d.setdefault(4, "four");
+	AYR_TEST_EXPECT_EQ(d.get(3), "three");
+	AYR_TEST_EXPECT_EQ(d.get(4), "four");
 
-	print("key 1 value: ", d.get(1));
+	// 测试 keys、values、items 视图能遍历完整内容。
+	int key_sum = 0;
+	for (auto key : d.keys())
+		key_sum += key;
+	AYR_TEST_EXPECT_EQ(key_sum, 10);
+	int value_count = 0;
+	for (auto& value : d.values())
+		if (!value.empty())
+			++value_count;
+	AYR_TEST_EXPECT_EQ(value_count, 4);
+	int item_count = 0;
+	for (auto& [key, value] : d.items())
+	{
+		AYR_TEST_EXPECT(d.contains(key));
+		AYR_TEST_EXPECT_EQ(d.get(key), value);
+		++item_count;
+	}
+	AYR_TEST_EXPECT_EQ(item_count, 4);
 
+	// 测试删除存在和不存在的 key。
 	d.pop(1);
-	d.pop(2);
-	print(d.size());
-	print("after pop 1, 2:", d, "\n");
+	d.pop(99);
+	AYR_TEST_EXPECT_EQ(d.size(), 3);
+	AYR_TEST_EXPECT(!d.contains(1));
 
-	Dict<int, int> d2{ {9, 9} };
-	d |= { {10, 10} };
-	d |= d2;
-	print(d.size());
-	print("after update {9, 9}, {10, 10}:", d, "\n");
+	// 测试字典交集、并集和对称差，冲突 key 保留左侧值。
+	Dict<int, CString> a{ {1, "a1"}, {2, "a2"}, {3, "a3"} };
+	Dict<int, CString> b{ {3, "b3"}, {4, "b4"} };
+	AYR_TEST_EXPECT_EQ(a & b, Dict<int, CString>({ {3, "a3"} }));
+	AYR_TEST_EXPECT_EQ(a | b, Dict<int, CString>({ {1, "a1"}, {2, "a2"}, {3, "a3"}, {4, "b4"} }));
+	AYR_TEST_EXPECT_EQ(a ^ b, Dict<int, CString>({ {1, "a1"}, {2, "a2"}, {4, "b4"} }));
+	AYR_TEST_EXPECT_EQ(a & a, a);
+	AYR_TEST_EXPECT_EQ(a ^ a, Dict<int, CString>());
 
-	d.clear();
-	print(d.size());
-	print("after clear:", d, "\n");
-	d.items();
-	dict_run_speed_test();
-	dict_and_or_xor_test();
+	// 测试复合赋值和 clear。
+	Dict<int, CString> c{ {1, "one"}, {2, "two"} };
+	c |= Dict<int, CString>({ {2, "ignored"}, {3, "three"} });
+	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {1, "one"}, {2, "two"}, {3, "three"} }));
+	c &= Dict<int, CString>({ {2, "x"}, {3, "x"} });
+	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {2, "two"}, {3, "three"} }));
+	c ^= Dict<int, CString>({ {3, "x"}, {4, "four"} });
+	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {2, "two"}, {4, "four"} }));
+	c.clear();
+	AYR_TEST_EXPECT(c.empty());
+	AYR_TEST_EXPECT_EQ(c.size(), 0);
 }
