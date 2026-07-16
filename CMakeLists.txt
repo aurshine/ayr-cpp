@@ -15,6 +15,11 @@ target_include_directories(ayr INTERFACE ${PROJECT_SOURCE_DIR}/include)
 # 给库加上 OpenSSL
 target_link_libraries(ayr INTERFACE OpenSSL::SSL OpenSSL::Crypto)
 
+if (WIN32)
+    # TlsLayer通过Windows CryptoAPI读取系统受信任根证书存储。
+    target_link_libraries(ayr INTERFACE Crypt32)
+endif()
+
 if (fmt_FOUND)
     target_link_libraries(ayr INTERFACE fmt::fmt)
     target_compile_definitions(ayr INTERFACE AYR_USE_FMT=1)

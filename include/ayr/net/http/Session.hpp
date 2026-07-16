@@ -48,24 +48,41 @@ namespace ayr
 
 				req.set_body(data);
 
+				bool use_tls = req.uri().scheme() == "https"as;
+				if (use_tls && ssl_ctx_ == nullptr)
+					ssl_ctx_ = create_ssl_ctx();
+
 				Socket sock = co_await open_connect(
 					req.host().encode(),
 					req.port().toint().first,
 					io_context,
-					ssl_ctx(req.uri().scheme() == "https"as)
+					TlsLayer(ifelse(use_tls, ssl_ctx_, nullptr))
 				);
 
 				Buffer req_buffer, resp_buffer;
 				req_buffer << req;
-				co_await sock.write(req_buffer);
-
+				net::IoResult write_result = co_await sock.write(req_buffer);
+				if (!write_result.ok())
+					RuntimeError(write_result.error);
+				
 				HttpResponse res;
 				ResponseParser res_parser;
 				do {
-					net::IoResult res = co_await sock.read(resp_buffer);
-					if (res.bytes == 0)
+					resp_buffer.adjust_util(8192);
+					net::IoResult read_result = co_await sock.read(resp_buffer);
+					if (!read_result.ok())
+						RuntimeError(read_result.error);
+					if (read_result.bytes == 0)
 						break;
 				} while (!res_parser(res, resp_buffer));
+
+				// HTTP响应已完整解析，此时主动发送TLS close_notify，再由Socket析构
+				// 关闭TCP。这样对端可以区分正常结束和被截断的TLS连接。
+				net::IoResult shutdown_result = co_await sock.shutdown();
+				// close_notify写入底层socket失败意味着关闭通知没有可靠送达，不能
+				// 静默当作一次完全成功的HTTPS请求结束。
+				if (!shutdown_result.ok())
+					RuntimeError(shutdown_result.error);
 
 				co_return res;
 			}
@@ -78,39 +95,6 @@ namespace ayr
 			coro::Task<HttpResponse> post(coro::IoContext* io_context, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
 			{
 				co_return co_await request(io_context, "POST"as, uri, headers, data);
-			}
-		private:
-			/*
-			* @brief 是否使用SSL上下文
-			*
-			* 如果使用，则创建SSL上下文，并加载系统 CA 证书目录
-			*
-			* 如果已经创建过，则直接返回
-			*
-			* 如果不使用，则直接返回 nullptr
-			*/
-			SSL_CTX* ssl_ctx(bool use_ssl)
-			{
-				if (!use_ssl) return nullptr;
-				if (ssl_ctx_ != nullptr) return ssl_ctx_;
-				ssl_ctx_ = SSL_CTX_new(TLS_client_method());
-				if (ssl_ctx_ == nullptr)
-					SSLError("Failed to create SSL context");
-
-				// 建议至少要求 TLS1.2
-				SSL_CTX_set_min_proto_version(ssl_ctx_, TLS1_2_VERSION);
-				// 不限制最高版本（0 表示自动）
-				SSL_CTX_set_max_proto_version(ssl_ctx_, 0);
-
-				// 加载系统 CA 证书目录（必须）
-				if (!SSL_CTX_set_default_verify_paths(ssl_ctx_))
-					RuntimeError("Failed to load system CA certificates");
-#ifdef AYR_WIN
-				SSL_CTX_load_verify_locations(ssl_ctx_, "D:\\Download\\vcpkg\\buildtrees\\openssl\\src\\nssl-3.3.2-515f0a0017.clean\\demos\\cms\\cacert.pem", nullptr);
-#else
-				SSL_CTX_set_verify(ssl_ctx_, SSL_VERIFY_PEER, NULL);
-#endif
-				return ssl_ctx_;
 			}
 		};
 

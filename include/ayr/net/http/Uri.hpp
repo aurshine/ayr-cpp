@@ -207,7 +207,7 @@ namespace ayr
 			{
 				Array<Atring> key_value = kv.split("="as, 1);
 				if (key_value.size() != 2)
-					ValueError("Invalid query string: "as + kv);
+					ValueError(vstr("Invalid query string: ") + cstr(kv));
 				uri.add_query(key_value[0].clone(), key_value[1].clone());
 			}
 			// 这里跳过 '#'

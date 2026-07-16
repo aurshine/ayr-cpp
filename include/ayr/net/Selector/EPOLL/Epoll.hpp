@@ -91,7 +91,7 @@ namespace ayr
 				Array<epoll_event> evs(size());
 				int n = ::epoll_wait(epoll_fd_, evs.data(), evs.size(), timeout_ms);
 				if (n == -1)
-					RuntimeError(get_error_msg());
+					RuntimeError(get_system_error_msg());
 				
 				DynArray<EventContext> results;
 				for (int i = 0; i < n; ++i)
@@ -163,7 +163,7 @@ namespace ayr
 				int op = ifelse(event == EPOLLIN, epoll_data.add_read_event(ctx), epoll_data.add_write_event(ctx));
 				epoll_data.set_epoll_event(&ev);
 				if (::epoll_ctl(epoll_fd_, op, ctx.socket(), &ev) == -1)
-					RuntimeError(get_error_msg());
+					RuntimeError(get_system_error_msg());
 			}
 
 			// read事件产生后的完成动作
@@ -171,23 +171,18 @@ namespace ayr
 			{
 				Buffer* buffer = ctx.buffer();
 				int total_read = 0;
+				CString error;
 				while (buffer->writeable_size())
 				{
 					int num_read = ::recv(ctx.socket(), buffer->write_ptr(), buffer->writeable_size(), 0);
-					if (num_read == -1)
-					{
-						// 非阻塞模式还未就绪
-						if (errno == EAGAIN || errno == EWOULDBLOCK)
-							ctx.result(total_read, 0);
-						else
-							ctx.result(0, errno);
-						break;
-					}
 
-					if (num_read == 0)
+					if (num_read <= 0)
 					{
-						// 对端关闭连接
-						ctx.result(total_read, 0);
+						int read_error = errno;
+						// 非阻塞模式还未就绪
+						if (num_read < 0 && read_error != EAGAIN && read_error != EWOULDBLOCK)
+							error = c_error2str(read_error);
+						// num_read == 0, 对端关闭连接
 						break;
 					}
 
@@ -195,6 +190,7 @@ namespace ayr
 					total_read += num_read;
 				}
 
+				ctx.result(total_read, std::move(error));
 				fd_events_[ctx.socket()].pop_read_event();
 			}
 
@@ -203,17 +199,18 @@ namespace ayr
 			{
 				Buffer* buffer = ctx.buffer();
 				int total_write = 0;
+				CString error;
 				while (buffer->readable_size() != 0)
 				{
 					int num_written = ::send(ctx.socket(), buffer->peek(), buffer->readable_size(), 0);
 					
-					if (num_written == -1)
+					if (num_written <= 0)
 					{
+						int write_error = errno;
 						// 非阻塞模式还未就绪
-						if (errno == EAGAIN || errno == EWOULDBLOCK)
-							ctx.result(total_write, 0);
-						else
-							ctx.result(0, errno);
+						if (num_written < 0 && write_error != EAGAIN && write_error != EWOULDBLOCK)
+							error = c_error2str(write_error);
+						// num_written == 0, 对端关闭连接
 						break;
 					}
 						
@@ -221,6 +218,7 @@ namespace ayr
 					total_write += num_written;
 				}
 
+				ctx.result(total_write, std::move(error));
 				fd_events_[ctx.socket()].pop_write_event();
 			}
 
@@ -229,9 +227,14 @@ namespace ayr
 			{
 				*ctx.accept_socket_ptr() = ::accept(ctx.socket(), nullptr, nullptr);
 				if (ctx.accept_socket() == -1)
-					ctx.result(0, errno);
+				{
+					ctx.result(0, c_error2str(errno));
+				}
 				else
+				{
+					ctx.result(0);
 					ctx.result()->socket = ctx.accept_socket();
+				}
 				fd_events_[ctx.socket()].pop_read_event();
 			}
 
@@ -239,12 +242,28 @@ namespace ayr
 			void complete_connect(EventContext& ctx)
 			{
 				addrinfo* remote_addr = ctx.remote_addrinfo();
-				int ret = ::connect(ctx.socket(), remote_addr->ai_addr, remote_addr->ai_addrlen);
+				int connect_ret = ::connect(ctx.socket(), remote_addr->ai_addr, remote_addr->ai_addrlen);
+				if (connect_ret < 0)
+				{
+					int connect_error = errno;
+					if (connect_error != EINPROGRESS &&
+						connect_error != EALREADY &&
+						connect_error != EISCONN)
+					{
+						ctx.result(0, c_error2str(connect_error));
+						fd_events_[ctx.socket()].pop_write_event();
+						return;
+					}
+				}
+
 				int err = 0;
 				socklen_t err_len = sizeof(err);
 				if (net::getsockopt(ctx.socket(), SOL_SOCKET, SO_ERROR, &err, &err_len) < 0)
-					ctx.result(0, errno);
-				ctx.result(0, err);
+					ctx.result(0, c_error2str(errno));
+				else if (err != 0)
+					ctx.result(0, c_error2str(err));
+				else
+					ctx.result(0);
 				fd_events_[ctx.socket()].pop_write_event();
 			}
 		};

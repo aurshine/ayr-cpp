@@ -2,6 +2,7 @@
 #define AYR_BASE_META_AYR_CONCEPTS_HPP
 
 #include <concepts>
+#include <functional>
 
 #include "ayr_traits.hpp"
 

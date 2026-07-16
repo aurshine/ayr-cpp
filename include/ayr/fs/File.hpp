@@ -151,7 +151,7 @@ namespace ayr
 					ok = read_bytes >= 0;
 #endif
 					if (!ok)
-						SystemError(ayr::format("Failed to read from file, {}", get_error_msg()));
+						SystemError(ayr::format("Failed to read from file, {}", get_system_error_msg()));
 					// 读完了
 					if (read_bytes == 0) break;
 					buffer.written(read_bytes);
@@ -285,7 +285,7 @@ namespace ayr
 					ok = written_bytes >= 0;
 #endif 
 					if (!ok)
-						SystemError(ayr::format("Failed to write from file, {}", get_error_msg()));
+						SystemError(ayr::format("Failed to write from file, {}", get_system_error_msg()));
 					num_written += written_bytes;
 				}
 			}

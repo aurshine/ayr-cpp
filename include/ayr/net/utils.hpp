@@ -13,10 +13,69 @@ namespace ayr
 		// 获取ssl的错误信息
 		def ssl_error_msg() -> CString
 		{
-			Buffer buf(256);
-			ERR_error_string_n(ERR_get_error(), buf.write_ptr(), buf.writeable_size());
-			buf.written(std::strlen(buf.peek()));
+			Buffer buf;
+			unsigned long error = 0;
+			while ((error = ERR_get_error()) != 0)
+			{
+				char error_msg[256];
+				ERR_error_string_n(error, error_msg, sizeof(error_msg));
+				if (buf.readable_size() > 0)
+					buf << "; ";
+				buf << "OpenSSL error " << error << ": ";
+				// char数组直接交给通用operator<<可能匹配为数组对象格式；
+				// 按实际NUL结尾长度追加，确保错误文本而不是数组地址进入日志。
+				buf.append_bytes(error_msg, std::strlen(error_msg));
+			}
+			if (buf.readable_size() == 0)
+				buf << "OpenSSL error queue is empty";
 			return from_buffer(std::move(buf));
+		}
+
+		def ssl_error_name(int error) -> const char*
+		{
+			switch (error)
+			{
+			case SSL_ERROR_NONE: return "SSL_ERROR_NONE";
+			case SSL_ERROR_ZERO_RETURN: return "SSL_ERROR_ZERO_RETURN";
+			case SSL_ERROR_WANT_READ: return "SSL_ERROR_WANT_READ";
+			case SSL_ERROR_WANT_WRITE: return "SSL_ERROR_WANT_WRITE";
+			case SSL_ERROR_WANT_CONNECT: return "SSL_ERROR_WANT_CONNECT";
+			case SSL_ERROR_WANT_ACCEPT: return "SSL_ERROR_WANT_ACCEPT";
+			case SSL_ERROR_WANT_X509_LOOKUP: return "SSL_ERROR_WANT_X509_LOOKUP";
+			case SSL_ERROR_SYSCALL: return "SSL_ERROR_SYSCALL";
+			case SSL_ERROR_SSL: return "SSL_ERROR_SSL";
+			default: return "SSL_ERROR_UNKNOWN";
+			}
+		}
+
+		/*
+		* 同时保留SSL_get_error根据函数返回值判断出的错误类别，以及OpenSSL
+		* 错误队列中的详细原因。调用前不能插入其他OpenSSL调用。
+		*/
+		def ssl_error_msg(int error, int return_value) -> CString
+		{
+			// SSL_ERROR_SYSCALL的底层错误必须在其他调用可能覆盖它之前保存。
+			CString socket_error;
+			if (error == SSL_ERROR_SYSCALL && return_value != 0)
+				socket_error = get_socket_error_msg();
+
+			Buffer buf;
+			buf << "SSL error " << error << " (" << ssl_error_name(error) << ")";
+
+			CString details = ssl_error_msg();
+			buf << ": " << details;
+
+			if (error == SSL_ERROR_SYSCALL && return_value == 0)
+				buf << "; underlying transport closed unexpectedly (EOF)";
+			else if (error == SSL_ERROR_SYSCALL)
+				buf << "; underlying socket error: " << socket_error;
+
+			return from_buffer(std::move(buf));
+		}
+
+		def ssl_error_msg(SSL* ssl, int return_value) -> CString
+		{
+			return ssl_error_msg(SSL_get_error(ssl, return_value), return_value);
 		}
 
 		// 是否是非阻塞模式还未就绪
@@ -38,9 +97,11 @@ namespace ayr
 		*
 		* @param ret SSL_read或SSL_write的返回值
 		*/
-		bool is_ssl_eagain(SSL* ssl, int ret)
+		bool is_ssl_eagain(SSL* ssl, int ret, int* ssl_error = nullptr)
 		{
 			int err = SSL_get_error(ssl, ret);
+			if (ssl_error != nullptr)
+				*ssl_error = err;
 			return err == SSL_ERROR_WANT_READ || err == SSL_ERROR_WANT_WRITE;
 		}
 
@@ -56,31 +117,6 @@ namespace ayr
 #endif
 		}
 
-		// 复制文件描述符
-		int dup(BaseSocket fd)
-		{
-#if defined(AYR_WIN)
-			WSAPROTOCOL_INFO info;
-			// 将 socket 信息复制出来
-			if (WSADuplicateSocket(fd, GetCurrentProcessId(), &info) != 0)
-				RuntimeError(get_error_msg());
-
-			// 创建一个新的 socket，等价于 dup
-			BaseSocket new_sock = WSASocket(info.iAddressFamily,
-				info.iSocketType,
-				info.iProtocol,
-				&info,
-				0,
-				WSA_FLAG_OVERLAPPED);
-			if (new_sock == -1)
-				RuntimeError(get_error_msg());
-
-			return new_sock;
-#elif defined(AYR_LINUX) || defined(AYR_MAC)
-			return ::dup(fd);
-#endif
-		}
-
 		/*
 		* @brief 设置socket为阻塞或非阻塞模式
 		*
@@ -93,17 +129,17 @@ namespace ayr
 #if defined(AYR_WIN)
 			u_long mode = blocking ? 0 : 1;
 			if (::ioctlsocket(fd, FIONBIO, &mode) != 0)
-				RuntimeError(get_error_msg());
+				RuntimeError(win_error2str(WSAGetLastError()));
 #elif defined(AYR_LINUX)
 			int flags = fcntl(fd, F_GETFL, 0);
 			if (flags == -1)
-				RuntimeError(get_error_msg());
+				RuntimeError(get_system_error_msg());
 			if (blocking)
 				flags &= ~O_NONBLOCK;
 			else
 				flags |= O_NONBLOCK;
 			if (fcntl(fd, F_SETFL, flags) != 0)
-				RuntimeError(get_error_msg());
+				RuntimeError(get_system_error_msg());
 #endif
 		}
 
@@ -191,7 +227,7 @@ namespace ayr
 			BaseSocket fd = ::socket(domain, type, protocol);
 #endif
 			if (fd == -1)
-				RuntimeError(get_error_msg());
+				RuntimeError(get_socket_error_msg());
 			return fd;
 		}
 
@@ -218,7 +254,7 @@ namespace ayr
 				if (is_eagain())
 					return -1;
 				else
-					RuntimeError(get_error_msg());
+					RuntimeError(get_socket_error_msg());
 			buffer.written(num_read);
 			return num_read;
 		}
@@ -243,10 +279,13 @@ namespace ayr
 
 			int num_read = SSL_read(ssl, buffer.write_ptr(), read_size);
 			if (num_read < 0)
-				if (is_ssl_eagain(ssl, num_read))
+			{
+				int error = SSL_ERROR_NONE;
+				if (is_ssl_eagain(ssl, num_read, &error))
 					return -1;
 				else
-					SSLError(ssl_error_msg());
+					SSLError(ssl_error_msg(error, num_read));
+			}
 
 			buffer.written(num_read);
 			return num_read;
@@ -268,7 +307,7 @@ namespace ayr
 				if (is_eagain())
 					return -1;
 				else
-					RuntimeError(get_error_msg());
+					RuntimeError(get_socket_error_msg());
 
 			return num_written;
 		}
@@ -286,10 +325,13 @@ namespace ayr
 		{
 			int num_written = SSL_write(ssl, data.data(), data.size());
 			if (num_written < 0)
-				if (is_ssl_eagain(ssl, num_written))
+			{
+				int error = SSL_ERROR_NONE;
+				if (is_ssl_eagain(ssl, num_written, &error))
 					return -1;
 				else
-					SSLError(ssl_error_msg());
+					SSLError(ssl_error_msg(error, num_written));
+			}
 			return num_written;
 		}
 
@@ -309,7 +351,7 @@ namespace ayr
 				if (is_eagain())
 					return -1;
 				else
-					RuntimeError(get_error_msg());
+					RuntimeError(get_socket_error_msg());
 			buffer.retrieve(num_written);
 			return num_written;
 		}
@@ -318,10 +360,13 @@ namespace ayr
 		{
 			int num_written = SSL_write(ssl, buffer.peek(), buffer.readable_size());
 			if (num_written < 0)
-				if (is_ssl_eagain(ssl, num_written))
+			{
+				int error = SSL_ERROR_NONE;
+				if (is_ssl_eagain(ssl, num_written, &error))
 					return -1;
 				else
-					SSLError(ssl_error_msg());
+					SSLError(ssl_error_msg(error, num_written));
+			}
 			buffer.retrieve(num_written);
 			return num_written;
 		}
@@ -354,8 +399,9 @@ namespace ayr
 			_StartSocket()
 			{
 				WSADATA wsaData;
-				if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-					RuntimeError("WSAStartup failed");
+				int error = WSAStartup(MAKEWORD(2, 2), &wsaData);
+				if (error != 0)
+					RuntimeError(win_error2str(error));
 			}
 
 			_StartSocket(const self&) = delete;
@@ -381,7 +427,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
 					&lpfnAcceptEx4, sizeof(lpfnAcceptEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError("Failed to load AcceptEx for IPv4");
+					RuntimeError(ayr::format("Failed to load AcceptEx for IPv4: {}", win_error2str(WSAGetLastError())));
 				}
 
 				return lpfnAcceptEx4;
@@ -398,7 +444,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
 					&lpfnAcceptEx6, sizeof(lpfnAcceptEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError("Failed to load AcceptEx for IPv6");
+					RuntimeError(ayr::format("Failed to load AcceptEx for IPv6: {}", win_error2str(WSAGetLastError())));
 				}
 
 				return lpfnAcceptEx6;
@@ -413,7 +459,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
 					&lpfnConnectEx4, sizeof(lpfnConnectEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError("Failed to load ConnectEx for IPv4");
+					RuntimeError(ayr::format("Failed to load ConnectEx for IPv4: {}", win_error2str(WSAGetLastError())));
 				}
 				return lpfnConnectEx4;
 			}
@@ -428,7 +474,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
 					&lpfnConnectEx6, sizeof(lpfnConnectEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError("Failed to load ConnectEx for IPv6");
+					RuntimeError(ayr::format("Failed to load ConnectEx for IPv6: {}", win_error2str(WSAGetLastError())));
 				}
 				return lpfnConnectEx6;
 			}

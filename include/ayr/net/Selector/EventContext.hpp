@@ -1,6 +1,7 @@
 #ifndef AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 #define AYR_NET_SELECTOR_EVENTCONTEXT_HPP
 
+#include "IoResult.hpp"
 #include "../utils.hpp"
 #include "../../coro/co_utils.hpp"
 
@@ -16,41 +17,6 @@ namespace ayr
 			WRITE,
 			ACCEPT,
 			CONNECT
-		};
-
-		/*
-		* @brief IO事件完成结果
-		*
-		* @details
-		* error == ERROR_SUCCESS 表示IOCP完成事件成功。
-		* error != ERROR_SUCCESS 表示IOCP完成事件失败，error保存完成状态码。
-		*
-		* bytes:
-		* - READ成功时表示读取到的字节数，bytes == 0 表示对端有序关闭连接。
-		* - WRITE成功时表示写出的字节数，bytes == 0 表示本次没有写出数据。
-		* - ACCEPT和CONNECT成功时通常为0。
-		*
-		* socket:
-		* - ACCEPT成功时表示新接受的socket。
-		* - READ、WRITE、CONNECT成功时表示发起该事件的socket。
-		* - 失败时表示与该事件相关的socket，可能需要调用者关闭或丢弃。
-		*/
-		struct IoResult
-		{
-			int bytes = 0;
-
-#ifdef AYR_WIN
-			// Windows下使用DWORD表示错误码
-			using Error_t = DWORD;
-#elif defined(AYR_LINUX)
-			// Linux下使用int表示错误码
-			using Error_t = int;
-#endif
-			Error_t error = 0;
-
-			BaseSocket socket = -1;
-
-			bool ok() const { return error == 0; }
 		};
 
 		/*
@@ -198,10 +164,17 @@ namespace ayr
 			// 事件完成结果
 			IoResult* result() const { return result_; }
 
-			IoResult& result(int bytes, IoResult::Error_t error)
+			/*
+			* 设置事件完成结果
+			* 
+			* @param int 事件产生的字节数
+			* 
+			* @param err 事件产生的错误
+			*/
+			IoResult& result(int bytes, CString err = "")
 			{
 				result_->bytes = bytes;
-				result_->error = error;
+				result_->error = std::move(err);
 				return *result_;
 			}
 

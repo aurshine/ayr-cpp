@@ -677,13 +677,16 @@ namespace ayr
 
 	// view string
 	// 浅拷贝，不拥有str内存
-	constexpr  def vstr(const char* str, c_size len = -1) { return CString(str, len, false); }
+	constexpr def vstr(const char* str, c_size len = -1) { return CString(str, len, false); }
 
 	// 浅拷贝，不拥有str内存
 	def vstr(const std::string& str) { return CString(str.c_str(), str.size(), false); }
 
 	// 浅拷贝，不拥有str内存
-	constexpr  def vstr(const std::string_view& str) { return CString(str.data(), str.size(), false); }
+	constexpr def vstr(const std::string_view& str) { return CString(str.data(), str.size(), false); }
+
+	// 浅拷贝，不拥有str内存
+	constexpr def vstr(const CString& str) { return str; }
 
 	// deep string
 	// 深拷贝, 并拥有str内存
@@ -694,6 +697,8 @@ namespace ayr
 
 	// 深拷贝, 并拥有str内存
 	constexpr def dstr(const std::string_view& str) { return vstr(str.data(), str.size()).clone(); }
+
+	constexpr def dstr(const CString& str) { return str.clone(); }
 
 	// nullptr 转换为 CString 对象
 	constexpr der(CString) cstr(nullptr_t) { return vstr("nullptr", 7); }
@@ -712,6 +717,8 @@ namespace ayr
 
 	// 将std::string_view 转换为 CString 对象
 	constexpr der(CString) cstr(const std::string_view& value) { return dstr(value); }
+
+	constexpr def cstr(const CString& str) { return str.clone(); }
 
 	// 将任意类型转换为 CString 对象
 	template<typename T>

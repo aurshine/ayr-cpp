@@ -35,43 +35,111 @@
 
 #endif // 平台判断
 
-#include "../base.hpp"
+#include "../base/raise_error.hpp"
 
 namespace ayr
 {
-	// 错误码转化为字符串
-	CString errorno2str(int errorno)
+	namespace _os_error
 	{
-		Buffer buf(256);
+		def message(unsigned long error, const char* description, c_size description_size = -1) -> CString
+		{
+			Buffer buf;
+			buf  << error;
+			if (description != nullptr && description_size != 0)
+			{
+				if (description_size < 0)
+					description_size = std::strlen(description);
+
+				// FormatMessage生成的文本通常以CR/LF结尾，不把它们带入错误信息。
+				while (description_size > 0 &&
+					(description[description_size - 1] == '\r' ||
+					 description[description_size - 1] == '\n' ||
+					 description[description_size - 1] == ' '))
+					--description_size;
+
+				if (description_size > 0)
+				{
+					buf << ": ";
+					buf.append_bytes(description, description_size);
+				}
+			}
+			return from_buffer(std::move(buf));
+		}
+
 #if defined(AYR_WIN)
-		char error_msg[256];
+		def windows_message(DWORD error) -> CString
+		{
+			char* description = nullptr;
+			DWORD description_size = FormatMessageA(
+				FORMAT_MESSAGE_ALLOCATE_BUFFER |
+				FORMAT_MESSAGE_FROM_SYSTEM |
+				FORMAT_MESSAGE_IGNORE_INSERTS,
+				nullptr,
+				error,
+				MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+				reinterpret_cast<char*>(&description),
+				0,
+				nullptr
+			);
 
-		FormatMessageA(
-			FORMAT_MESSAGE_FROM_SYSTEM,
-			nullptr,
-			errorno,
-			MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-			error_msg,
-			256,
-			nullptr
-		);
-
-		int n = std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, error_msg);
-
-#elif defined(AYR_LINUX) || defined(AYR_MAC)
-		int n = std::snprintf(buf.write_ptr(), buf.writeable_size(), "errno %d: %s\n", errorno, strerror(errorno));
-#endif // 平台判断
-		buf.written(n);
-		return from_buffer(std::move(buf));
+			CString result = message(error, description, description_size);
+			if (description != nullptr)
+				LocalFree(description);
+			return result;
+		}
+#endif
 	}
 
-	CString get_error_msg()
+	/*
+	* C运行库/Linux errno错误。
+	* Windows的errno与GetLastError、WSAGetLastError属于不同的错误域，不能混用。
+	*/
+	def c_error2str(int error) -> CString
+	{
+		return _os_error::message(static_cast<unsigned long>(error), std::strerror(error));
+	}
+
+#if defined(AYR_WIN)
+	// 普通Win32 API返回或GetLastError取得的错误。
+	def win_error2str(DWORD error) -> CString
+	{
+		return _os_error::windows_message(error);
+	}
+#endif
+
+	// 获取当前平台普通系统API的最后错误。
+	def get_system_error_msg() -> CString
 	{
 #if defined(AYR_WIN)
-		return errorno2str(GetLastError());
+		return win_error2str(GetLastError());
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
-		return errorno2str(errno);
+		return c_error2str(errno);
 #endif // 平台判断
+	}
+
+	// 获取当前平台socket API的最后错误。
+	def get_socket_error_msg() -> CString
+	{
+#if defined(AYR_WIN)
+		return win_error2str(WSAGetLastError());
+#elif defined(AYR_LINUX) || defined(AYR_MAC)
+		return c_error2str(errno);
+#endif
+	}
+
+	// getaddrinfo返回独立的EAI_*错误码，不应读取errno或WSAGetLastError。
+	def gai_error2str(int error) -> CString
+	{
+#if defined(AYR_WIN)
+		const char* description = gai_strerrorA(error);
+#else
+		const char* description = gai_strerror(error);
+#endif
+		Buffer buf;
+		buf << "getaddrinfo error " << error;
+		if (description != nullptr)
+			buf << ": " << description;
+		return from_buffer(std::move(buf));
 	}
 
 #if defined(AYR_WIN)

@@ -4,6 +4,14 @@
 
 using namespace ayr;
 
+coro::Task<void> baidu(coro::IoContext* io_context)
+{
+	net::Session session;
+
+	auto&& resp = co_await session.get(io_context, net::uri("https://www.baidu.com"as));
+	print(resp);
+}
+
 int main()
 {
 	// 测试完整 URI 的 scheme、host、port、path、query 和 fragment 解析。
@@ -41,4 +49,8 @@ int main()
 
 	// 测试非法 query 字符串会抛出 AyrError。
 	AYR_TEST_EXPECT_AYR_ERROR(net::uri("https://example.com/path?broken#frag"as));
+
+	
+	coro::IoContext io_context;
+	io_context.run(baidu(&io_context));
 }

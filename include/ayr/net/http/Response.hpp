@@ -148,7 +148,7 @@ namespace ayr
 
 				Array<Atring> parts = line.split(" "as, 2);
 				if (parts.size() != 3)
-					ValueError("Invalid status line: "as + line);
+					ValueError(vstr("Invalid status line: ") + cstr(line));
 
 				response.version = parts[0].clone();
 				response.status_code = parts[1].clone();
@@ -172,7 +172,7 @@ namespace ayr
 
 					Array<Atring> parts = line.split(":"as, 1);
 					if (parts.size() != 2)
-						ValueError("Invalid header line: "as + line);
+						ValueError(vstr("Invalid header line: ") + cstr(line));
 					response.add_header(parts[0].clone(), parts[1].strip().clone());
 				}
 			}
