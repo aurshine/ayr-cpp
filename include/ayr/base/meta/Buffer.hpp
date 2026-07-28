@@ -159,7 +159,7 @@ namespace ayr
 		{
 			pos = ifelse(pos < 0, 0, pos);
 			c_size pattern_size = std::strlen(pattern);
-			for (const char* ptr = read_ptr_ + pos; ptr + pattern_size < write_ptr_; ++ptr)
+			for (const char* ptr = read_ptr_ + pos; ptr + pattern_size <= write_ptr_; ++ptr)
 				if (std::memcmp(ptr, pattern, pattern_size) == 0)
 					return ptr - read_ptr_;
 			return -1;
@@ -204,9 +204,10 @@ namespace ayr
 			// 如果当前容量足够容纳现有数据和新数据，则将现有数据移动到缓冲区起始位置
 			if (capacity() >= readable_size() + min_write_size)
 			{
-				std::memmove(data_, peek(), readable_size());
+				c_size read_size = readable_size();
+				std::memmove(data_, peek(), read_size);
 				read_ptr_ = data_;
-				write_ptr_ = data_ + readable_size();
+				write_ptr_ = data_ + read_size;
 			}
 			else
 			{

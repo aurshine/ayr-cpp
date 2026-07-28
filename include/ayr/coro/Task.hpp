@@ -48,6 +48,8 @@ namespace ayr
 				if constexpr (!std::is_void_v<T>)
 					return coro_.promise().result();
 			}
+
+			co_type coroutine() const { return coro_; }
 		};
 	}
 }

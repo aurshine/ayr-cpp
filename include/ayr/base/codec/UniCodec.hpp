@@ -116,6 +116,10 @@ namespace ayr
 				offset += char_size;
 			}
 		}
+
+		CString __str__() const { return "utf-8"; }
+
+		void __repr__(Buffer& buffer) const { buffer << "utf-8"; }
 	};
 
 	// UTF-16编解码器
@@ -203,6 +207,10 @@ namespace ayr
 				offset += char_size;
 			}
 		}
+
+		CString __str__() const { return "utf-16"; }
+
+		void __repr__(Buffer& buffer) const { buffer << "utf-16"; }
 	};
 
 	// UTF-32编解码器
@@ -259,6 +267,10 @@ namespace ayr
 				offset += 4;
 			}
 		}
+
+		CString __str__() const { return "utf-32"; }
+
+		void __repr__(Buffer& buffer) const { buffer << "utf-32"; }
 	};
 
 	// 根据解码方式，获取解码后的字符串长度

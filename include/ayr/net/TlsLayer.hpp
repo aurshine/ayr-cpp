@@ -65,6 +65,15 @@ namespace ayr
 			bool ok() const { return state != TlsState::Error; }
 		};
 
+		SSL_CTX* retain_ssl_ctx(SSL_CTX* ssl_ctx)
+		{
+			// TlsLayer和Session可共享SSL_CTX，但各自必须持有一个引用；这样调用方
+			// 构造TlsLayer后立即释放自己的引用也不会破坏现有会话。
+			if (ssl_ctx != nullptr && SSL_CTX_up_ref(ssl_ctx) != 1)
+				SSLError("Failed to retain SSL context.");
+			return ssl_ctx;
+		}
+
 		/*
 		* @brief 基于OpenSSL Memory BIO的TLS协议层
 		*
@@ -328,15 +337,6 @@ namespace ayr
 				else
 					result.error = error.clone();
 				return result;
-			}
-
-			static SSL_CTX* retain_ssl_ctx(SSL_CTX* ssl_ctx)
-			{
-				// TlsLayer和Session可共享SSL_CTX，但各自必须持有一个引用；这样调用方
-				// 构造TlsLayer后立即释放自己的引用也不会破坏现有会话。
-				if (ssl_ctx != nullptr && SSL_CTX_up_ref(ssl_ctx) != 1)
-					SSLError("Failed to retain SSL context.");
-				return ssl_ctx;
 			}
 
 			static bool is_ip_address(const CString& host)

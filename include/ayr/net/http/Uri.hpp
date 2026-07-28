@@ -30,7 +30,7 @@ namespace ayr
 			// uri片段
 			Atring fragment_;
 		public:
-			Uri() : scheme_(), host_(), port_(), path_(), query_dict_(), fragment_() {}
+			Uri() : scheme_(), host_(), port_(), path_("/"as), query_dict_(), fragment_() {}
 
 			Uri(const self& other) :
 				scheme_(other.scheme_.clone()),
@@ -38,8 +38,7 @@ namespace ayr
 				port_(other.port_.clone()),
 				path_(other.path_.clone()),
 				query_dict_(other.query_dict_),
-				fragment_(other.fragment_.clone()) {
-			}
+				fragment_(other.fragment_.clone()) {}
 
 			Uri(self&& other) noexcept :
 				scheme_(std::move(other.scheme_)),
@@ -47,8 +46,7 @@ namespace ayr
 				port_(std::move(other.port_)),
 				path_(std::move(other.path_)),
 				query_dict_(std::move(other.query_dict_)),
-				fragment_(std::move(other.fragment_)) {
-			}
+				fragment_(std::move(other.fragment_)) {}
 
 			self& operator=(const self& other)
 			{
@@ -68,7 +66,7 @@ namespace ayr
 			const Atring& scheme() const { return scheme_; }
 
 			// 设置uri的方案
-			const Atring& scheme(const Atring& scheme) { return scheme_ = scheme.clone(); }
+			const Atring& scheme(const Atring& scheme) { return scheme_ = scheme.lower().clone(); }
 
 			// uri的主机名
 			const Atring& host() const { return host_; }
@@ -210,8 +208,14 @@ namespace ayr
 					ValueError(vstr("Invalid query string: ") + cstr(kv));
 				uri.add_query(key_value[0].clone(), key_value[1].clone());
 			}
-			// 这里跳过 '#'
-			uri_str = uri_str.vslice(i + 1);
+			
+			uri_str = uri_str.vslice(i);
+		}
+
+		void _parse_fragment(Uri& uri, Atring& uri_str)
+		{
+			if (!uri_str.empty() && uri_str.startswith("#"as))
+				uri.fragment(uri_str.slice(1));
 		}
 
 		// 解析uri字符串，返回Uri对象
@@ -223,7 +227,7 @@ namespace ayr
 			_parse_host_port(res, uri_str);
 			_parse_path(res, uri_str);
 			_parse_query(res, uri_str);
-			res.fragment(uri_str.clone());
+			_parse_fragment(res, uri_str);
 			return res;
 		}
 	}

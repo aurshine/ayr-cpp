@@ -1,7 +1,7 @@
 #ifndef AYR_BASE_UTEST_HPP
 #define AYR_BASE_UTEST_HPP
 
-#include "printer.hpp"
+#include "raise_error.hpp"
 
 namespace ayr
 {
@@ -23,10 +23,11 @@ namespace ayr
 	public:
 		~UnitTest()
 		{
+			ColorPrinter cp(stdout, Color::AQUA);
 			if (failed_count_)
-				print("unit test failed: ", failed_count_, "/", total_count_);
+				cp("\nUnit Test Failed: ", failed_count_, "/", total_count_);
 			else
-				print("unit test passed: ", total_count_);
+				cp("\nUnit Test Passed: ", total_count_);
 		}
 
 		UnitTest(const self&) = delete;

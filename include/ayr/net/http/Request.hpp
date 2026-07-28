@@ -1,6 +1,7 @@
 #ifndef AYR_NET_HTTP_REQUEST_HPP
 #define AYR_NET_HTTP_REQUEST_HPP
 
+#include "Headers.hpp"
 #include "Uri.hpp"
 #include "../Socket.hpp"
 
@@ -21,21 +22,30 @@ namespace ayr
 			// HTTP版本
 			Atring version_;
 		public:
-			Dict<Atring, Atring> headers;
+			HttpHeaders headers;
 
-			Atring body;
+			// 已编码的请求体字节。
+			CString body;
 
 			HttpRequest() : method_(), uri_(), version_(), headers(), body() {}
 
-			HttpRequest(const Atring& method, const Uri& uri, const Atring& version, bool keep_alive = true) :
-				method_(method.clone()),
-				uri_(uri),
-				version_(version.clone())
+			HttpRequest(Atring method, Uri uri, Atring version, HttpHeaders headers = {}, bool keep_alive = true) :
+				method_(std::move(method)),
+				uri_(std::move(uri)),
+				version_(std::move(version)),
+				headers(std::move(headers))
 			{
-				if (!uri_.host().empty())
+				// 请求头默认参数
+				if (!this->headers.contains("Host"as) && !uri_.host().empty())
 					add_header("Host"as, uri_.host());
+				if (!this->headers.contains("Accept"as))
+					add_header("Accept"as, "*/*"as);
+
+				// 默认使用https协议
 				if (uri_.scheme().empty())
 					uri_.scheme("https"as);
+
+				// 根据协议确定端口
 				if (uri_.port().empty())
 					if (uri_.scheme() == "http"as)
 						uri_.port("80"as);
@@ -80,10 +90,10 @@ namespace ayr
 			const Uri& uri() const { return uri_; }
 
 			// 请求路径 uri.path()?uri.query()
-			const Atring& path() const
+			Atring path() const
 			{
 				if (uri_.queries().empty())
-					return uri_.path();
+					return uri_.path().clone();
 				return "?"as.join(arr(uri_.path(), uri_.query()));
 			}
 
@@ -97,11 +107,13 @@ namespace ayr
 			void add_header(const Atring& key, const Atring& value) { headers.insert(key.clone(), value.clone()); }
 
 			// 添加请求体内容
-			void set_body(const Atring& body)
+			void set_body(const CString& body)
 			{
-				if (body.empty()) return;
 				this->body = body.clone();
-				add_header("Content-Length"as, Atring::from_utf8(cstr(body.size())));
+				if (body.empty())
+					headers.pop("Content-Length"as);
+				else
+					add_header("Content-Length"as, Atring::from(cstr(body.size())));
 			}
 
 			// 设置是否保持连接

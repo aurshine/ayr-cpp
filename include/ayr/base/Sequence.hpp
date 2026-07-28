@@ -80,6 +80,7 @@ namespace ayr
 				if (check(*It)) return pos;
 				++It, ++pos;
 			}
+			return -1;
 		}
 
 		// 得到第一个相等的元素下标

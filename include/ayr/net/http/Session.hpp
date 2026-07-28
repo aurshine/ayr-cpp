@@ -16,7 +16,20 @@ namespace ayr
 		public:
 			Session() : ssl_ctx_(nullptr) {}
 
-			Session(SSL_CTX* ssl_ctx) : ssl_ctx_(ssl_ctx) {}
+			Session(SSL_CTX* ssl_ctx) : ssl_ctx_(retain_ssl_ctx(ssl_ctx)) {}
+
+			Session(const self& other) = delete;
+
+			self& operator=(const self& other) = delete;
+
+			Session(self&& other) noexcept : ssl_ctx_(std::exchange(other.ssl_ctx_, nullptr)) {}
+
+			self& operator=(self&& other) noexcept
+			{
+				if (this == &other) return *this;
+				ayr_destroy(this);
+				return *ayr_construct(this, std::move(other));
+			}
 
 			~Session()
 			{
@@ -37,26 +50,31 @@ namespace ayr
 			*
 			* @param data 请求体
 			*/
-			coro::Task<HttpResponse> request(coro::IoContext* io_context, Atring method, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+			coro::Task<HttpResponse> request(coro::IoContext* io_context, Atring method, Uri uri, HttpHeaders headers = {}, Atring data = {})
 			{
-				HttpRequest req(method, uri, "HTTP/1.1"as, true);
-				req.add_header("Accept"as, "*/*"as);
-				req.add_header("Accept-Encoding"as, "zstd"as);
-				req.add_header("Content-Type"as, "text/plain"as);
-				for (auto& [key, value] : headers)
-					req.add_header(key, value);
+				// 构造 http 请求
+				HttpRequest req(method, uri, "HTTP/1.1"as, std::move(headers), false);
 
-				req.set_body(data);
+				if (!data.empty() && !req.headers.contains("Content-Type"as))
+					req.add_header("Content-Type"as, "text/plain; charset="as + Atring::from(cstr(Codec{})));
+				
+				// 设置 body
+				req.set_body(data.encode());
 
-				bool use_tls = req.uri().scheme() == "https"as;
-				if (use_tls && ssl_ctx_ == nullptr)
-					ssl_ctx_ = create_ssl_ctx();
+				// 验证
+				if (req.host().empty())
+					ValueError("HTTP requests require an absolute URI with a host.");
+				
+				auto [port, port_remain] = req.port().toint();
+				if (!port_remain.empty() || port <= 0 || port > 65535)
+					ValueError(vstr("Invalid HTTP port: ") + cstr(req.port()));
 
+				// 创建tcp连接
 				Socket sock = co_await open_connect(
 					req.host().encode(),
-					req.port().toint().first,
+					port,
 					io_context,
-					TlsLayer(ifelse(use_tls, ssl_ctx_, nullptr))
+					TlsLayer(ssl_ctx(req.uri().scheme() == "https"as))
 				);
 
 				Buffer req_buffer, resp_buffer;
@@ -64,17 +82,21 @@ namespace ayr
 				net::IoResult write_result = co_await sock.write(req_buffer);
 				if (!write_result.ok())
 					RuntimeError(write_result.error);
-				
+
 				HttpResponse res;
-				ResponseParser res_parser;
-				do {
+				ResponseParser res_parser(method);
+				while (!res_parser(res, resp_buffer))
+				{
 					resp_buffer.adjust_util(8192);
 					net::IoResult read_result = co_await sock.read(resp_buffer);
 					if (!read_result.ok())
 						RuntimeError(read_result.error);
 					if (read_result.bytes == 0)
+					{
+						res_parser(res, resp_buffer, true);
 						break;
-				} while (!res_parser(res, resp_buffer));
+					}
+				}
 
 				// HTTP响应已完整解析，此时主动发送TLS close_notify，再由Socket析构
 				// 关闭TCP。这样对端可以区分正常结束和被截断的TLS连接。
@@ -87,35 +109,51 @@ namespace ayr
 				co_return res;
 			}
 
-			coro::Task<HttpResponse> get(coro::IoContext* io_context, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+			coro::Task<HttpResponse> get(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {})
 			{
-				co_return co_await request(io_context, "GET"as, uri, headers, data);
+				return request(io_context, "GET"as, std::move(uri), std::move(headers), std::move(data));
 			}
 
-			coro::Task<HttpResponse> post(coro::IoContext* io_context, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+			coro::Task<HttpResponse> post(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {})
 			{
-				co_return co_await request(io_context, "POST"as, uri, headers, data);
+				return request(io_context, "POST"as, std::move(uri), std::move(headers), std::move(data));
+			}
+		private:
+			/*
+			* @brief 获取session ssl_ctx
+			* 
+			* @param enable 是否启用ssl
+			* 
+			* @return 启用ssl后返回ssl_ctx_，否则返回nullptr
+			*/ 
+			SSL_CTX* ssl_ctx(bool enable)
+			{
+				if (enable)
+				{
+					if (ssl_ctx_ == nullptr)
+						ssl_ctx_ = create_ssl_ctx();
+					return ssl_ctx_;
+				}
+				return nullptr;
 			}
 		};
 
-		coro::Task<HttpResponse> get(coro::IoContext* io_context, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+		def request(coro::IoContext* io_context, Atring method, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
 		{
-			co_return co_await Session{}.get(io_context, uri, headers, data);
+			Session session;
+			return session.request(io_context, std::move(method), std::move(uri), std::move(headers), std::move(data));
 		}
 
-		coro::Task<HttpResponse> get(coro::IoContext* io_context, const Atring& url, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+		def get(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
 		{
-			co_return co_await Session{}.get(io_context, uri(url), headers, data);
+			Session session;
+			return session.request(io_context, "GET"as, std::move(uri), std::move(headers), std::move(data));
 		}
 
-		coro::Task<HttpResponse> post(coro::IoContext* io_context, const Uri& uri, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
+		def post(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
 		{
-			co_return co_await Session{}.post(io_context, uri, headers, data);
-		}
-
-		coro::Task<HttpResponse> post(coro::IoContext* io_context, const Atring& url, const Dict<Atring, Atring>& headers = {}, const Atring& data = {})
-		{
-			co_return co_await Session{}.post(io_context, uri(url), headers, data);
+			Session session;
+			return session.request(io_context, "POST"as, std::move(uri), std::move(headers), std::move(data));
 		}
 	}
 }
