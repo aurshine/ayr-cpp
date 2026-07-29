@@ -63,9 +63,16 @@ int main()
 	AYR_TEST_EXPECT_AYR_ERROR(json::load(R"({"a": {"b": {"c": 1}}})"as));
 	json::JsonLoader::MAX_DEPTH = old_depth;
 
+	CString json_dir = fs::join(fs::dirname(__FILE__), "json");
 	// 测试随仓库提供的大 JSON 文件至少能被解析为对象。
-	CString json_file = fs::join(fs::dirname(__FILE__), "json/citm_catalog.json");
-	json::Json file_json = json::load(Atring::from_utf8(fs::AyrFile(json_file, "r").read()));
-	AYR_TEST_EXPECT(file_json.is_dict());
-	AYR_TEST_EXPECT(file_json.size() > 0);
+	for (auto&& json_file: fs::listdir(json_dir))
+	{
+		CString path = fs::join(json_dir, json_file);
+		Timer_ms tm;
+		tm.into();
+		json::Json file_json = json::load(Atring::from_utf8(fs::AyrFile(path, "r").read()));
+		print(json_file, "parse", tm.escape(), "ms");
+		AYR_TEST_EXPECT(file_json.is_dict());
+		AYR_TEST_EXPECT(file_json.size() > 0);
+	}
 }

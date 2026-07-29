@@ -6,10 +6,12 @@
 
 using namespace ayr;
 
+using DictIS = Dict<int, CString>;
+
 int main()
 {
 	// 测试初始化、查询、默认值查询和 contains。
-	Dict<int, CString> d{ {1, "one"}, {2, "two"} };
+	DictIS d{ {1, "one"}, {2, "two"} };
 	AYR_TEST_EXPECT_EQ(d.size(), 2);
 	AYR_TEST_EXPECT(d.contains(1));
 	AYR_TEST_EXPECT(!d.contains(9));
@@ -55,22 +57,22 @@ int main()
 	AYR_TEST_EXPECT(!d.contains(1));
 
 	// 测试字典交集、并集和对称差，冲突 key 保留左侧值。
-	Dict<int, CString> a{ {1, "a1"}, {2, "a2"}, {3, "a3"} };
-	Dict<int, CString> b{ {3, "b3"}, {4, "b4"} };
-	AYR_TEST_EXPECT_EQ(a & b, Dict<int, CString>({ {3, "a3"} }));
-	AYR_TEST_EXPECT_EQ(a | b, Dict<int, CString>({ {1, "a1"}, {2, "a2"}, {3, "a3"}, {4, "b4"} }));
-	AYR_TEST_EXPECT_EQ(a ^ b, Dict<int, CString>({ {1, "a1"}, {2, "a2"}, {4, "b4"} }));
+	DictIS a{ {1, "a1"}, {2, "a2"}, {3, "a3"} };
+	DictIS b{ {3, "b3"}, {4, "b4"} };
+	AYR_TEST_EXPECT_EQ(a & b, DictIS({ {3, "a3"} }));
+	AYR_TEST_EXPECT_EQ(a | b, DictIS({ {1, "a1"}, {2, "a2"}, {3, "a3"}, {4, "b4"} }));
+	AYR_TEST_EXPECT_EQ(a ^ b, DictIS({ {1, "a1"}, {2, "a2"}, {4, "b4"} }));
 	AYR_TEST_EXPECT_EQ(a & a, a);
-	AYR_TEST_EXPECT_EQ(a ^ a, Dict<int, CString>());
+	AYR_TEST_EXPECT_EQ(a ^ a, DictIS());
 
 	// 测试复合赋值和 clear。
-	Dict<int, CString> c{ {1, "one"}, {2, "two"} };
-	c |= Dict<int, CString>({ {2, "ignored"}, {3, "three"} });
-	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {1, "one"}, {2, "two"}, {3, "three"} }));
-	c &= Dict<int, CString>({ {2, "x"}, {3, "x"} });
-	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {2, "two"}, {3, "three"} }));
-	c ^= Dict<int, CString>({ {3, "x"}, {4, "four"} });
-	AYR_TEST_EXPECT_EQ(c, Dict<int, CString>({ {2, "two"}, {4, "four"} }));
+	DictIS c{ {1, "one"}, {2, "two"} };
+	c |= DictIS({ {2, "ignored"}, {3, "three"} });
+	AYR_TEST_EXPECT_EQ(c, DictIS({ {1, "one"}, {2, "two"}, {3, "three"} }));
+	c &= DictIS({ {2, "x"}, {3, "x"} });
+	AYR_TEST_EXPECT_EQ(c, DictIS({ {2, "two"}, {3, "three"} }));
+	c ^= DictIS({ {3, "x"}, {4, "four"} });
+	AYR_TEST_EXPECT_EQ(c, DictIS({ {2, "two"}, {4, "four"} }));
 	c.clear();
 	AYR_TEST_EXPECT(c.empty());
 	AYR_TEST_EXPECT_EQ(c.size(), 0);
