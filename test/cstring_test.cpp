@@ -42,10 +42,10 @@ int main()
 	AYR_TEST_EXPECT(text.endswith("one"));
 	AYR_TEST_EXPECT_EQ(text.index("missing"), -1);
 
-	// 测试 slice/vslice 在短字符串和长字符串上的内容正确性。
-	AYR_TEST_EXPECT_EQ(text.vslice(0, 3), "one");
+	// 测试 slice/slice 在短字符串和长字符串上的内容正确性。
+	AYR_TEST_EXPECT_EQ(text.slice(0, 3), "one");
 	AYR_TEST_EXPECT_EQ(text.slice(4), "two one");
-	AYR_TEST_EXPECT_EQ(long_copy.vslice(5, 11), "string");
+	AYR_TEST_EXPECT_EQ(long_copy.slice(5, 11), "string");
 
 	// 测试大小写转换和字符分类。
 	AYR_TEST_EXPECT_EQ(vstr("AbC").lower(), "abc");
