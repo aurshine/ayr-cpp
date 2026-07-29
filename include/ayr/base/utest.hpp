@@ -62,6 +62,12 @@ namespace ayr
 			ayr_warner("[CHECK FALIED] ", file, ":", line, ":", expr);
 		}
 
+		void fail(const CString& expr, const CString& file, int line, CString ex_msg)
+		{
+			++failed_count_;
+			ayr_warner("[CHECK FALIED] ", file, ":", line, ":", expr, "->", ex_msg);
+		}
+
 		void success(const CString& expr, const CString& file, int line)
 		{
 			print("[CHECK SUCCESS]", file, ":", line, ":", expr);
@@ -84,6 +90,16 @@ namespace ayr
 				success(expr, file, line);
 		}
 
+		template<typename T1, typename T2>
+		void expect_eq(const T1& t1, const T2& t2, const CString& expr, const CString& file, int line)
+		{
+			++total_count_;
+			if (t1 != t2)
+				fail(expr, file, line, vstr(ayr::format("{} != {}", t1, t2)));
+			else
+				success(expr, file, line);
+		}
+
 		/*
 		* @brief 检查两个浮点数是否在允许误差内近似相等。
 		*
@@ -97,9 +113,9 @@ namespace ayr
 		void expect_near(double actual, double expected, double eps, const CString& expr, const CString& file, int line)
 		{
 			++total_count_;
-			double diff = actual > expected ? actual - expected : expected - actual;
+			double diff = ifelse(actual > expected, actual - expected, expected - actual);
 			if (diff > eps)
-				fail(expr, file, line);
+				fail(expr, file, line, vstr(ayr::format("|{} - {}| > {}", actual, expected, diff)));
 			else
 				success(expr, file, line);
 		}
@@ -130,15 +146,33 @@ namespace ayr
 			}
 			fail(expr, file, line);
 		}
+
+		template<typename F>
+		void expect_run(F&& fn, const CString& expr, const CString& file, int line)
+		{
+			++total_count_;
+			try
+			{
+				fn();
+			}
+			catch (const AyrError&)
+			{
+				fail(expr, file, line);
+				return;
+			}
+			success(expr, file, line);
+		}
 	};
 
 #define AYR_TEST_EXPECT(expr) UnitTest::instance().expect(static_cast<bool>(expr), #expr, __FILE__, __LINE__)
 
-#define AYR_TEST_EXPECT_EQ(actual, expected) AYR_TEST_EXPECT((actual) == (expected))
+#define AYR_TEST_EXPECT_EQ(actual, expected) UnitTest::instance().expect_eq((actual), (expected), #actual " == " #expected, __FILE__, __LINE__)
 
 #define AYR_TEST_EXPECT_NEAR(actual, expected, eps) UnitTest::instance().expect_near((actual), (expected), (eps), #actual " ~= " #expected, __FILE__, __LINE__)
 
 #define AYR_TEST_EXPECT_AYR_ERROR(expr) UnitTest::instance().expect_ayr_error([&] { expr; }, #expr, __FILE__, __LINE__)
+
+#define AYR_TEST_EXPECT_RUN(expr) UnitTest::instance().expect_run([&] { expr; }, #expr, __FILE__, __LINE__)
 }
 
 

@@ -17,6 +17,7 @@ coro::Generator<int> empty_generator()
 {
 	if (false)
 		co_yield 1;
+	co_return coro::finish;
 }
 
 struct MoveOnly
@@ -39,6 +40,7 @@ coro::Generator<MoveOnly> move_only_values()
 {
 	co_yield MoveOnly(1);
 	co_yield MoveOnly(2);
+	co_return coro::finish;
 }
 
 int main()

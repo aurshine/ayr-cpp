@@ -2,6 +2,7 @@
 #define AYR_CORO_GENERATOR_HPP
 
 #include <coroutine>
+#include <exception>
 
 #include "../air/Optional.hpp"
 
@@ -22,6 +23,10 @@ namespace ayr
 			// 当前状态已经结束协程
 			static constexpr status_type DONE = 2;
 		};
+
+		struct _GenFinish {};
+
+		inline constexpr _GenFinish finish;
 
 		template<typename T>
 		class _GenPromise
@@ -50,7 +55,9 @@ namespace ayr
 				has_return = true;
 			}
 
-			void unhandled_exception() { RuntimeError("Generator unhandled exception"); }
+			void return_value(_GenFinish) noexcept {}
+
+			void unhandled_exception() noexcept { exception_ = std::current_exception(); }
 
 			co_type get_return_object() { return co_type::from_promise(*this); }
 
@@ -61,6 +68,8 @@ namespace ayr
 			Optional<T> value_;
 
 			bool has_return = false;
+
+			std::exception_ptr exception_;
 		};
 
 		template<typename T>
@@ -99,6 +108,7 @@ namespace ayr
 
 				GeneratorIterator(ItInfo::container_type* gen) : gen_(gen)
 				{
+					rethrow_if_exception();
 					if (gen->coro_.done())
 					{
 						if (gen->coro_.promise().has_return)
@@ -140,6 +150,7 @@ namespace ayr
 				void yield_next()
 				{
 					gen_->coro_.resume();
+					rethrow_if_exception();
 					if (gen_->coro_.done())
 						if (gen_->coro_.promise().has_return)
 							status_ = _GenStatus::RETURN;
@@ -149,6 +160,12 @@ namespace ayr
 
 				// 当前状态是return, 进入下一个状态
 				void return_next() { status_ = _GenStatus::DONE; }
+
+				void rethrow_if_exception() const
+				{
+					if (gen_->coro_.promise().exception_)
+						std::rethrow_exception(gen_->coro_.promise().exception_);
+				}
 
 				ItInfo::container_type* gen_;
 
