@@ -4,6 +4,30 @@
 
 using namespace ayr;
 
+constexpr bool atring_sso_constexpr_lifecycle()
+{
+	Atring source(AChar('a'));
+	Atring copy(source);
+	copy += AChar('b');
+
+	Atring assigned;
+	assigned = copy;
+
+	Atring moved(std::move(assigned));
+	Atring move_assigned;
+	move_assigned = std::move(moved);
+
+	return source == Atring(AChar('a'))
+		&& copy.size() == 2
+		&& move_assigned.size() == 2
+		&& move_assigned[0] == AChar('a')
+		&& move_assigned[1] == AChar('b')
+		&& assigned.empty()
+		&& moved.empty();
+}
+
+static_assert(atring_sso_constexpr_lifecycle());
+
 int main()
 {
 	// 测试 UTF-8 解码、编码和基础长度。
@@ -14,7 +38,7 @@ int main()
 	// 测试拼接、追加、重复和负数下标访问。
 	Atring digits = "1"as + "2"as + "3"as;
 	AYR_TEST_EXPECT_EQ(digits, "123"as);
-	AYR_TEST_EXPECT_EQ(digits[0], AChar('2'));
+	AYR_TEST_EXPECT_EQ(digits[0], AChar('1'));
 	AYR_TEST_EXPECT_EQ(digits[-1], AChar('3'));
 	AYR_TEST_EXPECT_EQ(Atring(AChar('w')) * 3, "www"as);
 	digits += "4"as;
@@ -31,7 +55,7 @@ int main()
 	AYR_TEST_EXPECT_EQ(words.index("missing"as), -1);
 
 	// 测试视图切片、深拷贝切片和前后缀判断。
-	AYR_TEST_EXPECT_EQ(hello.vslice(0, 2), "你好"as);
+	AYR_TEST_EXPECT_EQ(hello.slice(0, 2), "你好"as);
 	AYR_TEST_EXPECT_EQ(hello.slice(2), "世界"as);
 	AYR_TEST_EXPECT(hello.startswith("你好"as));
 	AYR_TEST_EXPECT(!hello.startswith("世界"as));
@@ -69,4 +93,26 @@ int main()
 	auto [float_value, float_remain] = "-12.5kg"as.tofloat();
 	AYR_TEST_EXPECT_NEAR(float_value, -12.5, 1e-9);
 	AYR_TEST_EXPECT_EQ(float_remain, "kg"as);
+
+	// 长字符串复制和切片必须独立于原对象的生命周期。
+	Atring long_copy;
+	{
+		Atring source = "0123456789abcdef"as;
+		long_copy = source;
+		source = "short"as;
+	}
+	AYR_TEST_EXPECT_EQ(long_copy, "0123456789abcdef"as);
+
+	Atring long_slice = "0123456789abcdef"as.slice(2, 12);
+	AYR_TEST_EXPECT_EQ(long_slice, "23456789ab"as);
+
+	// 长字符串移动后，源对象回到有效的空 SSO 状态。
+	Atring moved_long = std::move(long_copy);
+	AYR_TEST_EXPECT(long_copy.empty());
+	AYR_TEST_EXPECT_EQ(moved_long, "0123456789abcdef"as);
+
+	Atring move_assigned_long;
+	move_assigned_long = std::move(moved_long);
+	AYR_TEST_EXPECT(moved_long.empty());
+	AYR_TEST_EXPECT_EQ(move_assigned_long, "0123456789abcdef"as);
 }

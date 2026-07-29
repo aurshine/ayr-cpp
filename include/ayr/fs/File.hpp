@@ -321,11 +321,11 @@ namespace ayr
 					size = data.size();
 #if defined(AYR_WIN)
 				if (!data.contains("\n"as))
-					write(data.vslice(0, size).encode<C>());
+					write(data.slice(0, size).encode<C>());
 				else
-					write(data.vslice(0, size).replace("\n"as, "\r\n"as).encode<C>());
+					write(data.slice(0, size).replace("\n"as, "\r\n"as).encode<C>());
 #else
-				write(data.vslice(0, size).encode<C>());
+				write(data.slice(0, size).encode<C>());
 #endif
 			}
 

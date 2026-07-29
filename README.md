@@ -28,7 +28,7 @@ auto data = dstr("world");
 using namespace ayr::literals;
 
 constexpr Atring s1 = "hello"as + " world"as;
-constexpr Atring s2 = "你好世界"as.vslice(0, 2); // "你好"
+constexpr Atring s2 = "你好世界"as.slice(0, 2); // "你好"
 bool has = s1.contains("hello"as);
 auto parts = "a,b,c"as.split(","as); // 返回 Array<Atring>
 ```

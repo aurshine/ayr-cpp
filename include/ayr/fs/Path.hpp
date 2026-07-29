@@ -34,7 +34,7 @@ namespace ayr
 			while (i < len2 && is_sep(path2[i]))
 				++i;
 
-			return CString::cjoin(arr(path1.vslice(0, len1), cstr(PATH_SEP), path2.vslice(i)));
+			return CString::cjoin(arr(path1.slice(0, len1), cstr(PATH_SEP), path2.slice(i)));
 		}
 
 		// 是否存在路径

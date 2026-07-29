@@ -20,8 +20,7 @@ namespace ayr
 	template<typename T, typename ... Args>
 	constexpr def ayr_construct(T* ptr, Args&&... args) -> T*
 	{
-		::new(ptr) T(std::forward<Args>(args)...);
-		return ptr;
+		return std::construct_at(ptr, std::forward<Args>(args)...);
 	}
 
 	// 分配一个T的内存, 并调用构造函数, 返回指针

@@ -506,6 +506,7 @@ namespace ayr
 				return _StartSocket::singleton().acceptex6()(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, lpOverlapped);
 			default:
 				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+				return None;
 			}
 		}
 
@@ -531,6 +532,7 @@ namespace ayr
 				return _StartSocket::singleton().connectex6()(sConnectSocket, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
 			default:
 				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+				return None;
 			}
 		}
 #endif // AYR_WIN

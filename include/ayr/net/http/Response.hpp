@@ -31,11 +31,11 @@ namespace ayr
 			HttpResponse() {}
 
 			HttpResponse(const self& other) :
-				version(other.version.clone()),
+				version(other.version),
 				status_code(other.status_code),
-				status_message(other.status_message.clone()),
+				status_message(other.status_message),
 				headers(other.headers),
-				body(other.body.clone()) {
+				body(other.body) {
 			}
 
 			HttpResponse(self&& other) noexcept :
@@ -61,12 +61,12 @@ namespace ayr
 			}
 
 			// 添加一个头
-			void add_header(const Atring& key, const Atring& value) { headers.insert(key.clone(), value.clone()); }
+			void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
 
 			// 会自动设置 Content-Length 头
 			void set_body(const CString& body)
 			{
-				this->body = body.clone();
+				this->body = body;
 				add_header("Content-Length"as, Atring::from(cstr(this->body.size())));
 			};
 
@@ -161,7 +161,7 @@ namespace ayr
 				c_size max_body_size = 64 * 1024 * 1024
 			) :
 				parse_expect(Expect::EXPECT_STATUS_LINE),
-				request_method_(request_method.clone()),
+				request_method_(request_method),
 				body_buffer_(),
 				chunk_size_(0){}
 
@@ -313,9 +313,9 @@ namespace ayr
 				if (!parts[0].startswith("HTTP/"as))
 					ValueError(vstr("Invalid HTTP version: ") + cstr(parts[0]));
 				
-				response.version = parts[0].clone();
+				response.version = parts[0];
 				response.status_code = valid_status_code(parts[1]);
-				response.status_message = parts[2].clone();
+				response.status_message = parts[2];
 				return true;
 			}
 

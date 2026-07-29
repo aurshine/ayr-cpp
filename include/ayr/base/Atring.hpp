@@ -2,34 +2,97 @@
 #define AYR_BASE_ATRING_HPP
 
 #include "Array.hpp"
+#include "Shared.hpp"
 #include "codec/UniCodec.hpp"
 
 namespace ayr
 {
+	class AtringResource
+	{
+		using self = AtringResource;
+	public:
+		const AChar* resource;
+
+		c_size length;
+
+		constexpr AtringResource(const AChar* resource = nullptr, c_size length = 0)
+			: resource(resource), length(length) {
+		}
+
+		constexpr AtringResource(self&& other) noexcept
+			:resource(std::exchange(other.resource, nullptr)), length(std::exchange(other.length, 0)) {
+		}
+
+		~AtringResource() { ayr_delloc(const_cast<AChar*>(resource)); }
+
+		self& operator=(self&& other) noexcept
+		{
+			if (this->resource == other.resource)
+				return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
+		}
+	};
+
+	class AtringOffset
+	{
+		using self = AtringOffset;
+
+		Shared<AtringResource> resource;
+	public:
+		const AChar* offset;
+
+		constexpr AtringOffset() : resource(), offset(nullptr) {}
+
+		AtringOffset(const Shared<AtringResource>& resource, const AChar* offset)
+			: resource(resource), offset(offset) {}
+
+		AtringOffset(const self& other): AtringOffset(other.resource, other.offset) {}
+
+		AtringOffset(self&& other) noexcept
+			: resource(std::move(other.resource)), offset(std::exchange(other.offset, nullptr)) {}
+		
+		constexpr ~AtringOffset() { offset = nullptr; }
+
+		self& operator=(const self& other)
+		{
+			if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
+		}
+
+		self& operator=(self&& other) noexcept
+		{
+			if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
+		}
+
+		int use_count() const { return resource.use_count(); }
+	};
+
 	class Atring
 	{
 		using self = Atring;
 
-		// 最高位字节为1，x & OWNER_MASK == 1 表示内存属于该对象
-		static constexpr c_size OWNER_MASK = 1ll << 63;
-
-		// 最高位字节为1，x & SSO_MASK == 1 表示是sso优化
-		static constexpr c_size SSO_MASK = 1ll << 62;
-
 		// sso优化的字符串长度
-		static constexpr c_size SSO_SIZE = 6;
+		static constexpr c_size SSO_SIZE = 24 / sizeof(AChar);
 
-		// 最高位1字节记录是否占有内存，0表示内存不属于该对象，1表示内存属于该对象
-		// 次高位1字符记录是否是sso优化，0表示不是sso优化，1表示是sso优化
-		// 剩余的62位记录字符串长度
-		c_size owner_sso_length_flag;
+		struct ShortStorage
+		{
+			AChar chars[SSO_SIZE];
+
+			constexpr ShortStorage() : chars() {}
+		};
+
+		// 字符串长度, <= SSO_SIZE 时采用SSO优化
+		c_size length_;
 
 		union {
-			// 长字符串，使用堆内存
-			const AChar* long_str;
+			AtringOffset long_str;
 
 			// 短字符串，使用sso优化
-			AChar short_str[SSO_SIZE];
+			ShortStorage short_str;
 		};
 
 		// 使用Codec解码bytes，创建字符串
@@ -42,80 +105,65 @@ namespace ayr
 		}
 	public:
 		// 默认构造函数，创建一个空字符串，使用sso优化
-		constexpr Atring() : owner_sso_length_flag(0 | SSO_MASK), short_str() {}
+		constexpr Atring() : length_(0), short_str() {}
 
-		constexpr Atring(const AChar& ch) : short_str()
+		constexpr Atring(const AChar& ch) : Atring()
 		{
-			short_str[0] = ch;
-			owner_sso_length_flag = 1 | SSO_MASK;
+			short_str.chars[0] = ch;
+			length_ = 1;
 		}
 
 		// 如果other是sso优化，深拷贝
 		// 否则浅拷贝
-		constexpr Atring(const self& other) : short_str()
+		constexpr Atring(const self& other)
+			: length_(other.length_), short_str()
 		{
 			if (other.sso())
-			{
-				std::copy(other.begin(), other.end(), short_str);
-				owner_sso_length_flag = other.owner_sso_length_flag;
-			}
+				std::copy(other.begin(), other.end(), short_str.chars);
 			else
 			{
-				long_str = other.long_str;
-				owner_sso_length_flag = other.size();
+				ayr_destroy(&short_str);
+				ayr_construct(&long_str, other.long_str);
 			}
 		}
 
-		constexpr Atring(self&& other) noexcept : short_str()
+		constexpr Atring(self&& other) noexcept
+			: length_(other.length_), short_str()
 		{
 			if (other.sso())
-				std::copy(other.begin(), other.end(), short_str);
+				std::copy(other.begin(), other.end(), short_str.chars);
 			else
-				long_str = other.long_str;
+			{
+				ayr_destroy(&short_str);
+				ayr_construct(&long_str, std::move(other.long_str));
 
-			owner_sso_length_flag = other.owner_sso_length_flag;
-			other.owner_sso_length_flag = 0;
+				ayr_destroy(&other.long_str);
+				ayr_construct(&other.short_str);
+			}
+			other.length_ = 0;
 		}
 
 		constexpr ~Atring()
 		{
-			// long_str的内存是AChar*分配的，需要转换为AChar*再释放
-			if (owner())
-				ayr_desloc(const_cast<AChar*>(long_str));
-			owner_sso_length_flag = 0;
+			if (sso())
+				ayr_destroy(&short_str);
+			else
+				ayr_destroy(&long_str);
+			length_ = 0;
 		}
 
 		constexpr self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			this->~Atring();
-
-			if (other.sso())
-			{
-				std::copy(other.begin(), other.end(), short_str);
-				owner_sso_length_flag = other.owner_sso_length_flag;
-			}
-			else
-			{
-				long_str = other.long_str;
-				owner_sso_length_flag = other.size();
-			}
-			return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
 		}
 
 		constexpr self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			this->~Atring();
-
-			if (other.sso())
-				std::copy(other.begin(), other.end(), short_str);
-			else
-				long_str = other.long_str;
-
-			owner_sso_length_flag = other.owner_sso_length_flag;
-			other.owner_sso_length_flag = 0;
-			return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
 		}
 
 		// 字符串拼接
@@ -146,10 +194,10 @@ namespace ayr
 		constexpr self& operator+=(const self& other)
 		{
 			c_size m_size = size(), o_size = other.size();
-			if (sso() && m_size + o_size <= SSO_SIZE)
+			if (m_size + o_size <= SSO_SIZE)
 			{
-				std::copy(other.begin(), other.end(), short_str + m_size);
-				owner_sso_length_flag = (m_size + o_size) | SSO_MASK;
+				std::copy(other.begin(), other.end(), short_str.chars + m_size);
+				length_ += o_size;
 			}
 			else
 			{
@@ -163,10 +211,10 @@ namespace ayr
 		constexpr self& operator+=(const AChar& ch)
 		{
 			c_size m_size = size();
-			if (sso() && m_size + 1 <= SSO_SIZE)
+			if (m_size + 1 <= SSO_SIZE)
 			{
-				short_str[m_size] = ch;
-				owner_sso_length_flag = (m_size + 1) | SSO_MASK;
+				short_str.chars[m_size] = ch;
+				length_ += 1;
 			}
 			else
 			{
@@ -180,26 +228,19 @@ namespace ayr
 		constexpr self operator*(c_size n) const
 		{
 			if (n <= 0 || empty()) return self();
-			c_size m_size = size();
 
 			self res;
-			AChar* ptr = res.assign_ptr(n * m_size);
-			for (c_size i = 0; i < n; ++i)
+			AChar* ptr = res.assign_ptr(n * size());
+			while (n--)
 				ptr = std::copy(begin(), end(), ptr);
 			return res;
 		}
 
-		// 判断是否拥有内存
-		constexpr bool owner() const { return owner_sso_length_flag & OWNER_MASK; }
+		// 获得字符串长度
+		constexpr c_size size() const { return length_; }
 
 		// 判断是否使用sso优化
-		constexpr bool sso() const { return owner_sso_length_flag & SSO_MASK; }
-
-		// 判断是否只是视图
-		constexpr bool viewer() const { return (owner_sso_length_flag & (OWNER_MASK | SSO_MASK)) == 0; }
-
-		// 获得字符串长度
-		constexpr c_size size() const { return owner_sso_length_flag & ~(OWNER_MASK | SSO_MASK); }
+		constexpr bool sso() const { return size() <= SSO_SIZE; }
 
 		// 判断是否为空字符串
 		constexpr bool empty() const { return size() == 0; }
@@ -234,9 +275,8 @@ namespace ayr
 		constexpr c_size index(const self& other, c_size pos = 0) const
 		{
 			c_size m_size = size(), o_size = other.size();
-			if (o_size > m_size - pos) return -1;
 
-			while (pos <= m_size - o_size)
+			while (pos + o_size <= m_size)
 			{
 				if (std::equal(other.begin(), other.end(), begin() + pos))
 					return pos;
@@ -279,7 +319,7 @@ namespace ayr
 		constexpr c_size rindex(const self& other, c_size pos = -1) const
 		{
 			c_size m_size = size(), o_size = other.size();
-			if (pos < 0 || pos > m_size - o_size)
+			if (pos < 0 || pos + o_size > m_size)
 				pos = m_size - o_size;
 
 			while (pos >= 0)
@@ -302,7 +342,10 @@ namespace ayr
 		*/
 		constexpr c_size rindex(const AChar& ch, c_size pos = -1) const
 		{
-			if (pos < 0 || pos > size() - 1) pos = size() - 1;
+			c_size m_size = size();
+			if (pos < 0 || pos + 1 > m_size)
+				pos = m_size - 1;
+
 			while (pos >= 0)
 			{
 				if (at(pos) == ch)
@@ -313,18 +356,20 @@ namespace ayr
 		}
 
 		// 获取other在字符串中出现的次数
-		constexpr c_size count(const self& other, c_size pos = 0) const
+		constexpr c_size count(const self& other, c_size pos = 0, bool cover = false) const
 		{
+			if (other.empty())
+				ValueError("");
+
 			c_size m_size = size(), o_size = other.size();
 			c_size count = 0;
-			if (o_size > m_size - pos) return 0;
 
-			while (pos <= m_size - o_size)
+			while (pos + o_size <= m_size)
 			{
 				if (std::equal(other.begin(), other.end(), begin() + pos))
 				{
 					++count;
-					pos += o_size;
+					pos += ifelse(cover, 1, o_size);
 				}
 				else
 					++pos;
@@ -345,53 +390,29 @@ namespace ayr
 			return count;
 		}
 
-		// 拷贝一个新的 Atring 对象，并拥有内存
-		constexpr self clone() const
-		{
-			self res;
-			AChar* ptr = res.assign_ptr(size());
-			std::copy(begin(), end(), ptr);
-			return res;
-		}
-
-		// 字符串切片，[start, end)，浅拷贝
-		constexpr self vslice(c_size start, c_size end) const
-		{
-			self res;
-			// 越界检查
-			if (end > start)
-			{
-				// 可以sso优化
-				if (end - start <= SSO_SIZE)
-				{
-					std::copy(begin() + start, begin() + end, res.short_str);
-					res.owner_sso_length_flag = (end - start) | SSO_MASK;
-				}
-				else
-				{
-					res.long_str = data() + start;
-					res.owner_sso_length_flag = end - start;
-				}
-			}
-
-			return res;
-		}
-
-		// 字符串切片，[start, size())，浅拷贝
-		constexpr self vslice(c_size start) const { return vslice(start, size()); }
-
-		// 字符串切片，[start, end)，深拷贝
+		// 字符串切片，[start, end)
 		constexpr self slice(c_size start, c_size end) const
 		{
-			self res = vslice(start, end);
-			// 视图转为深拷贝
-			if (res.viewer())
-				return res.clone();
+			self res;
+			c_size o_size = end - start;
+			if (o_size <= 0 || start < 0 || end > size()) return res;
+
+			// 可以sso优化
+			if (o_size <= SSO_SIZE)
+			{
+				std::copy(begin() + start, begin() + end, res.short_str.chars);
+			}
 			else
-				return res;
+			{
+				ayr_destroy(&res.short_str);
+				ayr_construct(&res.long_str, long_str);
+				res.long_str.offset = data() + start;
+			}
+			res.length_ = o_size;
+			return res;
 		}
 
-		// 字符串切片，[start, size())，深拷贝
+		// 字符串切片，[start, size())
 		constexpr self slice(c_size start) const { return slice(start, size()); }
 
 		// 判断是否以prefix开头
@@ -492,18 +513,20 @@ namespace ayr
 			while (l < r && (begin_it + l)->isspace()) ++l;
 			// 从右往左找第一个非空字符
 			while (l < r && (begin_it + r - 1)->isspace()) --r;
-			return vslice(l, r);
+			return slice(l, r);
 		}
 
 		// 去除两端pattern，浅拷贝
 		constexpr self strip(const self& pattern) const
 		{
+			if (pattern.empty()) return *this;
+
 			c_size l = 0, r = size(), p_size = pattern.size();
 			// 从左往右找第一个非pattern字符
-			while (vslice(l).startswith(pattern)) l += p_size;
+			while (slice(l).startswith(pattern)) l += p_size;
 			// 从右往左找第一个非pattern字符
-			while (vslice(l, r).endswith(pattern)) r -= p_size;
-			return vslice(l, r);
+			while (slice(l, r).endswith(pattern)) r -= p_size;
+			return slice(l, r);
 		}
 
 		// 去除左侧空白，浅拷贝
@@ -513,16 +536,18 @@ namespace ayr
 			auto begin_it = begin();
 			// 从左往右找第一个非空字符
 			while (l < r && (begin_it + l)->isspace()) ++l;
-			return vslice(l, r);
+			return slice(l, r);
 		}
 
 		// 去除左侧pattern，浅拷贝
 		constexpr self lstrip(const self& pattern) const
 		{
+			if (pattern.empty()) return *this;
+
 			c_size l = 0, r = size(), p_size = pattern.size();
 			// 从左往右找第一个非pattern字符
-			while (vslice(l).startswith(pattern)) l += p_size;
-			return vslice(l, r);
+			while (slice(l).startswith(pattern)) l += p_size;
+			return slice(l, r);
 		}
 
 		// 去除右侧空白，浅拷贝
@@ -532,16 +557,18 @@ namespace ayr
 			auto begin_it = begin();
 			// 从右往左找第一个非空字符
 			while (l < r && (begin_it + r - 1)->isspace()) --r;
-			return vslice(l, r);
+			return slice(l, r);
 		}
 
 		// 去除右侧pattern，浅拷贝
 		constexpr self rstrip(const self& pattern) const
 		{
+			if (pattern.empty()) return *this;
+
 			c_size l = 0, r = size(), p_size = pattern.size();
 			// 从右往左找第一个非pattern字符
-			while (vslice(l, r).endswith(pattern)) r -= p_size;
-			return vslice(l, r);
+			while (slice(l, r).endswith(pattern)) r -= p_size;
+			return slice(l, r);
 		}
 
 		// 根据this拼接迭代器对象
@@ -586,6 +613,8 @@ namespace ayr
 		*/
 		constexpr self replace(const self& old_, const self& new_, c_size maxreplace = -1) const
 		{
+			if (maxreplace == 0) return *this;
+
 			c_size m_size = size(), old_size = old_.size(), new_size = new_.size();
 			if (old_size == 0) return *this;
 
@@ -654,7 +683,7 @@ namespace ayr
 				else
 					while (pos < m_size && !at(pos).isspace())
 						++pos;
-				res[i++] = vslice(l, pos);
+				res[i++] = slice(l, pos);
 				while (pos < m_size && at(pos).isspace())
 					++pos;
 			}
@@ -675,6 +704,17 @@ namespace ayr
 		*/
 		Array<self> split(const self& pattern, c_size maxsplit = -1) const
 		{
+			if (pattern.empty())
+			{
+				c_size n = size();
+				if (maxsplit != -1 && maxsplit + 1 < n)
+					n = maxsplit + 1;
+				Array<self> res(n);
+				for (c_size i = 0; i < n; ++i)
+					res[i] = ifelse(i == n - 1, slice(i), slice(i, i + 1));
+				return res;
+			}
+
 			c_size n = count(pattern);
 
 			if (maxsplit != -1 && maxsplit < n)
@@ -692,7 +732,7 @@ namespace ayr
 				else
 					pos = index(pattern, pos);
 
-				res[i++] = vslice(l, pos);
+				res[i++] = slice(l, pos);
 				pos += p_size;
 			}
 			return res;
@@ -700,11 +740,11 @@ namespace ayr
 
 		/*
 		* brief 将字符串转换为整数
-		* 
+		*
 		* @details 支持正负号
-		* 
+		*
 		* @param base 数字的进制，范围[2, 36]，默认10进制
-		* 
+		*
 		* @return 解析后的整数和未解析的字符串部分
 		*/
 		constexpr std::pair<c_size, self> toint(int base = 10) const
@@ -736,20 +776,20 @@ namespace ayr
 				}
 				num = num * base + digit;
 			}
-	
-			return { ifelse(neg, -num, num), vslice(remain_length) };
+
+			return { ifelse(neg, -num, num), slice(remain_length) };
 		}
 
 		/*
 		* @brief 将字符串转换为双精度浮点数
-		* 
+		*
 		* @details 支持正负号和小数点
-		* 
+		*
 		* @return 解析后的浮点数和未解析的字符串部分
 		*/
 		constexpr std::pair<double, self> tofloat() const
 		{
-			if (empty()) return {0, *this};
+			if (empty()) return { 0, *this };
 
 			c_size num = 0;
 			c_size frac_num = 0, frac_div = 1;
@@ -780,7 +820,7 @@ namespace ayr
 					}
 				}
 			double res = num + (frac_num / (double)frac_div);
-			return { ifelse(neg, -res, res) , vslice(remain_length) };
+			return { ifelse(neg, -res, res) , slice(remain_length) };
 		}
 
 		// 将字符串编码为指定的编码格式
@@ -862,8 +902,17 @@ namespace ayr
 
 		CString __str__() const { return encode(); }
 	private:
-		// 获得AChar字符序列的首地址
-		constexpr const AChar* data() const { return ifelse(sso(), short_str, long_str); }
+		constexpr const AChar* data() const { return ifelse(sso(), short_str.chars, long_str.offset); }
+
+		AChar* assign_long_ptr(c_size length)
+		{
+			AChar* ptr = ayr_alloc<AChar>(length);
+			AtringResource resource(ptr, length);
+
+			ayr_destroy(&short_str);
+			ayr_construct(&long_str, Shared<AtringResource>(std::move(resource)), ptr);
+			return ptr;
+		}
 
 		/*
 		* @brief 根据length分配内存，返回首地址
@@ -878,17 +927,11 @@ namespace ayr
 		{
 			AChar* ptr = nullptr;
 			if (length <= SSO_SIZE)
-			{
-				ptr = short_str;
-				owner_sso_length_flag = length | SSO_MASK;
-			}
+				ptr = short_str.chars;
 			else
-			{
-				ptr = ayr_alloc<AChar>(length);
-				long_str = ptr;
-				owner_sso_length_flag = length | OWNER_MASK;
-			}
+				ptr = assign_long_ptr(length);
 
+			length_ = length;
 			return ptr;
 		}
 	};
