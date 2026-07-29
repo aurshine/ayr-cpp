@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <array>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -8,8 +10,120 @@
 
 using namespace ayr;
 
+namespace
+{
+	constexpr c_size BENCHMARK_SIZE = 1'000'000;
+
+	struct SmallObject
+	{
+		std::uint64_t value;
+
+		std::uint64_t checksum() const { return value; }
+	};
+
+	struct ExpensiveCopyObject
+	{
+		std::array<std::uint64_t, 16> values;
+
+		ExpensiveCopyObject(std::uint64_t seed)
+		{
+			for (std::uint64_t i = 0; i < values.size(); ++i)
+				values[i] = seed + i;
+		}
+
+		ExpensiveCopyObject(const ExpensiveCopyObject& other)
+		{
+			for (std::uint64_t i = 0; i < values.size(); ++i)
+				values[i] = other.values[i];
+		}
+
+		std::uint64_t checksum() const
+		{
+			std::uint64_t result = 0;
+			for (std::uint64_t value : values)
+				result += value;
+			return result;
+		}
+	};
+
+	struct BenchmarkResult
+	{
+		double elapsed_ms;
+		std::uint64_t checksum;
+	};
+
+	template<typename T>
+	BenchmarkResult benchmark_dynarray(const T& sample)
+	{
+		Timer_ms timer;
+		timer.into();
+
+		DynArray<T> values;
+		for (c_size i = 0; i < BENCHMARK_SIZE; ++i)
+			values.append(sample);
+
+		const double elapsed_ms = timer.escape();
+		std::uint64_t checksum = 0;
+		for (const T& value : values)
+			checksum += value.checksum();
+		return { elapsed_ms, checksum };
+	}
+
+	template<typename T>
+	BenchmarkResult benchmark_vector(const T& sample, bool reserve)
+	{
+		Timer_ms timer;
+		timer.into();
+
+		std::vector<T> values;
+		if (reserve)
+			values.reserve(BENCHMARK_SIZE);
+		for (c_size i = 0; i < BENCHMARK_SIZE; ++i)
+			values.push_back(sample);
+
+		const double elapsed_ms = timer.escape();
+		std::uint64_t checksum = 0;
+		for (const T& value : values)
+			checksum += value.checksum();
+		return { elapsed_ms, checksum };
+	}
+
+	template<typename T>
+	void benchmark_append(const char* object_name, const T& sample)
+	{
+		const BenchmarkResult dynarray_result = benchmark_dynarray(sample);
+		const BenchmarkResult vector_result = benchmark_vector(sample, false);
+		const BenchmarkResult reserved_vector_result = benchmark_vector(sample, true);
+
+		print("\n[DynArray benchmark]", object_name, BENCHMARK_SIZE, "items");
+		print("DynArray append:", dynarray_result.elapsed_ms, "ms");
+		print("vector append:", vector_result.elapsed_ms, "ms");
+		print("vector reserve + append:", reserved_vector_result.elapsed_ms, "ms");
+
+		AYR_TEST_EXPECT_EQ(dynarray_result.checksum, vector_result.checksum);
+		AYR_TEST_EXPECT_EQ(dynarray_result.checksum, reserved_vector_result.checksum);
+	}
+}
+
 int main()
 {
+	// Appender清空和同容量重置后应复用内存，复制时应保留容量。
+	Appender<std::string> appender(8);
+	appender.append("a");
+	appender.append("b");
+	auto* appender_data = appender.data();
+	appender.clear();
+	AYR_TEST_EXPECT_EQ(appender.size(), 0);
+	AYR_TEST_EXPECT_EQ(appender.capacity(), 8);
+	AYR_TEST_EXPECT_EQ(appender.data(), appender_data);
+	appender.resize(8);
+	AYR_TEST_EXPECT_EQ(appender.data(), appender_data);
+	appender.append("copied");
+	Appender<std::string> copied_appender(appender);
+	AYR_TEST_EXPECT_EQ(copied_appender.size(), 1);
+	AYR_TEST_EXPECT_EQ(copied_appender.capacity(), 8);
+	AYR_TEST_EXPECT_EQ(copied_appender[0], "copied");
+
 	// 测试空数组、append、front/back、下标访问和跨 block 扩容。
 	DynArray<int> values;
 	AYR_TEST_EXPECT_EQ(values.size(), 0);
@@ -71,4 +185,19 @@ int main()
 	AYR_TEST_EXPECT_EQ(values.size(), 0);
 	values.append(42);
 	AYR_TEST_EXPECT_EQ(values.front(), 42);
+	AYR_TEST_EXPECT_EQ(values.contains(42), true);
+	AYR_TEST_EXPECT_EQ(*values.find_it(42), 42);
+	const DynArray<int>& const_values = values;
+	AYR_TEST_EXPECT_EQ(const_values.contains(42), true);
+	AYR_TEST_EXPECT_EQ(*const_values.find_it(42), 42);
+
+	// 后置迭代操作应修改当前迭代器并返回修改前的值。
+	auto it = values.begin();
+	auto old_it = it++;
+	AYR_TEST_EXPECT_EQ(*old_it, 42);
+	AYR_TEST_EXPECT_EQ(it, values.end());
+
+	// 对比100万个小对象和拷贝昂贵对象的连续追加效率。
+	benchmark_append("small object", SmallObject{ 7 });
+	benchmark_append("expensive-copy object", ExpensiveCopyObject{ 7 });
 }

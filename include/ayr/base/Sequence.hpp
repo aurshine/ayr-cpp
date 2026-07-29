@@ -118,7 +118,7 @@ namespace ayr
 			return index(v);
 		}
 
-		Iterator find_it(const Value_t& v)
+		auto find_it(const Value_t& v)
 		{
 			auto it = derived().begin(), end_ = derived().end();
 			while (it != end_)
@@ -132,7 +132,7 @@ namespace ayr
 			return end_;
 		}
 
-		ConstIterator find_it(const Value_t& v) const
+		auto find_it(const Value_t& v) const
 		{
 			auto it = derived().begin(), end_ = derived().end();
 			while (it != end_)

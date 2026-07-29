@@ -1,6 +1,9 @@
 ﻿#ifndef AYR_AIR_DYNARRAY_HPP
 #define AYR_AIR_DYNARRAY_HPP
 
+#include <bit>
+#include <cstdint>
+
 #include "Appender.hpp"
 
 namespace ayr
@@ -18,10 +21,16 @@ namespace ayr
 
 		// 最小块大小
 		constexpr static c_size BASE_SIZE = 8;
+
+		Array<Appender<T>> blocks_;
+
+		c_size size_;
+
+		int back_block_index_;
 	public:
 		using Value_t = T;
 
-		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE, 0), size_(0), back_block_index_(-1) {}
+		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE), size_(0), back_block_index_(-1) {}
 
 		DynArray(std::initializer_list<Value_t>&& init) : DynArray()
 		{
@@ -94,21 +103,12 @@ namespace ayr
 			return blocks_.at(block_index).at(inblock_index);
 		}
 
-		T& front() { return blocks_.front().front(); }
-
-		const T& front() const { return blocks_.front().front(); }
-
-		T& back() { return _back_block().back(); }
-
-		const T& back() const { return _back_block().back(); }
-
 		// 追加元素
 		template<typename U>
 		T& append(U&& item)
 		{
-			try_wakeup();
-
-			T& res = _back_block().append(std::forward<U>(item));
+			Appender<T>& back_block = try_wakeup();
+			T& res = back_block.append(std::forward<U>(item));
 			++size_;
 			return res;
 		}
@@ -159,8 +159,8 @@ namespace ayr
 
 		void clear()
 		{
-			for (auto&& block : blocks_)
-				block.resize(0);
+			for (int i = 0; i <= back_block_index_; ++i)
+				blocks_.at(i).clear();
 			size_ = 0;
 			back_block_index_ = -1;
 		}
@@ -247,7 +247,7 @@ namespace ayr
 				return *this;
 			}
 
-			self operator++(int) { self tmp(*this); ++tmp; return tmp; }
+			self operator++(int) { self tmp(*this); ++(*this); return tmp; }
 
 			self& operator--()
 			{
@@ -260,7 +260,7 @@ namespace ayr
 				return *this;
 			}
 
-			self operator--(int) { self tmp(*this); --tmp; return tmp; }
+			self operator--(int) { self tmp(*this); --(*this); return tmp; }
 
 			self operator+(ItInfo::difference_type n) const { self tmp(*this); tmp += n; return tmp; }
 
@@ -355,17 +355,8 @@ namespace ayr
 		// 得到下标为index元素的块索引
 		int _get_block_index(c_size index) const
 		{
-			++index;
-			int i = 0, j = back_block_index_, mid;
-			while (i < j)
-			{
-				mid = i + j >> 1;
-				if (index <= (exp2[mid + 1] - 1) * BASE_SIZE)
-					j = mid;
-				else
-					i = mid + 1;
-			}
-			return i;
+			auto scaled_index = static_cast<std::uint64_t>(index / BASE_SIZE + 1);
+			return static_cast<int>(std::bit_width(scaled_index) - 1);
 		}
 
 		// 得到下标为index元素的块内索引
@@ -381,10 +372,10 @@ namespace ayr
 		Appender<T>& _back_block() { return blocks_.at(_back_block_index()); }
 
 		// 移除最后一个块
-		void _pop_back_block() { _back_block().resize(0); --back_block_index_; }
+		void _pop_back_block() { _back_block().clear(); --back_block_index_; }
 
 		// 尝试唤醒一个新的块
-		void try_wakeup()
+		Appender<T>& try_wakeup()
 		{
 			c_size bbi = _back_block_index();
 			if (bbi == -1 || blocks_.at(bbi).full())
@@ -394,13 +385,8 @@ namespace ayr
 				++back_block_index_;
 				_back_block().resize(new_size);
 			}
+			return _back_block();
 		}
-	private:
-		Array<Appender<T>> blocks_;
-
-		c_size size_;
-
-		int back_block_index_;
 	};
 }
 

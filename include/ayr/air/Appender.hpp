@@ -22,7 +22,7 @@ namespace ayr
 
 		Appender(c_size size) : size_(0), capacity_(size), buffer_(ayr_alloc<Value_t>(capacity_)) {}
 
-		Appender(const Appender& other) : Appender(other.size())
+		Appender(const Appender& other) : Appender(other.capacity())
 		{
 			for (auto& item : other)
 				append(item);
@@ -71,20 +71,41 @@ namespace ayr
 		template<typename... Args>
 		Value_t& append(Args&&... args)
 		{
-			ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
-			return buffer_[size_++];
+			Value_t* result = ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
+			++size_;
+			return *result;
 		}
 
 		void pop_back(c_size n = 1)
 		{
-			while (n--) ayr_destroy(buffer_ + (--size_));
+			if (n <= 0) return;
+
+			c_size new_size = std::max<c_size>(0, size_ - n);
+			if constexpr (NoDestroy<Value_t>)
+				size_ = new_size;
+			else
+				while (size_ > new_size)
+					ayr_destroy(buffer_ + (--size_));
+		}
+
+		// 清空元素，保留已分配的内存
+		void clear()
+		{
+			ayr_destroy(buffer_, size_);
+			size_ = 0;
 		}
 
 		// 重新分配内存
 		void resize(c_size size)
 		{
-			ayr_destroy(this);
-			ayr_construct(this, size);
+			clear();
+			if (capacity_ == size)
+				return;
+
+			Value_t* new_buffer = ayr_alloc<Value_t>(size);
+			ayr_delloc(buffer_);
+			buffer_ = new_buffer;
+			capacity_ = size;
 		}
 
 		const Value_t& at(c_size index) const { return buffer_[index]; }
@@ -105,7 +126,7 @@ namespace ayr
 			for (c_size i = 0; i < size(); ++i)
 				arr[i] = std::move(at(i));
 
-			size_ = 0;
+			clear();
 			return arr;
 		}
 
