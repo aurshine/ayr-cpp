@@ -105,7 +105,7 @@ namespace ayr
 					++pos_;
 				}
 					
-				JsonValueError(ayr::format("invalid str parse: {}", json_str_.vslice(start_pos)));
+				JsonValueError(ayr::format("invalid str parse: {}", json_str_.slice(start_pos)));
 				return None;
 			}
 
@@ -217,7 +217,7 @@ namespace ayr
 			}
 
 			// 获取剩余字符串
-			Atring remain_str() const { return json_str_.vslice(pos_); }
+			Atring remain_str() const { return json_str_.slice(pos_); }
 			
 			// 获取剩余字符串的第一个字符
 			AChar first_char() const { return json_str_.at(pos_); }
@@ -256,7 +256,7 @@ namespace ayr
 		{
 			JsonLoader parser(json_str);
 			auto [json_obj, pos] = parser();
-			return { std::move(json_obj), json_str.vslice(pos) };
+			return { std::move(json_obj), json_str.slice(pos) };
 		}
 	}
 }

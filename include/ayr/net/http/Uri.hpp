@@ -33,12 +33,12 @@ namespace ayr
 			Uri() : scheme_(), host_(), port_(), path_("/"as), query_dict_(), fragment_() {}
 
 			Uri(const self& other) :
-				scheme_(other.scheme_.clone()),
-				host_(other.host_.clone()),
-				port_(other.port_.clone()),
-				path_(other.path_.clone()),
+				scheme_(other.scheme_),
+				host_(other.host_),
+				port_(other.port_),
+				path_(other.path_),
 				query_dict_(other.query_dict_),
-				fragment_(other.fragment_.clone()) {}
+				fragment_(other.fragment_) {}
 
 			Uri(self&& other) noexcept :
 				scheme_(std::move(other.scheme_)),
@@ -66,25 +66,25 @@ namespace ayr
 			const Atring& scheme() const { return scheme_; }
 
 			// 设置uri的方案
-			const Atring& scheme(const Atring& scheme) { return scheme_ = scheme.lower().clone(); }
+			const Atring& scheme(const Atring& scheme) { return scheme_ = scheme.lower(); }
 
 			// uri的主机名
 			const Atring& host() const { return host_; }
 
 			// 设置uri的主机名
-			const Atring& host(const Atring& host) { return host_ = host.clone(); }
+			const Atring& host(const Atring& host) { return host_ = host; }
 
 			// uri的端口号
 			const Atring& port() const { return port_; }
 
 			// 设置uri的端口号
-			const Atring& port(const Atring& port) { return port_ = port.clone(); }
+			const Atring& port(const Atring& port) { return port_ = port; }
 
 			// uri的路径
 			const Atring& path() const { return path_; }
 
 			// 设置uri的路径
-			const Atring& path(const Atring& path) { return path_ = path.clone(); }
+			const Atring& path(const Atring& path) { return path_ = path; }
 
 			// uri的查询参数的字符串形式
 			Atring query() const
@@ -101,7 +101,7 @@ namespace ayr
 			// 添加查询参数
 			const Dict<Atring, Atring>& add_query(const Atring& key, const Atring& value)
 			{
-				query_dict_.insert(key.clone(), value.clone());
+				query_dict_.insert(key, value);
 				return query_dict_;
 			}
 
@@ -109,7 +109,7 @@ namespace ayr
 			const Atring& fragment() const { return fragment_; }
 
 			// 设置uri的片段
-			const Atring& fragment(const Atring& fragment) { return fragment_ = fragment.clone(); }
+			const Atring& fragment(const Atring& fragment) { return fragment_ = fragment; }
 
 			void __repr__(Buffer& buffer) const
 			{
@@ -153,7 +153,7 @@ namespace ayr
 			if (i != -1)
 			{
 				uri.scheme(uri_str.slice(0, i));
-				uri_str = uri_str.vslice(i + 3);
+				uri_str = uri_str.slice(i + 3);
 			}
 		}
 
@@ -169,11 +169,11 @@ namespace ayr
 				++i;
 			}
 
-			Array<Atring> host_port = uri_str.vslice(0, i).split(":"as, 1);
-			uri.host(host_port[0].clone());
+			Array<Atring> host_port = uri_str.slice(0, i).split(":"as, 1);
+			uri.host(host_port[0]);
 			if (host_port.size() == 2)
-				uri.port(host_port[1].clone());
-			uri_str = uri_str.vslice(i);
+				uri.port(host_port[1]);
+			uri_str = uri_str.slice(i);
 		}
 
 		def _parse_path(Uri& uri, Atring& uri_str)
@@ -190,7 +190,7 @@ namespace ayr
 			else
 				uri.path(uri_str.slice(0, i));
 			// 这里需要保留 '#' '?'
-			uri_str = uri_str.vslice(i);
+			uri_str = uri_str.slice(i);
 		}
 
 		def _parse_query(Uri& uri, Atring& uri_str)
@@ -200,16 +200,16 @@ namespace ayr
 			c_size i = uri_str.index("#"as);
 			if (i == -1)
 				i = uri_str.size();
-			Atring queries = uri_str.vslice(1, i);
+			Atring queries = uri_str.slice(1, i);
 			for (auto& kv : queries.split("&"as))
 			{
 				Array<Atring> key_value = kv.split("="as, 1);
 				if (key_value.size() != 2)
 					ValueError(vstr("Invalid query string: ") + cstr(kv));
-				uri.add_query(key_value[0].clone(), key_value[1].clone());
+				uri.add_query(key_value[0], key_value[1]);
 			}
 			
-			uri_str = uri_str.vslice(i);
+			uri_str = uri_str.slice(i);
 		}
 
 		void _parse_fragment(Uri& uri, Atring& uri_str)
@@ -221,7 +221,7 @@ namespace ayr
 		// 解析uri字符串，返回Uri对象
 		def uri(const Atring& main_uri_str) -> Uri
 		{
-			Atring uri_str = main_uri_str.vslice(0);
+			Atring uri_str = main_uri_str.slice(0);
 			Uri res;
 			_parse_scheme(res, uri_str);
 			_parse_host_port(res, uri_str);

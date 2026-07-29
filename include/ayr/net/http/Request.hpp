@@ -57,9 +57,9 @@ namespace ayr
 			}
 
 			HttpRequest(const self& other) :
-				method_(other.method_.clone()),
+				method_(other.method_),
 				uri_(other.uri_),
-				version_(other.version_.clone()),
+				version_(other.version_),
 				headers(other.headers),
 				body(other.body.clone()) {
 			}
@@ -93,7 +93,7 @@ namespace ayr
 			Atring path() const
 			{
 				if (uri_.queries().empty())
-					return uri_.path().clone();
+					return uri_.path();
 				return "?"as.join(arr(uri_.path(), uri_.query()));
 			}
 
@@ -104,7 +104,7 @@ namespace ayr
 			const Atring& port() const { return uri_.port(); }
 
 			// 添加请求头
-			void add_header(const Atring& key, const Atring& value) { headers.insert(key.clone(), value.clone()); }
+			void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
 
 			// 添加请求体内容
 			void set_body(const CString& body)

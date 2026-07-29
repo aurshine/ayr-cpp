@@ -17,9 +17,25 @@ namespace ayr
         template<typename... Args>
         _AtomicCounter(Args&&... args) : value(std::forward<Args>(args)...), count_(1) {}
 
-        int increment() { return count_.fetch_add(1, std::memory_order_relaxed) + 1; }
+        // 增加引用计数
+        void increment() { count_.fetch_add(1, std::memory_order_relaxed); }
 
-        int decrement() { return count_.fetch_sub(1, std::memory_order_acq_rel) - 1; }
+        /**
+        * @brief 减少引用计数
+        *
+        * @return bool 当前引用是否为最后一个引用
+        */
+        bool decrement() noexcept
+        {
+            if (count_.fetch_sub(1, std::memory_order_release) != 1)
+                return false;
+
+            std::atomic_thread_fence(std::memory_order_acquire);
+            return true;
+        }
+
+        // 获取当前引用计数
+        int use_count() const noexcept { return count_.load(std::memory_order_relaxed); }
     };
 
     /*
@@ -38,76 +54,73 @@ namespace ayr
     {
         using self = Shared<T>;
 
-        _AtomicCounter<T>* counter_;
-    public:
-        template<typename... Args>
-        Shared(Args&&... args) : counter_(ayr_make<_AtomicCounter<T>>(std::forward<Args>(args)...)) {}
+        using ControlBlock = _AtomicCounter<T>;
 
-        Shared(self& other) : counter_(other.counter_) { increment(); }
+        ControlBlock* counter_;
+    public:
+        // 创建一个不管理资源的空Shared
+        constexpr Shared() noexcept : counter_(nullptr) {}
+
+        template<typename Arg, typename... Args>
+            requires (!std::same_as<std::remove_cvref_t<Arg>, self>) // 避免匹配到Shared(self& other)
+        Shared(Arg&& arg, Args&&... args)
+            : counter_(ayr_make<ControlBlock>(std::forward<Arg>(arg), std::forward<Args>(args)...)){}
 
         Shared(const self& other) : counter_(other.counter_) { increment(); }
 
         Shared(self&& other) : counter_(other.counter_) { other.counter_ = nullptr; }
 
-        ~Shared() { release(); }
+        constexpr ~Shared() { if (counter_) { release(); } }
 
         self& operator=(const self& other)
         {
-            if (this == &other || counter_ == other.counter_) return *this;
+            if (counter_ == other.counter_) return *this;
             release();
-            counter_ = other.counter_;
-            increment();
-            return *this;
+            return *ayr_construct(this, other);
         }
 
         self& operator=(self&& other)
         {
-            if (this == &other || counter_ == other.counter_) return *this;
+            if (counter_ == other.counter_) return *this;
             release();
-            counter_ = other.counter_;
-            other.counter_ = nullptr;
-            return *this;
+            return *ayr_construct(this, std::move(other));
         }
 
-		// 提供解引用操作符，允许访问被管理的对象
+        // 判断当前是否管理对象
+        constexpr bool has_value() const noexcept { return counter_ != nullptr; }
+
+        // 判断当前是否管理对象
+        constexpr operator bool() const noexcept { return has_value(); }
+
+        // 获取当前共享引用数
+        int use_count() const noexcept { return ifelse(counter_, counter_->use_count(), 0); }
+
+        // 访问被管理对象
         T& operator*() const
         {
-            if (counter_ == nullptr)
-                RuntimeError("Dereferencing a null Shared Resource");
-            return counter_->value; 
+            if (!has_value())
+                RuntimeError("Dereferencing a null Shared resource");
+            return counter_->value;
         }
 
-		// 提供指针语义访问资源
-		T* operator->() const
+        // 访问被管理对象
+        T* operator->() const
         {
-            if (counter_ == nullptr)
-                RuntimeError("Dereferencing a null Shared Resource");
-            return &counter_->value; 
+            if (!has_value())
+                RuntimeError("Dereferencing a null Shared resource");
+            return &counter_->value;
         }
 
-		// 释放资源
-        void release()
+        // 释放当前引用并将Shared置空
+        void release() noexcept
         {
-            if (decrement() == 0)
-                ayr_desloc(counter_);
-            counter_ = nullptr;
+            ControlBlock* counter = std::exchange(counter_, nullptr);
+            if (counter && counter->decrement())
+                ayr_desloc(counter);
         }
     private:
 		// 增加引用计数
-        int increment()
-        {
-            if (counter_)
-                return counter_->increment();
-            return -1;
-        }
-
-		// 减少引用计数
-        int decrement()
-        {
-            if (counter_)
-                return counter_->decrement();
-            return -1;
-        }
+        void increment() { if (counter_) { counter_->increment(); } }
     };
 }
 #endif // AYR_BASE_SHARED_HPP

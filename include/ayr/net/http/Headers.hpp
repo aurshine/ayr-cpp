@@ -25,7 +25,7 @@ namespace ayr
 			HttpHeaders(const self& other) : entries_()
 			{
 				for (const auto& [key, value] : other.entries_)
-					entries_.append(Entry(key.clone(), value.clone()));
+					entries_.append(Entry(key, value));
 			}
 
 			HttpHeaders(self&& other) noexcept : entries_(std::move(other.entries_)) {}
@@ -78,7 +78,7 @@ namespace ayr
 			void insert(const Atring& key, const Atring& value)
 			{
 				validate(key, value);
-				entries_.append(Entry(key.clone(), value.clone()));
+				entries_.append(Entry(key, value));
 			}
 
 			// 删除头字段。
