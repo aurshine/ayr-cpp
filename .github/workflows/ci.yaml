@@ -1,0 +1,35 @@
+name: C++ CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Ubuntu / GCC / Debug
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ninja-build libssl-dev libfmt-dev
+
+      - name: Configure
+        run: cmake -S . -B out/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build out/build --parallel
+
+      - name: Test
+        run: ctest --test-dir out/build --build-config Debug --output-on-failure

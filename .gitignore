@@ -3,3 +3,4 @@ build
 out
 CMakeSettings.json
 **/maybe_unused/
+/ctest.ps1

@@ -5,6 +5,8 @@ project(ayr-cpp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include(CTest)
+
 # https需要使用openssl
 find_package(OpenSSL REQUIRED)
 find_package(fmt QUIET)
@@ -27,7 +29,7 @@ else()
     target_compile_definitions(ayr INTERFACE AYR_USE_FMT=0)
 endif()
 
-if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
     
     message(STATUS "Building tests")
 
@@ -38,5 +40,8 @@ if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
         add_executable(${TEST_EXE} ${TEST_SOURCE})
         target_link_libraries(${TEST_EXE} PRIVATE ayr)
         target_include_directories(${TEST_EXE} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+        
+        add_test(NAME ${TEST_EXE} COMMAND ${TEST_EXE})
+        
     endforeach()
 endif()
