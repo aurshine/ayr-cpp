@@ -167,11 +167,11 @@ namespace
 		while (server_to_client.readable_size() > 0)
 			transfer_fragment(server_to_client, client, fragment_size);
 
-		AYR_TEST_EXPECT(handshake_valid);
-		AYR_TEST_EXPECT(client_complete);
-		AYR_TEST_EXPECT(server_complete);
-		AYR_TEST_EXPECT(client_to_server.readable_size() == 0);
-		AYR_TEST_EXPECT(server_to_client.readable_size() == 0);
+		UTEST_EXPECT(handshake_valid);
+		UTEST_EXPECT(client_complete);
+		UTEST_EXPECT(server_complete);
+		UTEST_EXPECT(client_to_server.readable_size() == 0);
+		UTEST_EXPECT(server_to_client.readable_size() == 0);
 	}
 }
 
@@ -180,84 +180,95 @@ int main()
 	TestTlsContexts contexts = create_test_contexts();
 	TlsLayer client(contexts.client.get()), server(contexts.server.get());
 
-	// 31字节分片确保握手可以跨越大量不完整TLS record继续推进。
-	complete_handshake(client, server, vstr("localhost"), 31);
-
-	// read_buffer每次交给底层读取前至少保留8192字节可写空间。
-	AYR_TEST_EXPECT(client.read_buffer().writeable_size() >= 8192);
-
-	std::string payload;
-	payload.reserve(40000);
-	for (int index = 0; index < 40000; ++index)
-		payload.push_back(static_cast<char>('a' + index % 26));
-
-	Buffer plaintext, encrypted, decrypted, response_records;
-	plaintext.append_bytes(payload.data(), static_cast<c_size>(payload.size()));
-	while (plaintext.readable_size() > 0)
+	UTEST_SCOPE("测试握手可以跨越大量不完整的 TLS record 继续推进。")
 	{
-		TlsResult encrypt_result = client.encrypt(plaintext, encrypted);
-		AYR_TEST_EXPECT(encrypt_result.state == TlsState::Complete);
-		AYR_TEST_EXPECT(encrypt_result.bytes > 0);
-	}
+		complete_handshake(client, server, vstr("localhost"), 31);
+	};
 
-	// 用37字节网络分片喂入服务端，并在网络buffer耗尽后继续排空SSL内部record。
-	bool decrypt_valid = true;
-	for (int attempt = 0; attempt < 10000; ++attempt)
+	UTEST_SCOPE("测试 read_buffer 交给底层读取前至少保留 8192 字节可写空间。")
 	{
-		transfer_fragment(encrypted, server, 37);
-		TlsResult decrypt_result = server.decrypt(decrypted, response_records);
-		if (
-			decrypt_result.state == TlsState::Error
-			|| decrypt_result.state == TlsState::Closed
-		)
+		UTEST_EXPECT(client.read_buffer().writeable_size() >= 8192);
+	};
+
+	Buffer decrypted, response_records;
+	UTEST_SCOPE("测试 TLS 加密数据可按网络分片解密并排空内部 record。")
+	{
+		std::string payload;
+		payload.reserve(40000);
+		for (int index = 0; index < 40000; ++index)
+			payload.push_back(static_cast<char>('a' + index % 26));
+
+		Buffer plaintext, encrypted;
+		plaintext.append_bytes(payload.data(), static_cast<c_size>(payload.size()));
+		while (plaintext.readable_size() > 0)
 		{
-			decrypt_valid = false;
-			break;
+			TlsResult encrypt_result = client.encrypt(plaintext, encrypted);
+			UTEST_EXPECT(encrypt_result.state == TlsState::Complete);
+			UTEST_EXPECT(encrypt_result.bytes > 0);
 		}
 
-		if (
-			encrypted.readable_size() == 0
-			&& decrypt_result.state == TlsState::WantRead
-		)
-			break;
-	}
+		bool decrypt_valid = true;
+		for (int attempt = 0; attempt < 10000; ++attempt)
+		{
+			transfer_fragment(encrypted, server, 37);
+			TlsResult decrypt_result = server.decrypt(decrypted, response_records);
+			if (
+				decrypt_result.state == TlsState::Error
+				|| decrypt_result.state == TlsState::Closed
+			)
+			{
+				decrypt_valid = false;
+				break;
+			}
 
-	AYR_TEST_EXPECT(decrypt_valid);
-	AYR_TEST_EXPECT(decrypted.readable_size() == static_cast<c_size>(payload.size()));
-	AYR_TEST_EXPECT(
-		std::memcmp(decrypted.peek(), payload.data(), payload.size()) == 0
-	);
+			if (
+				encrypted.readable_size() == 0
+				&& decrypt_result.state == TlsState::WantRead
+			)
+				break;
+		}
 
-	// close_notify应表现为有序关闭，而不是普通错误或意外EOF。
-	Buffer close_notify;
-	TlsResult shutdown_result = client.shutdown(close_notify);
-	AYR_TEST_EXPECT(shutdown_result.state == TlsState::Complete);
-	while (close_notify.readable_size() > 0)
-		transfer_fragment(close_notify, server, 7);
-
-	TlsResult close_result = server.decrypt(decrypted, response_records);
-	AYR_TEST_EXPECT(close_result.state == TlsState::Closed);
-
-	// 相同证书不能通过错误主机名的校验。
-	TlsLayer mismatched_client(contexts.client.get()), mismatched_server(contexts.server.get());
-	Buffer client_to_server, server_to_client;
-	bool hostname_rejected = false;
-	for (int attempt = 0; attempt < 1000 && !hostname_rejected; ++attempt)
-	{
-		TlsResult client_result = mismatched_client.handshake_client(
-			client_to_server,
-			vstr("wrong.example")
+		UTEST_EXPECT(decrypt_valid);
+		UTEST_EXPECT(decrypted.readable_size() == static_cast<c_size>(payload.size()));
+		UTEST_EXPECT(
+			std::memcmp(decrypted.peek(), payload.data(), payload.size()) == 0
 		);
-		hostname_rejected = client_result.state == TlsState::Error;
-		transfer_fragment(client_to_server, mismatched_server, 4096);
-		if (hostname_rejected)
-			break;
+	};
 
-		TlsResult server_result = mismatched_server.handshake_server(server_to_client);
-		AYR_TEST_EXPECT(server_result.state != TlsState::Error);
-		transfer_fragment(server_to_client, mismatched_client, 4096);
-	}
-	AYR_TEST_EXPECT(hostname_rejected);
+	UTEST_SCOPE("测试 close_notify 表现为有序关闭。")
+	{
+		Buffer close_notify;
+		TlsResult shutdown_result = client.shutdown(close_notify);
+		UTEST_EXPECT(shutdown_result.state == TlsState::Complete);
+		while (close_notify.readable_size() > 0)
+			transfer_fragment(close_notify, server, 7);
 
-	return 0;
+		TlsResult close_result = server.decrypt(decrypted, response_records);
+		UTEST_EXPECT(close_result.state == TlsState::Closed);
+	};
+
+	UTEST_SCOPE("测试相同证书不能通过错误主机名的校验。")
+	{
+		TlsLayer mismatched_client(contexts.client.get()), mismatched_server(contexts.server.get());
+		Buffer client_to_server, server_to_client;
+		bool hostname_rejected = false;
+		for (int attempt = 0; attempt < 1000 && !hostname_rejected; ++attempt)
+		{
+			TlsResult client_result = mismatched_client.handshake_client(
+				client_to_server,
+				vstr("wrong.example")
+			);
+			hostname_rejected = client_result.state == TlsState::Error;
+			transfer_fragment(client_to_server, mismatched_server, 4096);
+			if (hostname_rejected)
+				break;
+
+			TlsResult server_result = mismatched_server.handshake_server(server_to_client);
+			UTEST_EXPECT(server_result.state != TlsState::Error);
+			transfer_fragment(server_to_client, mismatched_client, 4096);
+		}
+		UTEST_EXPECT(hostname_rejected);
+	};
+
+	return UTEST_COMPLETE();
 }

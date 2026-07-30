@@ -20,7 +20,7 @@ coro::Task<void> client_main(coro::IoContext* io_context, std::atomic<bool>* cli
 
 	Buffer response(1024);
 	co_await client_fd.read(response);
-	AYR_TEST_EXPECT_EQ(vstr(response.peek(), response.readable_size()), "Hello, world!");
+	UTEST_EXPECT_EQ(vstr(response.peek(), response.readable_size()), "Hello, world!");
 	*client_verified = true;
 }
 
@@ -39,7 +39,7 @@ coro::Task<void> server_main(coro::IoContext* io_context, std::atomic<bool>* ser
 
 	Buffer buffer(1024);
 	co_await fd.read(buffer);
-	AYR_TEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), "Hello, world!");
+	UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), "Hello, world!");
 	co_await fd.write(buffer);
 	*server_verified = true;
 }
@@ -52,15 +52,17 @@ void server_thread(std::atomic<bool>* server_verified)
 
 int main()
 {
-	// 测试本地 TCP echo 往返；这是集成测试，依赖 127.0.0.1:7777 端口可用。
-	std::atomic<bool> client_verified = false;
-	std::atomic<bool> server_verified = false;
-	std::thread server_thread_obj(server_thread, &server_verified);
-	std::this_thread::sleep_for(std::chrono::milliseconds(200));
-	client_thread(&client_verified);
-	server_thread_obj.join();
+	UTEST_SCOPE("测试本地 TCP echo 往返；依赖 127.0.0.1:7777 端口可用。")
+	{
+		std::atomic<bool> client_verified = false;
+		std::atomic<bool> server_verified = false;
+		std::thread server_thread_obj(server_thread, &server_verified);
+		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		client_thread(&client_verified);
+		server_thread_obj.join();
 
-	AYR_TEST_EXPECT(client_verified.load());
-	AYR_TEST_EXPECT(server_verified.load());
-	return 0;
+		UTEST_EXPECT(client_verified.load());
+		UTEST_EXPECT(server_verified.load());
+	};
+	return UTEST_COMPLETE();
 }

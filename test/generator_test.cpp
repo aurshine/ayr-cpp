@@ -45,28 +45,36 @@ coro::Generator<MoveOnly> move_only_values()
 
 int main()
 {
-	// 测试 co_yield 序列和 co_return 末尾值都会被迭代出来。
-	std::vector<int> values;
-	for (int value : descending_numbers(3))
-		values.push_back(value);
-	AYR_TEST_EXPECT_EQ(values.size(), 4);
-	AYR_TEST_EXPECT_EQ(values[0], 3);
-	AYR_TEST_EXPECT_EQ(values[1], 2);
-	AYR_TEST_EXPECT_EQ(values[2], 1);
-	AYR_TEST_EXPECT_EQ(values[3], 4);
-
-	// 测试没有 yield/return 的生成器为空。
-	int count = 0;
-	for (int value : empty_generator())
+	UTEST_SCOPE("测试 co_yield 序列和 co_return 末尾值都会被迭代出来。")
 	{
-		(void)value;
-		++count;
-	}
-	AYR_TEST_EXPECT_EQ(count, 0);
+		std::vector<int> values;
+		for (int value : descending_numbers(3))
+			values.push_back(value);
+		UTEST_EXPECT_EQ(values.size(), 4);
+		UTEST_EXPECT_EQ(values[0], 3);
+		UTEST_EXPECT_EQ(values[1], 2);
+		UTEST_EXPECT_EQ(values[2], 1);
+		UTEST_EXPECT_EQ(values[3], 4);
+	};
 
-	// 测试生成器支持不可拷贝、仅可移动的类型。
-	int sum = 0;
-	for (auto& item : move_only_values())
-		sum += item.value;
-	AYR_TEST_EXPECT_EQ(sum, 3);
+	UTEST_SCOPE("测试没有 yield/return 的生成器为空。")
+	{
+		int count = 0;
+		for (int value : empty_generator())
+		{
+			(void)value;
+			++count;
+		}
+		UTEST_EXPECT_EQ(count, 0);
+	};
+
+	UTEST_SCOPE("测试生成器支持不可拷贝、仅可移动的类型。")
+	{
+		int sum = 0;
+		for (auto& item : move_only_values())
+			sum += item.value;
+		UTEST_EXPECT_EQ(sum, 3);
+	};
+
+	return UTEST_COMPLETE();
 }

@@ -13,6 +13,9 @@ namespace ayr
 		CString err_name_, err_msg_;
 
 		Buffer err_info_;
+
+		// 在抛异常的时候输出错误信息
+		static bool show_error_while_throw_;
 	public:
 		AyrError(CString name, CString msg, std::source_location loc = std::source_location::current()) : err_name_(name.clone()), err_msg_(msg.clone()), err_info_()
 		{
@@ -43,8 +46,16 @@ namespace ayr
 		// 适配 c++ exception 接口
 		const char* what() const noexcept override { return err_info_.peek(); }
 
-		// 错误信息
-		CString error() const noexcept { return vstr(err_info_.peek(), err_info_.readable_size()); }
+		// 错误所在的文件，行列，函数 + error()
+		CString details() const noexcept { return vstr(err_info_.peek(), err_info_.readable_size());  }
+		
+		// 错误信息 name + message
+		CString error() const 
+		{ 
+			Buffer errbuf(err_name_.size() + err_msg_.size() + 2);
+			errbuf << err_name_ << ": " << err_msg_;
+			return from_buffer(std::move(errbuf));
+		}
 
 		// 错误的名字
 		const CString& name() const noexcept { return err_name_; }
@@ -54,10 +65,15 @@ namespace ayr
 		// 输出错误信息，抛出异常
 		void raise()
 		{
-			ayr_error.write_from_buffer(err_info_);
+			if (show_error_while_throw_)
+				ayr_error.write_from_buffer(err_info_);
 			throw *this;
 		}
+
+		static void show(bool st) { show_error_while_throw_ = st; }
 	};
+
+	bool AyrError::show_error_while_throw_ = true;
 
 #define tlog(expr) print(#expr, " = ", expr)
 
