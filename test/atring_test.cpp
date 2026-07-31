@@ -82,6 +82,8 @@ int main()
 	UTEST_SCOPE("测试 join、按分隔符 split、按空白 split 和 maxsplit。")
 	{
 		UTEST_EXPECT_EQ(","as.join(arr("我"as, "爱"as, "你"as)), "我,爱,你"as);
+		UTEST_EXPECT_EQ(Atring::ajoin(arr("我"as, "爱"as, "你"as)), "我爱你"as);
+		UTEST_EXPECT_EQ(Atring::ajoin(arr<AChar>('1', '2', '3', '4')), "1234"as);
 		auto csv = "a,b,c"as.split(","as);
 		UTEST_EXPECT_EQ(csv.size(), 3);
 		UTEST_EXPECT_EQ(csv[0], "a"as);

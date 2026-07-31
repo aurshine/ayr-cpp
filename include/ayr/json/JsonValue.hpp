@@ -26,8 +26,21 @@ namespace ayr
 
 		using JsonDict = Dict<JsonStr, Json>;
 
+		// JSON解析和转储的默认最大容器嵌套深度
+		static constexpr c_size DEFAULT_MAX_DEPTH = 128;
+
 		template<typename T>
 		concept JsonTypeConcept = issame<T, JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict>;
+
+		/*
+		* @brief 可以直接构造为Json的值类型
+		*
+		* @details 除Json实际存储的类型外，普通整数和浮点数也会分别归一化为JsonInt和JsonFloat
+		*/
+		template<typename T>
+		concept JsonValueConcept = JsonTypeConcept<T> ||
+			std::integral<std::remove_cvref_t<T>> ||
+			std::floating_point<std::remove_cvref_t<T>>;
 
 		template<typename T>
 		struct _IsJsonLike : std::false_type {};
@@ -70,7 +83,7 @@ namespace ayr
 			if constexpr (issame<T, JsonArray, JsonDict>)
 				return false;
 			if constexpr (issame<T, Json>)
-				if (obj.is_array() || obj.is_dict())
+				if (obj.template is<JsonArray>() || obj.template is<JsonDict>())
 					return false;
 			return true;
 		}
@@ -84,28 +97,37 @@ namespace ayr
 		{
 			using self = Json;
 
-			std::variant<JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict> json_var_;
+			using variant_type = std::variant<JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict>;
+
+			variant_type json_var_;
+
+			template<JsonValueConcept T>
+			static constexpr variant_type make_variant(T&& value)
+			{
+				using value_type = std::remove_cvref_t<T>;
+				if constexpr (issame<value_type, JsonBool>)
+					return variant_type(std::in_place_type<JsonBool>, static_cast<JsonBool>(value));
+				else if constexpr (std::integral<value_type>)
+					return variant_type(std::in_place_type<JsonInt>, static_cast<JsonInt>(value));
+				else if constexpr (std::floating_point<value_type>)
+					return variant_type(std::in_place_type<JsonFloat>, static_cast<JsonFloat>(value));
+				else
+					return variant_type(std::in_place_type<value_type>, std::forward<T>(value));
+			}
 		public:
 			constexpr Json() : json_var_(JsonNull()) {}
 
-			template<JsonTypeConcept T>
-			constexpr explicit Json(T&& value) : json_var_(std::forward<T>(value)) {}
+			template<JsonValueConcept T>
+			constexpr Json(T&& value) : json_var_(make_variant(std::forward<T>(value))) {}
 
 			constexpr Json(const Json& other) : json_var_(other.json_var_) {}
 
 			constexpr Json(Json&& other) noexcept : json_var_(std::move(other.json_var_)) {}
 
-			template<JsonTypeConcept T>
-			constexpr self& operator=(const T& value)
-			{
-				json_var_.emplace(value);
-				return *this;
-			}
-
-			template<JsonTypeConcept T>
+			template<JsonValueConcept T>
 			constexpr self& operator=(T&& value)
 			{
-				json_var_.emplace(std::move(value));
+				json_var_ = make_variant(std::forward<T>(value));
 				return *this;
 			}
 
@@ -121,47 +143,14 @@ namespace ayr
 				return *this;
 			}
 
-			constexpr bool is_null() const { return std::holds_alternative<JsonNull>(json_var_); }
+			template<JsonTypeConcept T>
+			constexpr bool is() const { return std::holds_alternative<T>(json_var_); }
 
-			constexpr bool is_int() const { return std::holds_alternative<JsonInt>(json_var_); }
+			template<JsonTypeConcept T>
+			constexpr T& as() { return std::get<T>(json_var_); }
 
-			constexpr bool is_float() const { return std::holds_alternative<JsonFloat>(json_var_); }
-
-			constexpr bool is_bool() const { return std::holds_alternative<JsonBool>(json_var_); }
-
-			constexpr bool is_str() const { return std::holds_alternative<JsonStr>(json_var_); }
-
-			constexpr bool is_array() const { return std::holds_alternative<JsonArray>(json_var_); }
-
-			constexpr bool is_dict() const { return std::holds_alternative<JsonDict>(json_var_); }
-
-			constexpr JsonNull& as_null() { return std::get<JsonNull>(json_var_); }
-
-			constexpr const JsonNull& as_null() const { return std::get<JsonNull>(json_var_); }
-
-			constexpr JsonInt& as_int() { return std::get<JsonInt>(json_var_); }
-
-			constexpr const JsonInt& as_int() const { return std::get<JsonInt>(json_var_); }
-
-			constexpr JsonFloat& as_float() { return std::get<JsonFloat>(json_var_); }
-
-			constexpr const JsonFloat& as_float() const { return std::get<JsonFloat>(json_var_); }
-
-			constexpr JsonBool& as_bool() { return std::get<JsonBool>(json_var_); }
-
-			constexpr const JsonBool& as_bool() const { return std::get<JsonBool>(json_var_); }
-
-			constexpr JsonStr& as_str() { return std::get<JsonStr>(json_var_); }
-
-			constexpr const JsonStr& as_str() const { return std::get<JsonStr>(json_var_); }
-
-			constexpr JsonArray& as_array() { return std::get<JsonArray>(json_var_); }
-
-			constexpr const JsonArray& as_array() const { return std::get<JsonArray>(json_var_); }
-
-			constexpr JsonDict& as_dict() { return std::get<JsonDict>(json_var_); }
-
-			constexpr const JsonDict& as_dict() const { return std::get<JsonDict>(json_var_); }
+			template<JsonTypeConcept T>
+			constexpr const T& as() const { return std::get<T>(json_var_);  }
 
 			// 访问json的实际元素
 			template<typename Callable>
@@ -197,6 +186,22 @@ namespace ayr
 					});
 			}
 
+			bool contains(const Json& obj) const
+			{
+				if (is<JsonArray>())
+					return as<JsonArray>().contains(obj);
+				return func_call_error("contains()");
+			}
+
+			bool contains(const JsonStr& obj) const
+			{
+				if (is<JsonArray>())
+					return contains(Json(obj));
+				else if (is<JsonDict>())
+					return as<JsonDict>().contains(obj);
+				return func_call_error("contains()");
+			}
+
 			/*
 			* @brief 尾部添加一个Json对象
 			*
@@ -206,12 +211,11 @@ namespace ayr
 			*
 			* @warning 若当前Json对象不是JsonArray类型，会抛出JSON_TYPE_INVALID_ERROR异常
 			*/
-			Json& append(const Json& json)
+			Json& append(Json json)
 			{
-				if (is_array())
-					return as_array().append(json);
-				JsonValueError(ayr::format("type {} cannot call append", type_name()));
-				return None;
+				if (is<JsonArray>())
+					return as<JsonArray>().append(std::move(json));
+				return func_call_error("append(json)");
 			}
 
 			/*
@@ -226,12 +230,11 @@ namespace ayr
 			*
 			* @warning 若当前Json对象不是JsonDict类型，会抛出JSON_TYPE_INVALID_ERROR异常
 			*/
-			Json& operator[] (const JsonStr& key)
+			Json& operator[] (JsonStr key)
 			{
-				if (is_dict())
-					return as_dict()[key];
-				JsonValueError(ayr::format("type {} cannot call operator[key]", type_name()));
-				return None;
+				if (is<JsonDict>())
+					return as<JsonDict>()[std::move(key)];
+				return func_call_error("operator[key]");
 			}
 
 			/*
@@ -246,12 +249,11 @@ namespace ayr
 			*
 			* @warning 若当前Json对象不是JsonDict类型，会抛出JSON_TYPE_INVALID_ERROR异常
 			*/
-			const Json& operator[] (const JsonStr& key) const
+			const Json& operator[] (JsonStr key) const
 			{
-				if (is_dict())
-					return as_dict()[key];
-				JsonValueError(ayr::format("type {} cannot call operator[key]", type_name()));
-				return None;
+				if (is<JsonDict>())
+					return as<JsonDict>()[std::move(key)];
+				return func_call_error("operator[key]");
 			}
 
 			/*
@@ -268,10 +270,9 @@ namespace ayr
 			*/
 			Json& operator[] (c_size index)
 			{
-				if (is_array())
-					return as_array()[index];
-				JsonValueError(ayr::format("type {} cannot call operator[index]", type_name()));
-				return None;
+				if (is<JsonArray>())
+					return as<JsonArray>()[index];
+				return func_call_error("operator[index]");;
 			}
 
 			/*
@@ -288,10 +289,9 @@ namespace ayr
 			*/
 			const Json& operator[] (c_size index) const
 			{
-				if (is_array())
-					return as_array()[index];
-				JsonValueError(ayr::format("type {} cannot call operator[index]", type_name()));
-				return None;
+				if (is<JsonArray>())
+					return as<JsonArray>()[index];
+				return func_call_error("operator[index]");
 			}
 
 			/*
@@ -306,9 +306,9 @@ namespace ayr
 			*/
 			void pop(c_size index)
 			{
-				if (is_array())
-					return as_array().pop(index);
-				JsonValueError(ayr::format("type {} cannot call pop(index)", type_name()));
+				if (is<JsonArray>())
+					return as<JsonArray>().pop(index);
+				func_call_error("pop(index)");
 			}
 
 			/*
@@ -320,9 +320,9 @@ namespace ayr
 			*/
 			void pop(const JsonStr& key)
 			{
-				if (is_dict())
-					return as_dict().pop(key);
-				JsonValueError(ayr::format("type {} cannot call pop(key)", type_name()));
+				if (is<JsonDict>())
+					return as<JsonDict>().pop(key);
+				func_call_error("pop(key)");
 			}
 
 			/*
@@ -336,7 +336,7 @@ namespace ayr
 					using T = decltype(v);
 					if constexpr (issame<T, JsonArray, JsonDict>)
 						return v.clear();
-					JsonValueError(ayr::format("type {} cannot call clear", type_name()));
+					func_call_error("clear");
 					});
 			}
 
@@ -358,15 +358,50 @@ namespace ayr
 					using T = decltype(v);
 					if constexpr (issame<T, JsonStr, JsonArray, JsonDict>)
 						return v.size();
-					JsonValueError(ayr::format("type {} cannot call clear", type_name()));
-					return None;
+					return func_call_error("size");
 					});
 			}
+
+			c_size empty() const { return size() != 0; }
 
 			bool operator==(const Json& other) const { return json_var_ == other.json_var_; }
 
 			void __repr__(Buffer& buffer) const;
+		private:
+			decltype(None) func_call_error(const CString& fname) const
+			{
+				JsonValueError(ayr::format("type {} cannot call {}", type_name(), fname));
+				return None;
+			}
 		};
+
+		template<typename T>
+			requires std::is_arithmetic_v<T>
+		def integer(const T& member) -> Json{ return static_cast<JsonInt>(member); }
+
+		template<typename T>
+			requires std::is_arithmetic_v<T>
+		def floating(const T& member) -> Json { return static_cast<JsonFloat>(member); }
+
+		template<typename T>
+			requires std::is_arithmetic_v<T>
+		def boolean(const T& member) -> Json { return static_cast<JsonBool>(member); }
+
+		def array(const std::initializer_list<Json>& members = {}) -> Json
+		{
+			JsonArray arr;
+			for (const Json& member : members)
+				arr.append(member);
+			return Json(std::move(arr));
+		}
+
+		def dict(const std::initializer_list<std::pair<JsonStr, Json>>& members = {}) -> Json
+		{
+			JsonDict d;
+			for (const std::pair<JsonStr, Json>& member : members)
+				d.insert(member.first, member.second);
+			return Json(std::move(d));
+		}
 	}
 }
 #endif  AYR_JSON_JSONVALUE_HPP

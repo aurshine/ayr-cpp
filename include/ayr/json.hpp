@@ -1,4 +1,5 @@
 #ifndef AYR_JSON_HPP
+#define AYR_JSON_HPP
 
 #include "json/JsonDumper.hpp"
 #include "json/JsonLoader.hpp"

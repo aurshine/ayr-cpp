@@ -22,7 +22,7 @@ namespace ayr
 		// 最小块大小
 		constexpr static c_size BASE_SIZE = 8;
 
-		Array<Appender<T>> blocks_;
+		Appender<Appender<T>> blocks_;
 
 		c_size size_;
 
@@ -383,7 +383,10 @@ namespace ayr
 				c_size new_size = ifelse(bbi == -1, BASE_SIZE, blocks_.at(bbi).size() * 2);
 
 				++back_block_index_;
-				_back_block().resize(new_size);
+				if (back_block_index_ == blocks_.size())
+					blocks_.append(new_size);
+				else
+					_back_block().resize(new_size);
 			}
 			return _back_block();
 		}
