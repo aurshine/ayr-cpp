@@ -109,7 +109,7 @@ namespace ayr
 		{
 			std::fwrite(color_.data(), 1, color_.size(), output_file_);
 			super::write_from_buffer(buffer);
-			std::fwrite(Color::CLOSE, 1, 5, output_file_);
+			std::fwrite(Color::CLOSE, 1, 4, output_file_);
 		}
 
 		void setcolor(CString color) { color_ = std::move(color); }
