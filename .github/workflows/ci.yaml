@@ -12,9 +12,12 @@ permissions:
   contents: read
 
 jobs:
-  build:
-    name: Ubuntu / GCC / Debug
-    runs-on: ubuntu-latest
+  ubuntu:
+    name: Ubuntu 24.04 / GCC 13 / Debug
+    runs-on: ubuntu-24.04
+    env:
+      CC: gcc-13
+      CXX: g++-13
 
     steps:
       - name: Checkout
@@ -23,13 +26,31 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install --yes ninja-build libssl-dev libfmt-dev
+          sudo apt-get install --yes gcc-13 g++-13 ninja-build libssl-dev libfmt-dev
 
-      - name: Configure
-        run: cmake -S . -B out/build -G Ninja -DCMAKE_BUILD_TYPE=Debug
+      - name: Verify compiler
+        run: |
+          "$CC" --version
+          "$CXX" --version
 
-      - name: Build
-        run: cmake --build out/build --parallel
+      - name: Build and test
+        run: bash test/RunTest.sh Debug
 
-      - name: Test
-        run: ctest --test-dir out/build --build-config Debug --output-on-failure
+  windows:
+    name: Windows 2022 / MSVC / Debug
+    runs-on: windows-2022
+    env:
+      VCPKG_DEFAULT_TRIPLET: x64-windows
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: vcpkg install openssl fmt
+
+      - name: Build and test
+        shell: pwsh
+        run: |
+          $env:CMAKE_TOOLCHAIN_FILE = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          ./test/RunTest.ps1 -Config Debug

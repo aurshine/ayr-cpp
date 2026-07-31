@@ -14,7 +14,7 @@ namespace ayr
 
 		using JsonNull = std::monostate;
 
-		using JsonInt = long long;
+		using JsonInt = c_size;
 
 		using JsonFloat = double;
 
@@ -83,7 +83,7 @@ namespace ayr
 		class Json
 		{
 			using self = Json;
-		public:
+
 			std::variant<JsonNull, JsonInt, JsonFloat, JsonBool, JsonStr, JsonArray, JsonDict> json_var_;
 		public:
 			constexpr Json() : json_var_(JsonNull()) {}
@@ -162,6 +162,14 @@ namespace ayr
 			constexpr JsonDict& as_dict() { return std::get<JsonDict>(json_var_); }
 
 			constexpr const JsonDict& as_dict() const { return std::get<JsonDict>(json_var_); }
+
+			// 访问json的实际元素
+			template<typename Callable>
+			auto visit(Callable&& fn) { return std::visit(std::forward<Callable>(fn), json_var_); }
+
+			// 访问json的实际元素
+			template<typename Callable>
+			auto visit(Callable&& fn) const { return std::visit(std::forward<Callable>(fn), json_var_); }
 
 			/*
 			* @brief 获取Json类型名称
@@ -354,14 +362,6 @@ namespace ayr
 					return None;
 					});
 			}
-
-			// 访问json的实际元素
-			template<typename Callable>
-			auto visit(Callable&& fn) { return std::visit(std::forward<Callable>(fn), json_var_); }
-
-			// 访问json的实际元素
-			template<typename Callable>
-			auto visit(Callable&& fn) const { return std::visit(std::forward<Callable>(fn), json_var_); }
 
 			bool operator==(const Json& other) const { return json_var_ == other.json_var_; }
 
