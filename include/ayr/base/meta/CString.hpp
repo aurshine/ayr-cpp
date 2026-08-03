@@ -114,22 +114,42 @@ namespace ayr
 			// 短字符串，使用sso优化
 			char short_str[SSO_SIZE];
 		};
-	public:
-		// 空字符串，不占有内存，不使用sso优化
-		constexpr CString() : short_str(), owner_sso_length_flag(SSO_MASK) {}
+
+		// 浅拷贝，并拥有str内存
+		friend constexpr self ostr(const char* str, c_size len);
+
+		// 浅拷贝，不拥有str内存
+		friend constexpr self vstr(const char* str, c_size len);
+
+		// 深拷贝，并拥有str内存
+		friend constexpr self dstr(const char* str, c_size len);
 
 		// 浅拷贝，根据owner参数决定是否占有内存，不使用sso优化
-		constexpr CString(const char* str_, c_size len = -1, bool owner = false) : long_str(str_)
+		constexpr CString(const char* str_, c_size len, bool owner) : long_str(str_)
 		{
-			if (len == -1) len = ayr::strlen(str_);
+			if (str_ == nullptr) len = 0;
+			if (len < 0) len = ayr::strlen(str_);
 			if (owner)
-				owner_sso_length_flag = len | OWNER_MASK;
+				owner_sso_length_flag = owner_length_flag(len);
 			else
-				owner_sso_length_flag = len;
+				owner_sso_length_flag = view_length_flag(len);
+		}
+	public:
+		// 空字符串，不占有内存，不使用sso优化
+		constexpr CString() : short_str(), owner_sso_length_flag(sso_length_flag(0)) {}
+
+		// 深拷贝，根据len参数决定是否使用sso优化
+		constexpr CString(const char* str_, c_size len = -1) : short_str()
+		{
+			if (str_ == nullptr) len = 0;
+			if (len < 0) len = ayr::strlen(str_);
+			
+			char* ptr = assign_ptr(len);
+			std::copy(str_, str_ + len, ptr);
 		}
 
-		// 浅拷贝，不占有内存，不使用sso优化
-		constexpr CString(const self& other) : CString(other.data(), other.size(), false) {}
+		// 深拷贝
+		constexpr CString(const self& other) : CString(other.data(), other.size()) {}
 
 		// 如果other是sso优化的，则直接赋值，否则代替内存占用
 		constexpr CString(self&& other) noexcept
@@ -153,25 +173,15 @@ namespace ayr
 		constexpr self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
-			this->~CString();
-
-			this->long_str = other.data();
-			this->owner_sso_length_flag = other.size();
-			return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
 		}
 
 		constexpr self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
-			this->~CString();
-
-			if (other.sso())
-				std::copy(other.begin(), other.end(), short_str);
-			else
-				long_str = other.long_str;
-			owner_sso_length_flag = other.owner_sso_length_flag;
-			other.owner_sso_length_flag = 0;
-			return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
 		}
 
 		// 字符串拼接
@@ -205,7 +215,7 @@ namespace ayr
 			if (sso() && m_size + o_size <= SSO_SIZE)
 			{
 				std::copy(other.begin(), other.end(), short_str + m_size);
-				owner_sso_length_flag = (m_size + o_size) | SSO_MASK;
+				owner_sso_length_flag = sso_length_flag(m_size + o_size);
 			}
 			else
 			{
@@ -222,7 +232,7 @@ namespace ayr
 			if (sso() && m_size + 1 <= SSO_SIZE)
 			{
 				short_str[m_size] = ch;
-				owner_sso_length_flag = (m_size + 1) | SSO_MASK;
+				owner_sso_length_flag = sso_length_flag(m_size + 1);
 			}
 			else
 			{
@@ -296,9 +306,8 @@ namespace ayr
 		constexpr c_size index(const self& other, c_size pos = 0) const
 		{
 			c_size m_size = size(), o_size = other.size();
-			if (o_size > m_size - pos) return -1;
 
-			while (pos <= m_size - o_size)
+			while (pos + o_size <= m_size)
 			{
 				if (std::equal(other.begin(), other.end(), begin() + pos))
 					return pos;
@@ -364,7 +373,10 @@ namespace ayr
 		*/
 		constexpr c_size rindex(const char& ch, c_size pos = -1) const
 		{
-			if (pos < 0 || pos > size() - 1) pos = size() - 1;
+			c_size m_size = size();
+			if (pos < 0 || pos + 1 > m_size)
+				pos = m_size - 1;
+
 			while (pos >= 0)
 			{
 				if (at(pos) == ch)
@@ -375,18 +387,20 @@ namespace ayr
 		}
 
 		// 获取other在字符串中出现的次数
-		constexpr c_size count(const self& other, c_size pos = 0) const
+		constexpr c_size count(const self& other, c_size pos = 0, bool cover = false) const
 		{
+			if (other.empty())
+				return 0;
+
 			c_size m_size = size(), o_size = other.size();
 			c_size count = 0;
-			if (o_size > m_size - pos) return 0;
 
-			while (pos <= m_size - o_size)
+			while (pos + o_size <= m_size)
 			{
 				if (std::equal(other.begin(), other.end(), begin() + pos))
 				{
 					++count;
-					pos += o_size;
+					pos += ifelse(cover, 1, o_size);;
 				}
 				else
 					++pos;
@@ -407,33 +421,23 @@ namespace ayr
 			return count;
 		}
 
-		// 拷贝一个新的 CString 对象，并拥有内存
-		constexpr self clone() const
-		{
-			self res;
-			char* ptr = res.assign_ptr(size());
-			std::copy(begin(), end(), ptr);
-			return res;
-		}
-
 		// 字符串切片，[start, end)，浅拷贝
 		constexpr self vslice(c_size start, c_size end) const
 		{
 			self res;
-			// 越界检查
-			if (end > start)
+			c_size o_size = end - start;
+			if (o_size <= 0 || start < 0 || end > size()) return res;
+
+			// 可以sso优化
+			if (o_size <= SSO_SIZE)
 			{
-				// 可以sso优化
-				if (end - start <= SSO_SIZE)
-				{
-					std::copy(begin() + start, begin() + end, res.short_str);
-					res.owner_sso_length_flag = (end - start) | SSO_MASK;
-				}
-				else
-				{
-					res.long_str = data() + start;
-					res.owner_sso_length_flag = end - start;
-				}
+				std::copy(begin() + start, begin() + end, res.short_str);
+				res.owner_sso_length_flag = sso_length_flag(o_size);
+			}
+			else
+			{
+				res.long_str = data() + start;
+				res.owner_sso_length_flag = view_length_flag(o_size);
 			}
 
 			return res;
@@ -445,12 +449,14 @@ namespace ayr
 		// 字符串切片，[start, end)，深拷贝
 		constexpr self slice(c_size start, c_size end) const
 		{
-			self res = vslice(start, end);
-			// 视图转为深拷贝
-			if (res.viewer())
-				return res.clone();
-			else
-				return res;
+			self res;
+			c_size o_size = end - start;
+			if (o_size <= 0 || start < 0 || end > size()) return res;
+
+			char* ptr = res.assign_ptr(o_size);
+			std::copy(begin() + start, begin() + end, ptr);
+
+			return res;
 		}
 
 		// 字符串切片，[start, size())，深拷贝
@@ -474,10 +480,9 @@ namespace ayr
 		constexpr bool isspace() const
 		{
 			for (const char& ch : *this)
-				if ((ch > 9 && ch < 13) || ch == ' ' || ch == '\0')
-					return true;
-				
-			return false;
+				if (!std::isspace(ch))
+					return false;
+			return true;
 		}
 
 		// 判断是否为数字字符串
@@ -643,6 +648,15 @@ namespace ayr
 
 		constexpr self __str__() const { return *this; }
 	private:
+		// 创建长度为length的字符串，并设置sso优化标志
+		constexpr c_size sso_length_flag(c_size length) const { return length | SSO_MASK; }
+
+		// 创建长度为length的字符串，并设置拥有内存标志
+		constexpr c_size owner_length_flag(c_size length) const { return length | OWNER_MASK; }
+
+		// 创建长度为length的字符串，并设置视图标志
+		constexpr c_size view_length_flag(c_size length) const { return length; }
+
 		/*
 		* @brief 根据length分配内存，返回首地址
 		*
@@ -658,13 +672,13 @@ namespace ayr
 			if (length <= SSO_SIZE)
 			{
 				ptr = short_str;
-				owner_sso_length_flag = length | SSO_MASK;
+				owner_sso_length_flag = sso_length_flag(length);
 			}
 			else
 			{
 				ptr = ayr_alloc<char>(length);
 				long_str = ptr;
-				owner_sso_length_flag = length | OWNER_MASK;
+				owner_sso_length_flag = owner_length_flag(length);
 			}
 
 			return ptr;
@@ -673,56 +687,55 @@ namespace ayr
 
 	// owner string
 	// 浅拷贝，并拥有str内存
-	constexpr def ostr(const char* str, c_size len = -1) { return CString(str, len, true); }
+	constexpr def ostr(const char* str, c_size len = -1) -> CString { return CString(str, len, true); }
 
 	// view string
 	// 浅拷贝，不拥有str内存
-	constexpr def vstr(const char* str, c_size len = -1) { return CString(str, len, false); }
+	constexpr def vstr(const char* str, c_size len = -1) -> CString { return CString(str, len, false); }
 
 	// 浅拷贝，不拥有str内存
-	def vstr(const std::string& str) { return CString(str.c_str(), str.size(), false); }
+	constexpr def vstr(const std::string& str) { return vstr(str.c_str(), str.size()); }
 
 	// 浅拷贝，不拥有str内存
-	constexpr def vstr(const std::string_view& str) { return CString(str.data(), str.size(), false); }
+	constexpr def vstr(const std::string_view& str) { return vstr(str.data(), str.size()); }
 
 	// 浅拷贝，不拥有str内存
-	constexpr def vstr(const CString& str) { return str; }
+	constexpr def vstr(const CString& str) { return vstr(str.data(), str.size()); }
 
 	// deep string
 	// 深拷贝, 并拥有str内存
-	constexpr def dstr(const char* str, c_size len = -1) { return vstr(str, len).clone(); }
+	constexpr def dstr(const char* str, c_size len = -1) -> CString { return CString(str, len); }
 
 	// 深拷贝, 并拥有str内存
-	def dstr(const std::string& str) { return vstr(str.c_str(), str.size()).clone(); }
+	constexpr def dstr(const std::string& str) { return dstr(str.data(), str.size()); }
 
 	// 深拷贝, 并拥有str内存
-	constexpr def dstr(const std::string_view& str) { return vstr(str.data(), str.size()).clone(); }
+	constexpr def dstr(const std::string_view& str) { return dstr(str.data(), str.size()); }
 
-	constexpr def dstr(const CString& str) { return str.clone(); }
+	// 深拷贝, 并拥有str内存
+	constexpr def dstr(const CString& str) { return dstr(str.data(), str.size()); }
 
 	// nullptr 转换为 CString 对象
-	constexpr der(CString) cstr(nullptr_t) { return vstr("nullptr", 7); }
+	constexpr def cstr(nullptr_t) { return vstr("nullptr", 7); }
 
 	// 将bool 转换为 CString 对象
-	constexpr der(CString) cstr(bool value) { return ifelse(value, vstr("true", 4), vstr("false", 5)); }
+	constexpr def cstr(bool value) { return ifelse(value, vstr("true", 4), vstr("false", 5)); }
 
 	// 将char 转换为 CString 对象
-	constexpr der(CString) cstr(char value) { return dstr(&value, 1); }
+	constexpr def cstr(char value) { return dstr(&value, 1); }
 
 	// 将const char* 转换为 CString 对象
-	constexpr der(CString) cstr(const char* value, c_size len = -1) { return dstr(value, len); }
+	constexpr def cstr(const char* value, c_size len = -1) { return dstr(value, len); }
 
 	// 将std::string 转换为 CString 对象
-	der(CString) cstr(const std::string& value) { return dstr(value); }
+	def cstr(const std::string& value) { return dstr(value); }
 
 	// 将std::string_view 转换为 CString 对象
-	constexpr der(CString) cstr(const std::string_view& value) { return dstr(value); }
-
-	constexpr def cstr(const CString& str) { return str.clone(); }
+	constexpr def cstr(const std::string_view& value) { return dstr(value); }
 
 	// 将任意类型转换为 CString 对象
 	template<typename T>
-	constexpr der(CString) cstr(const T& value)
+	constexpr def cstr(const T& value)
 	{
 		if constexpr (hasmethod(T, __str__))
 			return value.__str__();

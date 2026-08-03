@@ -9,7 +9,7 @@ namespace ayr
 	class Printer
 	{
 	public:
-		Printer(FILE* file_ptr, CString sw = " ", CString ew = "\n") : output_file_(file_ptr), sw_(std::move(sw)), ew_(std::move(ew)) {}
+		Printer(FILE* file_ptr, const CString& sw = " ", const CString& ew = "\n") : output_file_(file_ptr), sw_(sw), ew_(ew) {}
 
 		template<typename T0, typename... Args>
 		void operator()(const T0& object, const Args&... args) const
@@ -29,10 +29,10 @@ namespace ayr
 		void flush() const { std::fflush(output_file_); }
 
 		// 设置输出结束符
-		void setend(CString ew) { ew_ = std::move(ew); }
+		void setend(const CString& ew) { ew_ = ew; }
 
 		// 设置输出分隔符
-		void setsep(CString sw) { sw_ = std::move(sw); }
+		void setsep(const CString& sw) { sw_ = sw; }
 
 		FILE* file() const { return output_file_; }
 
@@ -93,8 +93,8 @@ namespace ayr
 	{
 		using super = Printer;
 	public:
-		ColorPrinter(FILE* file_ptr, CString color = Color::WHITE)
-			: Printer(file_ptr), color_(std::move(color)) {
+		ColorPrinter(FILE* file_ptr, const CString& color = Color::WHITE)
+			: Printer(file_ptr), color_(color) {
 		}
 
 		template<typename... Args>
@@ -112,7 +112,7 @@ namespace ayr
 			std::fwrite(Color::CLOSE, 1, 4, output_file_);
 		}
 
-		void setcolor(CString color) { color_ = std::move(color); }
+		void setcolor(const CString& color) { color_ = color; }
 	private:
 		CString color_;
 	};

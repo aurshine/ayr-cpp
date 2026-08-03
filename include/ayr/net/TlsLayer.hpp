@@ -40,7 +40,7 @@ namespace ayr
 
 			TlsResult(const self& other) :
 				state(other.state),
-				error(other.error.clone()),
+				error(other.error),
 				bytes(other.bytes) {}
 
 			TlsResult(self&& other) noexcept :
@@ -327,15 +327,10 @@ namespace ayr
 				return result;
 			}
 		private:
-			static TlsResult tls_error(CString error)
+			static TlsResult tls_error(const CString& error)
 			{
 				TlsResult result(TlsState::Error);
-				// CString的普通复制只是非拥有视图。错误会跨越当前调用甚至协程挂起，
-				// 所以拥有型字符串直接移动，视图则显式clone，避免悬空。
-				if (error.owner())
-					result.error = std::move(error);
-				else
-					result.error = error.clone();
+				result.error = error;
 				return result;
 			}
 

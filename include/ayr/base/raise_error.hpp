@@ -17,7 +17,7 @@ namespace ayr
 		// 在抛异常的时候输出错误信息
 		static bool show_error_while_throw_;
 	public:
-		AyrError(CString name, CString msg, std::source_location loc = std::source_location::current()) : err_name_(name.clone()), err_msg_(msg.clone()), err_info_()
+		AyrError(const CString& name, const CString& msg, std::source_location loc = std::source_location::current()) : err_name_(name), err_msg_(msg), err_info_()
 		{
 			err_info_ << "File: " << loc.file_name() << "\n";
 			err_info_ << "Line, Column: " << loc.line() << ", " << loc.column() << "\n";
@@ -25,7 +25,7 @@ namespace ayr
 			err_info_ << err_name_ << ": " << err_msg_ << "\n\0";
 		}
 
-		AyrError(const self& other) : err_name_(other.err_name_.clone()), err_msg_(other.err_msg_.clone()), err_info_(other.err_info_) {}
+		AyrError(const self& other) : err_name_(other.err_name_), err_msg_(other.err_msg_), err_info_(other.err_info_) {}
 
 		AyrError(self&& other) noexcept : err_name_(std::move(other.err_name_)), err_msg_(std::move(other.err_msg_)), err_info_(std::move(other.err_info_)) {}
 

@@ -171,10 +171,10 @@ namespace ayr
 			* 
 			* @param err 事件产生的错误
 			*/
-			IoResult& result(int bytes, CString err = "")
+			IoResult& result(int bytes, const CString& err = "")
 			{
 				result_->bytes = bytes;
-				result_->error = std::move(err);
+				result_->error = err;
 				return *result_;
 			}
 

@@ -39,7 +39,7 @@ namespace ayr
 
 			IoResult() : error(), bytes(0), socket(-1) {}
 
-			IoResult(const self& other) : error(other.error.clone()), bytes(other.bytes), socket(other.socket) {}
+			IoResult(const self& other) : error(other.error), bytes(other.bytes), socket(other.socket) {}
 
 			self& operator=(const self& other)
 			{
@@ -52,13 +52,11 @@ namespace ayr
 			bool ok() const { return error.empty(); }
 		};
 
-		IoResult io_result(CString err, int bytes = 0, BaseSocket socket = -1)
+		IoResult io_result(const CString& err, int bytes = 0, BaseSocket socket = -1)
 		{
 			IoResult res;
-			if (err.owner())
-				res.error = std::move(err);
-			else
-				res.error = err.clone();
+			
+			res.error = err;
 			res.bytes = bytes;
 			res.socket = socket;
 			return res;

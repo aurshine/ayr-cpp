@@ -487,7 +487,7 @@ namespace ayr
 			{
 				if (buffer.readable_size() < chunk_size_)
 					return false;
-				response.body = vstr(buffer.peek(), chunk_size_).clone();
+				response.body = dstr(buffer.peek(), chunk_size_);
 				buffer.retrieve(chunk_size_);
 				return true;
 			}
