@@ -41,10 +41,30 @@ jobs:
     runs-on: windows-2022
     env:
       VCPKG_DEFAULT_TRIPLET: x64-windows
+      VCPKG_DEFAULT_BINARY_CACHE: ${{ github.workspace }}\vcpkg-binary-cache
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Determine vcpkg version
+        id: vcpkg-version
+        shell: pwsh
+        run: |
+          $commit = git -C "$env:VCPKG_INSTALLATION_ROOT" rev-parse HEAD
+          "commit=$commit" >> $env:GITHUB_OUTPUT
+
+      - name: Create vcpkg binary cache directory
+        shell: pwsh
+        run: New-Item -ItemType Directory -Force -Path "$env:VCPKG_DEFAULT_BINARY_CACHE" | Out-Null
+
+      - name: Restore vcpkg binary cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.vcpkg-version.outputs.commit }}-${{ hashFiles('.github/workflows/ci.yaml') }}
+          restore-keys: |
+            vcpkg-${{ runner.os }}-${{ env.VCPKG_DEFAULT_TRIPLET }}-${{ steps.vcpkg-version.outputs.commit }}-
 
       - name: Install dependencies
         run: vcpkg install openssl fmt
