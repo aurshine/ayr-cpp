@@ -185,25 +185,25 @@ namespace ayr
 			}
 
 			// 完成read后，更新read的上下文
-			void complete_read(EventContext& ctx, int bytes, CString error)
+			void complete_read(EventContext& ctx, int bytes, const CString& error)
 			{
-				ctx.result(bytes, std::move(error));
+				ctx.result(bytes, error);
 				if (ctx.result()->ok())
 					ctx.buffer()->written(bytes);
 			}
 
 			// 完成write后，更新write的上下文
-			void complete_write(EventContext& ctx, int bytes, CString error)
+			void complete_write(EventContext& ctx, int bytes, const CString& error)
 			{
-				ctx.result(bytes, std::move(error));
+				ctx.result(bytes, error);
 				if (ctx.result()->ok())
 					ctx.buffer()->retrieve(bytes);
 			}
 
 			// 完成accept后，更新accept_fd的accept上下文
-			void complete_accept(EventContext& ctx, int bytes, CString error)
+			void complete_accept(EventContext& ctx, int bytes, const CString& error)
 			{
-				ctx.result(bytes, std::move(error));
+				ctx.result(bytes, error);
 				if (ctx.result()->ok())
 				{
 					BaseSocket listen_fd = ctx.socket();
@@ -213,9 +213,9 @@ namespace ayr
 			}
 
 			// 完成connect后，更新connect_fd的connect上下文
-			void complete_connect(EventContext& ctx, int bytes, CString error)
+			void complete_connect(EventContext& ctx, int bytes, const CString& error)
 			{
-				ctx.result(bytes, std::move(error));
+				ctx.result(bytes, error);
 				if (ctx.result()->ok())
 				{
 					int connect_error = 0;

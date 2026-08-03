@@ -496,7 +496,7 @@ namespace ayr
 							RuntimeError(handshake_result.error);
 						co_return sock;
 					}
-					last_error = result.error.clone();
+					last_error = result.error;
 					net::close(fd);
 				}
 			}

@@ -159,11 +159,11 @@ namespace ayr
 		def join(const CString& path1, const CString& path2)
 		{
 			if (path1.empty())
-				return path2.clone();
+				return path2;
 			if (path2.empty())
-				return path1.clone();
+				return path1;
 			if (isabs(path2))
-				return path2.clone();
+				return path2;
 
 			c_size len1 = path1.size();
 			c_size len2 = path2.size();
@@ -298,7 +298,7 @@ namespace ayr
 			return from_buffer(std::move(abs_path));
 #else
 			if (isabs(path))
-				return path.clone();
+				return path;
 			return join(getcwd(), path);
 #endif 
 		}
@@ -315,7 +315,7 @@ namespace ayr
 		def listdir(const CString& path) -> coro::Generator<CString>
 		{
 			// 协程可能比调用表达式活得更久，不能在帧中保留调用者字符串的浅引用。
-			CString owned_path = path.clone();
+			CString owned_path = path;
 #ifdef AYR_WIN
 			WIN32_FIND_DATAA find_data;
 
@@ -378,7 +378,7 @@ namespace ayr
 		def walk(const CString& path) -> coro::Generator<std::tuple<CString, DynArray<CString>, DynArray<CString>>>
 		{
 			std::queue<CString> root_dirs;
-			root_dirs.push(path.clone());
+			root_dirs.push(path);
 
 			while (!root_dirs.empty())
 			{
@@ -403,10 +403,10 @@ namespace ayr
 					bool traversable_directory = S_ISDIR(st.st_mode);
 #endif
 					if (!traversable_directory)
-						files.append(sub_path.clone());
+						files.append(sub_path);
 					else
 					{
-						dirs.append(sub_path.clone());
+						dirs.append(sub_path);
 						root_dirs.push(std::move(child_path));
 					}
 				}

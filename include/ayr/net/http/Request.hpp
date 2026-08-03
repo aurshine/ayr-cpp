@@ -61,7 +61,7 @@ namespace ayr
 				uri_(other.uri_),
 				version_(other.version_),
 				headers(other.headers),
-				body(other.body.clone()) {
+				body(other.body) {
 			}
 
 			HttpRequest(self&& other) noexcept :
@@ -109,7 +109,7 @@ namespace ayr
 			// 添加请求体内容
 			void set_body(const CString& body)
 			{
-				this->body = body.clone();
+				this->body = body;
 				if (body.empty())
 					headers.pop("Content-Length"as);
 				else

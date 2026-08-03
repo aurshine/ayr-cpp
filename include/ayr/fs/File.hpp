@@ -501,7 +501,7 @@ namespace ayr
 		def readlines(const CString& filename) -> coro::Generator<CString> 
 		{ 
 			AyrFile af(filename, "w");
-			for (CString line : af.readlines())
+			for (const CString& line : af.readlines())
 				co_yield line; 
 		}
 	}

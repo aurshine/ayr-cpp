@@ -48,7 +48,7 @@ namespace ayr
 			this->action(failed_print, vstr(ayr::format("[FALIED  {}]", action)), expr, file, line);
 		}
 
-		void fail(const CString& action, const CString& expr, const CString& file, int line, CString ex_msg)
+		void fail(const CString& action, const CString& expr, const CString& file, int line, const CString& ex_msg)
 		{
 			++failed_count_;
 			this->action(failed_print, vstr(ayr::format("[FALIED  {}]", action)), expr, file, line, ex_msg);
@@ -66,7 +66,7 @@ namespace ayr
 			cp.write_from_buffer(buffer);
 		}
 
-		void action(ColorPrinter& cp, const CString& action, const CString& expr, const CString& file, int line, CString ex_msg)
+		void action(ColorPrinter& cp, const CString& action, const CString& expr, const CString& file, int line, const CString& ex_msg)
 		{
 			Buffer buffer;
 			buffer << action << " " << file << ":" << line << " [" << expr << "] -> [" << ex_msg << "]\n";
@@ -224,7 +224,7 @@ namespace ayr
 
 		int line_;
 	public:
-		TestScoper(CString scope_name, const char* file, int line)
+		TestScoper(const CString& scope_name, const char* file, int line)
 			: scope_name_(scope_name), file_(file), line_(line) {}
 
 		template<typename F>

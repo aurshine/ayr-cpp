@@ -10,7 +10,7 @@ using namespace ayr;
 int main()
 {
 	CString short_view = vstr("hello");
-	CString short_copy = short_view.clone();
+	CString short_copy = short_view;
 	CString long_copy = dstr("this string is longer than the sso buffer");
 	char* owned_ptr = ayr_alloc<char>(6);
 	std::memcpy(owned_ptr, "world", 6);
