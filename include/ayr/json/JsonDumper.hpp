@@ -12,13 +12,16 @@ namespace ayr
 			Buffer& buffer;
 
 			// 当前缩进级别
-			int depth;
+			int depth_;
 
 			// 每行最多元素数，超过则换行
 			static constexpr int MAX_ELEMENTS_INLINE = 10;
 
 		public:
-			JsonDumper(Buffer& buffer_) : buffer(buffer_), depth(0) {}
+			// 最大容器嵌套深度
+			inline static c_size MAX_DEPTH = DEFAULT_MAX_DEPTH;
+
+			JsonDumper(Buffer& buffer_) : buffer(buffer_), depth_(0) {}
 
 			void operator()(const JsonNull& obj) { buffer << "null"; }
 
@@ -28,15 +31,37 @@ namespace ayr
 
 			void operator()(const JsonBool& obj) { buffer << obj; }
 
-			void operator()(const JsonStr& obj) { buffer << "\"" << obj << "\""; }
+			void operator()(const JsonStr& obj) 
+			{ 
+				buffer << "\""; 
+				for (const auto& ch : obj)
+					if (ch == '\b')
+						buffer << "\\b";
+					else if (ch == '\f')
+						buffer << "\\f";
+					else if (ch == '\n')
+						buffer << "\\n";
+					else if (ch == '\r')
+						buffer << "\\r";
+					else if (ch == '\t')
+						buffer << "\\t";
+					else if (ch == '"')
+						buffer << "\\\"";
+					else if (ch == '\\')
+						buffer << "\\\\";
+					else
+						buffer << ch;
+				buffer << "\"";
+			}
 
 			template<JsonLikeConcept T>
 			void operator()(const DynArray<T>& obj)
 			{
+				enter_depth();
+				exitask([&] { --depth_; });
 				bool auto_line = needs_auto_line(obj);
 
 				buffer << "[";
-				++depth;
 				// 已经输出第一个元素的标志
 				bool flag = false;
 				for (auto& item : obj)
@@ -48,7 +73,6 @@ namespace ayr
 					this->operator()(item);
 				}
 
-				--depth;
 				if (auto_line) newline();
 				buffer << "]";
 			}
@@ -56,10 +80,11 @@ namespace ayr
 			template<JsonLikeConcept T>
 			void operator()(const Dict<JsonStr, T>& obj)
 			{
+				enter_depth();
+				exitask([&] { --depth_; });
 				bool auto_line = needs_auto_line(obj);
 
 				buffer << "{";
-				++depth;
 
 				// 已经输出第一个元素的标志
 				bool flag = false;
@@ -74,7 +99,6 @@ namespace ayr
 					this->operator()(v);
 				}
 
-				--depth;
 				if (auto_line) newline();
 				buffer << "}";
 			}
@@ -86,12 +110,19 @@ namespace ayr
 					});
 			}
 		private:
+			// 进入一层容器并检查解析深度
+			void enter_depth()
+			{
+				if (++depth_ >= MAX_DEPTH)
+					JsonValueError(ayr::format("exceed max depth: {}", MAX_DEPTH));
+			}
+
 			// 输出换行和缩进
 			void newline()
 			{
-				buffer.adjust_util(1 + depth * 4);
+				buffer.adjust_util(1 + depth_ * 4);
 				buffer.append_bytes("\n", 1, 1);
-				buffer.append_bytes(" ", 1, depth * 4);
+				buffer.append_bytes(" ", 1, depth_ * 4);
 			}
 
 			// 包含数据结构或元素过多时, 每个元素单独一行
@@ -117,14 +148,12 @@ namespace ayr
 			}
 		};
 
-		// 将JsonLike对象转储为JSON字符串 - CString版本
+		// 将JsonLike对象转储为JSON字符串，保存在buffer中
 		template <JsonLikeConcept T>
-		CString dump(const T& obj)
+		def dump(const T& obj, Buffer& buffer)
 		{
-			Buffer buffer(512);
 			JsonDumper dumper(buffer);
 			dumper(obj);
-			return from_buffer(std::move(buffer));
 		}
 
 		// 将JsonLike对象转储为JSON字符串 - Atring版本
@@ -132,8 +161,7 @@ namespace ayr
 		Atring dumps(const T& obj)
 		{
 			Buffer buffer(512);
-			JsonDumper dumper(buffer);
-			dumper(obj);
+			dump(obj, buffer);
 			return Atring::from(vstr(buffer.peek(), buffer.readable_size()));
 		}
 
@@ -142,16 +170,11 @@ namespace ayr
 		Atring dumps(const T& obj)
 		{
 			Buffer buffer(512);
-			JsonDumper dumper(buffer);
-			dumper(obj);
+			dump(obj, buffer);
 			return Atring::from<Codec>(vstr(buffer.peek(), buffer.readable_size()));
 		}
 
-		void Json::__repr__(Buffer& buffer) const
-		{
-			JsonDumper dumper(buffer);
-			dumper(*this);
-		}
+		void Json::__repr__(Buffer& buffer) const { dump(*this, buffer); }
 	}
 }
 

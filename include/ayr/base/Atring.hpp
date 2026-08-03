@@ -867,17 +867,34 @@ namespace ayr
 		template<IteratableU<self> Obj>
 		constexpr static self ajoin(const Obj& elems)
 		{
-			c_size res_size = 0;
-			for (const self& elem : elems)
-				res_size += elem.size();
+			if constexpr (issame<Obj, self>)
+				return elems;
 
 			self res;
-			if (res_size > 0)
+			c_size res_size = 0;
+			if constexpr (IteratableV<Obj, AChar>)
 			{
-				AChar* ptr = res.assign_ptr(res_size);
-				for (const self& elem : elems)
-					ptr = std::copy(elem.begin(), elem.end(), ptr);
+				res_size = std::ranges::distance(elems.begin(), elems.end());
+				
+				if (res_size > 0)
+				{
+					AChar* ptr = res.assign_ptr(res_size);
+					std::copy(elems.begin(), elems.end(), ptr);
+				}
 			}
+			else
+			{
+				for (const self& elem : elems)
+					res_size += elem.size();
+
+				if (res_size > 0)
+				{
+					AChar* ptr = res.assign_ptr(res_size);
+					for (const self& elem : elems)
+						ptr = std::copy(elem.begin(), elem.end(), ptr);
+				}
+			}
+			
 			return res;
 		}
 

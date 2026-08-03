@@ -295,30 +295,30 @@ using namespace ayr;
 
 int main()
 {
-    json::Json document = json::load(R"({
+    json::Json document = json::loads(R"({
         "name": "ayr",
         "version": 1,
         "tags": ["cpp", "coroutine"]
     })"as);
 
-    print(document["name"as].as_str());
-    print(document["tags"as][0].as_str());
+    print(document["name"as].as<json::JsonStr>());
+    print(document["tags"as][0].as<json::JsonStr>());
 
-    document["version"as] = json::Json(json::JsonInt(2));
-    document["tags"as].append(json::Json(json::JsonStr("http"as)));
+    document["version"as] = json::integer(2);
+    document["tags"as].append("http"as);
 
-    CString compact_or_pretty = json::dump(document);
+    Atring compact_or_pretty = json::dumps(document);
     print(compact_or_pretty);
 }
 ```
 
 常用接口：
 
-- `json::load(text)`：解析一个 JSON 值；
-- `json::loads(text)`：返回 `{解析结果, 剩余文本}`；
-- `json::dump(value)`：序列化为 `CString`；
+- `json::loads(text)`：解析一个 JSON 值；
+- `json::loads_prefix(text)`：返回 `{解析结果, 剩余文本}`；
+- `json::dump(value, buffer)`：序列化为 `Buffer`；
 - `json::dumps(value)`：序列化为 `Atring`；
-- `is_*()`、`as_*()`：检查并取得具体类型；
+- `is<*>()`、`as<*>()`：检查并取得具体类型；
 - `operator[]`、`append`、`pop`、`clear`：操作数组或对象。
 
 `JsonLoader::MAX_DEPTH` 控制最大解析深度。类型不匹配或输入非法时会抛出
