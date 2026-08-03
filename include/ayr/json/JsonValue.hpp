@@ -362,7 +362,7 @@ namespace ayr
 					});
 			}
 
-			c_size empty() const { return size() != 0; }
+			c_size empty() const { return size() == 0; }
 
 			bool operator==(const Json& other) const { return json_var_ == other.json_var_; }
 
@@ -404,4 +404,4 @@ namespace ayr
 		}
 	}
 }
-#endif  AYR_JSON_JSONVALUE_HPP
+#endif // AYR_JSON_JSONVALUE_HPP

@@ -255,7 +255,7 @@ namespace ayr
 		struct is_optional<Optional<U>> : std::true_type {};
 
 		template<typename U>
-		constexpr static bool is_optional_v = is_optional<T>::value;
+		constexpr static bool is_optional_v = is_optional<std::remove_cvref_t<U>>::value;
 
 	private:
 		T* get_ptr() { return reinterpret_cast<T*>(&storage_); }

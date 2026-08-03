@@ -43,16 +43,18 @@ namespace ayr
 
 	constexpr def range(c_size start, c_size end, c_size step = 1)
 	{
-		end = start + (end - start + step - 1) / step * step;
 		if (step == 0)
 			ValueError("range step cannot be zero");
 		if (start > end && step > 0)
 			ValueError("range start > end with step > 0");
 		if (start < end && step < 0)
 			ValueError("range start < end with step < 0");
+
+		const c_size distance = end - start;
+		const c_size count = distance / step + (distance % step != 0);
+		end = start + count * step;
 		return std::ranges::subrange(RangeIterator(start, step), RangeIterator(end, step));
 	}
-
 	constexpr def range(c_size end) { return range(0, end, 1); }
 }
 #endif // AYR_BASE_ITERTOOLS_RANGE_HPP

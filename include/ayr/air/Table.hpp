@@ -169,7 +169,12 @@ namespace ayr
 		constexpr bool used() const { return dist != EMPITY_DIST; }
 
 		// value必须有效，将元素设置为不使用
-		constexpr void set_unused() { destroy_value(); dist = EMPITY_DIST; }
+		constexpr void set_unused()
+		{
+			destroy_value();
+			hashv = 0;
+			dist = EMPITY_DIST;
+		}
 
 		// 不检查value的有效性,value必须有效
 		constexpr T& value() { return reinterpret_cast<T&>(value_); }
@@ -206,8 +211,6 @@ namespace ayr
 		constexpr void destroy_value()
 		{
 			ayr_destroy(&value());
-			hashv = 0;
-			dist = 0;
 		}
 
 		void __repr__(Buffer& buffer) const
@@ -436,8 +439,9 @@ namespace ayr
 		// 清空表并且释放内存
 		void clear()
 		{
+			const c_size old_capacity = capacity();
+			ayr_desloc(items_, old_capacity);
 			policy_.reset();
-			ayr_desloc(items_, policy_.capacity());
 			items_ = ayr_alloc<RobinItem_t>(capacity());
 			for (c_size i = 0, n = capacity(); i < n; ++i)
 				ayr_construct(items_ + i);

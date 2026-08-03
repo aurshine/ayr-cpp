@@ -16,7 +16,7 @@ namespace ayr
 		{
 			using self = HttpHeaders;
 
-			using Entry = std::pair<Atring, Atring>;
+			using Entry = std::pair<CString, CString>;
 
 			DynArray<Entry> entries_;
 		public:
@@ -51,10 +51,10 @@ namespace ayr
 			bool empty() const { return entries_.empty(); }
 
 			// 判断是否包含指定字段名。
-			bool contains(const Atring& key) const { return find_index(key) != -1; }
+			bool contains(const CString& key) const { return find_index(key) != -1; }
 
 			// 获取指定字段，不存在时抛出异常。
-			const Atring& get(const Atring& key) const
+			const CString& get(const CString& key) const
 			{
 				c_size index = find_index(key);
 				if (index != -1)
@@ -64,7 +64,7 @@ namespace ayr
 			}
 
 			// 获取指定字段，不存在时返回默认值。
-			const Atring& get(const Atring& key, const Atring& default_value) const
+			const CString& get(const CString& key, const CString& default_value) const
 			{
 				c_size index = find_index(key);
 				return ifelse(index == -1, default_value, entries_[index].second);
@@ -75,14 +75,14 @@ namespace ayr
 			 *
 			 * @details 已有的同名字段会被替换。
 			 */
-			void insert(const Atring& key, const Atring& value)
+			void insert(const CString& key, const CString& value)
 			{
 				validate(key, value);
 				entries_.append(Entry(key, value));
 			}
 
 			// 删除头字段。
-			void pop(const Atring& key)
+			void pop(const CString& key)
 			{
 				c_size index = find_index(key);
 				if (index != -1)
@@ -100,13 +100,13 @@ namespace ayr
 			auto end() const { return entries_.end(); }
 
 		private:
-			// HTTP 字段名只允许 ASCII，此处使用 Atring 的大小写转换统一比较。
-			static bool key_equal(const Atring& left, const Atring& right)
+			// HTTP 字段名只允许 ASCII，此处使用 CString 的大小写转换统一比较。
+			static bool key_equal(const CString& left, const CString& right)
 			{
 				return left.lower() == right.lower();
 			}
 
-			static bool valid_name_char(int ch)
+			static bool valid_name_char(char ch)
 			{
 				return
 					(ch >= '0' && ch <= '9')
@@ -119,19 +119,19 @@ namespace ayr
 			}
 
 			// 验证key 和 value 是否合法
-			static void validate(const Atring& key, const Atring& value)
+			static void validate(const CString& key, const CString& value)
 			{
 				if (key.empty())
 					ValueError("HTTP header name cannot be empty.");
-				for (const AChar& ch : key)
-					if (!valid_name_char(ch.ord()))
+				for (const char& ch : key)
+					if (!valid_name_char(ch))
 						ValueError(vstr("Invalid HTTP header name: ") + cstr(key));
-				for (const AChar& ch : value)
+				for (const char& ch : value)
 					if (ch == '\r' || ch == '\n')
 						ValueError(vstr("HTTP header value contains CR or LF: ") + cstr(key));
 			}
 
-			c_size find_index(const Atring& key) const
+			c_size find_index(const CString& key) const
 			{
 				auto fn = [&key](const Entry& entry) { return key_equal(key, entry.first); };
 				return entries_.index_if(fn, 0);

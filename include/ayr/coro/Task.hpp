@@ -30,6 +30,7 @@ namespace ayr
 			self& operator=(self&& other) noexcept
 			{
 				if (this == &other) return *this;
+				if (coro_) coro_.destroy();
 				coro_ = std::exchange(other.coro_, nullptr);
 				return *this;
 			}
@@ -43,7 +44,7 @@ namespace ayr
 				return coro_;
 			}
 
-			T await_resume() const noexcept
+			T await_resume() const
 			{
 				if constexpr (!std::is_void_v<T>)
 					return coro_.promise().result();
@@ -53,4 +54,4 @@ namespace ayr
 		};
 	}
 }
-#endif 
+#endif
