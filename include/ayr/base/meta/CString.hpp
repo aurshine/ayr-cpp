@@ -462,6 +462,30 @@ namespace ayr
 		// 字符串切片，[start, size())，深拷贝
 		constexpr self slice(c_size start) const { return slice(start, size()); }
 
+		// 去除字符串两端的空白字符，返回新的浅拷贝字符串
+		self vstrip() const
+		{
+			c_size l = 0, r = size();
+			auto begin_it = begin();
+			// 从左往右找第一个非空字符
+			while (l < r && std::isspace(*(begin_it + l))) ++l;
+			// 从右往左找第一个非空字符
+			while (l < r && std::isspace(*(begin_it + r - 1))) --r;
+			return vslice(l, r);
+		}
+
+		// 去除字符串两端的空白字符，返回新的深拷贝字符串
+		self strip() const
+		{
+			c_size l = 0, r = size();
+			auto begin_it = begin();
+			// 从左往右找第一个非空字符
+			while (l < r && std::isspace(*(begin_it + l))) ++l;
+			// 从右往左找第一个非空字符
+			while (l < r && std::isspace(*(begin_it + r - 1))) --r;
+			return slice(l, r);
+		}
+
 		// 判断是否以prefix开头
 		constexpr bool startswith(const self& preifx) const
 		{

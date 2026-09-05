@@ -139,18 +139,20 @@ namespace ayr
 				Buffer encrypted_output;
 				// TlsLayer采用单向关闭：生成本端close_notify，但不等待对端响应。
 				TlsResult tls_result = tls_layer_.shutdown(encrypted_output);
-				if (encrypted_output.readable_size() > 0)
-				{
-					// 必须在Socket析构关闭TCP之前把close_notify完整写出。
-					IoResult write_result = co_await raw_write(encrypted_output);
-					if (!write_result.ok() || write_result.bytes == 0)
-						co_return write_result;
-				}
 
 				// ret==0（等待对端close_notify）在单向策略下视为成功；只有明确的
 				// TLS错误才向上传播。
 				if (tls_result.state == TlsState::Error)
 					co_return io_result(std::move(tls_result.error));
+
+				if (encrypted_output.readable_size() > 0)
+				{
+					// 必须在Socket析构关闭TCP之前把close_notify完整写出。
+					IoResult write_result = co_await raw_write(encrypted_output);
+					if (!write_result.ok())
+						co_return write_result;
+				}
+
 				co_return IoResult();
 			}
 

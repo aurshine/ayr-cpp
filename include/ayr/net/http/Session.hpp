@@ -1,5 +1,5 @@
-#ifndef AYR_NET_HTTP_CLIENT_HPP
-#define AYR_NET_HTTP_CLIENT_HPP
+#ifndef AYR_NET_HTTP_SESSION_HPP
+#define AYR_NET_HTTP_SESSION_HPP
 
 #include "Request.hpp"
 #include "Response.hpp"
@@ -20,9 +20,9 @@ namespace ayr
 
 			Session(const self& other) = delete;
 
-			self& operator=(const self& other) = delete;
-
 			Session(self&& other) noexcept : ssl_ctx_(std::exchange(other.ssl_ctx_, nullptr)) {}
+
+			self& operator=(const self& other) = delete;
 
 			self& operator=(self&& other) noexcept
 			{
@@ -49,74 +49,63 @@ namespace ayr
 			* @param headers 请求头
 			*
 			* @param data 请求体
+			* 
+			* @param streamed 是否为流式响应体
 			*/
-			coro::Task<HttpResponse> request(coro::IoContext* io_context, Atring method, Uri uri, HttpHeaders headers = {}, Atring data = {})
+			coro::Task<HttpResponse> request(
+				coro::IoContext* io_context, 
+				CString method, 
+				Uri uri, 
+				HttpHeaders headers = {}, 
+				CString data = {}, 
+				bool streamed = false
+			)
 			{
-				// 构造 http 请求
-				HttpRequest req(method, uri, "HTTP/1.1"as, std::move(headers), false);
-
-				if (!data.empty() && !req.headers.contains("Content-Type"as))
-					req.add_header("Content-Type"as, "text/plain; charset="as + Atring::from(cstr(Codec{})));
-				
-				// 设置 body
-				req.set_body(data.encode());
-
-				// 验证
-				if (req.host().empty())
-					ValueError("HTTP requests require an absolute URI with a host.");
-				
-				auto [port, port_remain] = req.port().toint();
-				if (!port_remain.empty() || port <= 0 || port > 65535)
-					ValueError(vstr("Invalid HTTP port: ") + cstr(req.port()));
+				// 初始化一个http request
+				auto req = init_request(method, uri, std::move(headers), std::move(data));
 
 				// 创建tcp连接
-				Socket sock = co_await open_connect(
-					req.host().encode(),
-					port,
+				Socket server = co_await open_connect(
+					req.host(),
+					req.port(),
 					io_context,
-					TlsLayer(ssl_ctx(req.uri().scheme() == "https"as))
+					TlsLayer(ssl_ctx(req.uri().scheme() == vstr("https")))
 				);
 
-				Buffer req_buffer, resp_buffer;
+				Buffer req_buffer;
 				req_buffer << req;
-				net::IoResult write_result = co_await sock.write(req_buffer);
+				// 向服务端发送请求
+				net::IoResult write_result = co_await server.write(req_buffer);
 				if (!write_result.ok())
 					RuntimeError(write_result.error);
 
-				HttpResponse res;
-				ResponseParser res_parser(method);
-				while (!res_parser(res, resp_buffer))
-				{
-					resp_buffer.adjust_util(8192);
-					net::IoResult read_result = co_await sock.read(resp_buffer);
-					if (!read_result.ok())
-						RuntimeError(read_result.error);
-					if (read_result.bytes == 0)
-					{
-						res_parser(res, resp_buffer, true);
-						break;
-					}
-				}
-
-				// HTTP响应已完整解析，此时主动发送TLS close_notify，再由Socket析构
-				// 关闭TCP。这样对端可以区分正常结束和被截断的TLS连接。
-				net::IoResult shutdown_result = co_await sock.shutdown();
-				// close_notify写入底层socket失败意味着关闭通知没有可靠送达，不能
-				// 静默当作一次完全成功的HTTPS请求结束。
-				if (!shutdown_result.ok())
-					RuntimeError(shutdown_result.error);
-
-				co_return res;
+				// 构造响应体
+				HttpResponse resp(std::move(server), streamed, req.method());
+				
+				co_await resp.wait();
+				co_return resp;
 			}
 
-			coro::Task<HttpResponse> get(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {})
+			coro::Task<HttpResponse> get(
+				coro::IoContext* io_context, 
+				Uri uri, 
+				HttpHeaders headers = {}, 
+				CString data = {}, 
+				bool streamed = false
+			)
 			{
-				return request(io_context, "GET"as, std::move(uri), std::move(headers), std::move(data));
+				return request(io_context, vstr("GET"), std::move(uri), std::move(headers), std::move(data), streamed);
 			}
 
-			coro::Task<HttpResponse> post(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {})
+			coro::Task<HttpResponse> post(
+				coro::IoContext* io_context, 
+				Uri uri, 
+				HttpHeaders headers = {}, 
+				CString data = {},
+				bool streamed = false
+			)
 			{
-				return request(io_context, "POST"as, std::move(uri), std::move(headers), std::move(data));
+				return request(io_context, vstr("POST"), std::move(uri), std::move(headers), std::move(data), streamed);
 			}
 		private:
 			/*
@@ -136,25 +125,62 @@ namespace ayr
 				}
 				return nullptr;
 			}
+
+			// 初始化一个http请求，返回请求对象
+			HttpRequest init_request(const CString& method, const Uri& uri, HttpHeaders&& headers, CString data) const
+			{
+				// 构造 http 请求
+				HttpRequest req(method, uri, vstr("HTTP/1.1"), std::move(headers), false);
+
+				if (!data.empty() && !req.headers.contains(vstr("Content-Type")))
+					req.add_header(vstr("Content-Type"), vstr("text/plain; charset=") + cstr(Codec{}));
+
+				// 设置 body
+				req.set_body(data);
+
+				return req;
+			}
 		};
 
-		def request(coro::IoContext* io_context, Atring method, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
+		def request(
+			coro::IoContext* io_context, 
+			CString method, 
+			Uri uri, 
+			HttpHeaders headers = {}, 
+			CString data = {},
+			bool streamed = false
+		) -> coro::Task<HttpResponse>
 		{
 			Session session;
-			return session.request(io_context, std::move(method), std::move(uri), std::move(headers), std::move(data));
+			// 不能使用return，session会先析构，协程仍然保存session的指针
+			co_return co_await session.request(io_context, std::move(method), std::move(uri), std::move(headers), std::move(data), streamed);
 		}
 
-		def get(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
+		def get(
+			coro::IoContext* io_context, 
+			Uri uri, 
+			HttpHeaders headers = {}, 
+			CString data = {}, 
+			bool streamed = false
+		) -> coro::Task<HttpResponse>
 		{
 			Session session;
-			return session.request(io_context, "GET"as, std::move(uri), std::move(headers), std::move(data));
+			// 不能使用return，session会先析构，协程仍然保存session的指针
+			co_return co_await session.request(io_context, vstr("GET"), std::move(uri), std::move(headers), std::move(data), streamed);
 		}
 
-		def post(coro::IoContext* io_context, Uri uri, HttpHeaders headers = {}, Atring data = {}) -> coro::Task<HttpResponse>
+		def post(
+			coro::IoContext* io_context, 
+			Uri uri, 
+			HttpHeaders headers = {}, 
+			CString data = {}, 
+			bool streamed = false
+		) -> coro::Task<HttpResponse>
 		{
 			Session session;
-			return session.request(io_context, "POST"as, std::move(uri), std::move(headers), std::move(data));
+			// 不能使用return，session会先析构，协程仍然保存session的指针
+			co_return co_await session.request(io_context, vstr("POST"), std::move(uri), std::move(headers), std::move(data), streamed);
 		}
 	}
 }
-#endif // AYR_NET_HTTP_CLIENT_HPP
+#endif // AYR_NET_HTTP_SESSION_HPP

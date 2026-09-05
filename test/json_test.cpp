@@ -126,5 +126,69 @@ int main()
 		UTEST_EXPECT_EQ(alias["enabled"as].as<json::JsonBool>(), true);
 	};
 
+	UTEST_SCOPE("测试 JSON 类型名、辅助构造、contains、empty 和 const 访问。")
+	{
+		UTEST_EXPECT_EQ(json::Json().type_name(), "Null");
+		UTEST_EXPECT_EQ(json::integer(3).type_name(), "Int");
+		UTEST_EXPECT_EQ(json::boolean(1).type_name(), "Bool");
+		UTEST_EXPECT_EQ(json::floating(2).type_name(), "Float");
+		UTEST_EXPECT_EQ(json::Json("text"as).type_name(), "Str");
+		UTEST_EXPECT_EQ(json::array().type_name(), "Array");
+		UTEST_EXPECT_EQ(json::dict().type_name(), "Dict");
+
+		json::Json values = json::array({ 1, "two"as });
+		UTEST_EXPECT(values.contains(json::Json(1)));
+		UTEST_EXPECT(values.contains("two"as));
+		UTEST_EXPECT(!values.empty());
+		const json::Json& const_values = values;
+		UTEST_EXPECT_EQ(const_values[0].as<json::JsonInt>(), 1);
+
+		json::Json object = json::dict({ {"key"as, 7} });
+		UTEST_EXPECT(object.contains("key"as));
+		const json::Json& const_object = object;
+		UTEST_EXPECT_EQ(const_object["key"as].as<json::JsonInt>(), 7);
+		object.clear();
+		UTEST_EXPECT(object.empty());
+		values.clear();
+		UTEST_EXPECT(values.empty());
+	};
+
+	UTEST_SCOPE("测试 JSON 类型不匹配的所有容器操作都会抛出 AyrError。")
+	{
+		json::Json scalar(1);
+		UTEST_EXPECT_AYR_ERROR(scalar.contains(json::Json(1)));
+		UTEST_EXPECT_AYR_ERROR(scalar.contains("key"as));
+		UTEST_EXPECT_AYR_ERROR(scalar.append(2));
+		UTEST_EXPECT_AYR_ERROR(scalar["key"as]);
+		UTEST_EXPECT_AYR_ERROR(scalar[0]);
+		UTEST_EXPECT_AYR_ERROR(scalar.pop(0));
+		UTEST_EXPECT_AYR_ERROR(scalar.pop("key"as));
+		UTEST_EXPECT_AYR_ERROR(scalar.clear());
+		UTEST_EXPECT_AYR_ERROR(scalar.size());
+		const json::Json& const_scalar = scalar;
+		UTEST_EXPECT_AYR_ERROR(const_scalar["key"as]);
+		UTEST_EXPECT_AYR_ERROR(const_scalar[0]);
+	};
+
+	UTEST_SCOPE("测试 JSON 转储转义、自动换行、Buffer 输出和指定编码。")
+	{
+		json::Json escaped("\"\\\b\f\n\r\t"as);
+		UTEST_EXPECT_EQ(json::dumps(escaped), R"("\"\\\b\f\n\r\t")"as);
+
+		json::Json many = json::array();
+		for (int i = 0; i < 11; ++i)
+			many.append(i);
+		Atring pretty_array = json::dumps(many);
+		UTEST_EXPECT(pretty_array.contains('\n'));
+		UTEST_EXPECT_EQ(json::loads(pretty_array), many);
+
+		json::Json nested = json::dict({ {"items"as, json::array({1, 2})} });
+		UTEST_EXPECT(json::dumps(nested).contains('\n'));
+		Buffer buffer;
+		json::dump(nested, buffer);
+		UTEST_EXPECT_EQ(Atring::from(vstr(buffer.peek(), buffer.readable_size())), json::dumps(nested));
+		UTEST_EXPECT_EQ(json::dumps<UTF8Codec>(nested), json::dumps(nested));
+	};
+
 	return UTEST_COMPLETE();
 }

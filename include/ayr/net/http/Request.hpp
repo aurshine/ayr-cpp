@@ -14,13 +14,13 @@ namespace ayr
 			using self = HttpRequest;
 
 			// 请求方法
-			Atring method_;
+			CString method_;
 
 			// 请求Uri
 			Uri uri_;
 
 			// HTTP版本
-			Atring version_;
+			CString version_;
 		public:
 			HttpHeaders headers;
 
@@ -29,30 +29,26 @@ namespace ayr
 
 			HttpRequest() : method_(), uri_(), version_(), headers(), body() {}
 
-			HttpRequest(Atring method, Uri uri, Atring version, HttpHeaders headers = {}, bool keep_alive = true) :
+			HttpRequest(CString method, Uri uri, CString version, HttpHeaders headers = {}, bool keep_alive = true) :
 				method_(std::move(method)),
 				uri_(std::move(uri)),
 				version_(std::move(version)),
 				headers(std::move(headers))
 			{
+				// 检查主机名是否有效
+				if (uri_.host().empty())
+					ValueError("HTTP requests require an absolute URI with a host.");
+
+				// 检查端口号是否有效
+				if (!uri_.valid_port())
+					ValueError("HTTP requests require an absolute URI with a valid port.");
+
 				// 请求头默认参数
-				if (!this->headers.contains("Host"as) && !uri_.host().empty())
-					add_header("Host"as, uri_.host());
-				if (!this->headers.contains("Accept"as))
-					add_header("Accept"as, "*/*"as);
+				if (!this->headers.contains(vstr("Host")) && !uri_.host().empty())
+					add_header(vstr("Host"), uri_.host());
+				if (!this->headers.contains(vstr("Accept")))
+					add_header(vstr("Accept"), vstr("*/*"));
 
-				// 默认使用https协议
-				if (uri_.scheme().empty())
-					uri_.scheme("https"as);
-
-				// 根据协议确定端口
-				if (uri_.port().empty())
-					if (uri_.scheme() == "http"as)
-						uri_.port("80"as);
-					else if (uri_.scheme() == "https"as)
-						uri_.port("443"as);
-					else
-						ValueError("cannot determine port for scheme");
 				this->keep_alive(keep_alive);
 			}
 
@@ -90,39 +86,45 @@ namespace ayr
 			const Uri& uri() const { return uri_; }
 
 			// 请求路径 uri.path()?uri.query()
-			Atring path() const
+			CString path() const
 			{
 				if (uri_.queries().empty())
 					return uri_.path();
-				return "?"as.join(arr(uri_.path(), uri_.query()));
+				return vstr("?").join(arr(uri_.path(), uri_.query()));
 			}
 
 			// 请求主机名
-			const Atring& host() const { return uri_.host(); }
+			const CString& host() const { return uri_.host(); }
 
 			// 请求的端口
-			const Atring& port() const { return uri_.port(); }
+			int port() const { return uri_.port(); }
+
+			// 请求的方法
+			const CString& method() const { return method_; }
+
+			// 请求的HTTP版本
+			const CString& version() const { return version_; }
 
 			// 添加请求头
-			void add_header(const Atring& key, const Atring& value) { headers.insert(key, value); }
+			void add_header(const CString& key, const CString& value) { headers.insert(key, value); }
 
 			// 添加请求体内容
 			void set_body(const CString& body)
 			{
 				this->body = body;
 				if (body.empty())
-					headers.pop("Content-Length"as);
+					headers.pop(vstr("Content-Length"));
 				else
-					add_header("Content-Length"as, Atring::from(cstr(body.size())));
+					add_header(vstr("Content-Length"), cstr(body.size()));
 			}
 
 			// 设置是否保持连接
 			void keep_alive(bool on)
 			{
 				if (on)
-					add_header("Connection"as, "keep-alive"as);
+					add_header(vstr("Connection"), vstr("keep-alive"));
 				else
-					add_header("Connection"as, "close"as);
+					add_header(vstr("Connection"), vstr("close"));
 			}
 
 			void __repr__(Buffer& buffer) const

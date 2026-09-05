@@ -129,12 +129,39 @@ cmake --build out/build --config Debug --parallel
 ctest --test-dir out/build -C Debug --output-on-failure
 ```
 
-测试程序按 `test/*.cpp` 分别生成，例如 `atring_test`、`json_test`、
-`fs_test`、`socket_test` 和 `http_test`。其中：
+测试程序按 `test/*.cpp` 分别生成。目前共有 21 个测试程序，覆盖基础字符串与
+容器、迭代工具、JSON、文件系统、协程任务、Socket、TLS 和 HTTP 等模块。其中：
 
 - `socket_test` 需要本机 `127.0.0.1:7777` 端口可用；
-- `http_test` 包含真实 HTTPS 请求，需要可用的互联网连接；
+- `http_body_reader_test` 和 `http_test` 分别使用本机 `127.0.0.1:7782`、
+  `127.0.0.1:7783`，不访问公网；
+- HTTP 测试覆盖固定长度响应、chunked 响应、trailer、无正文响应、Session 请求
+  以及 SSE 流式数据读取；
 - `tls_test` 会在本地生成测试证书并验证 TLS 握手与分片传输。
+
+### 单元测试覆盖率
+
+GCC 或 Clang 构建可通过 `AYR_ENABLE_COVERAGE` 开启覆盖率插桩：
+
+```bash
+cmake -S . -B out/coverage \
+    -DBUILD_TESTING=ON \
+    -DAYR_ENABLE_COVERAGE=ON \
+    -DCMAKE_BUILD_TYPE=Debug
+cmake --build out/coverage --parallel
+ctest --test-dir out/coverage --output-on-failure
+```
+
+运行测试后，可使用与编译器版本匹配的 `gcov`、`gcovr` 或 `llvm-cov` 统计结果。
+覆盖率统计应限定在 `include/ayr/`，避免把测试代码和系统头文件计入结果。
+
+当前基线使用 GCC 13、gcov 分支统计和全部 21 个测试程序，于 2026-09-04 实测：
+
+| 指标 | 已覆盖/总数 | 覆盖率 |
+| --- | ---: | ---: |
+| 行 | 3778/4265 | 88.6% |
+| 函数 | 2598/2812 | 92.4% |
+| 分支 | 2854/5878 | 48.6% |
 
 ## 快速开始
 
