@@ -96,7 +96,7 @@ int main()
 
 	UTEST_SCOPE("测试随仓库提供的大 JSON 文件至少能被解析为对象。")
 	{
-		CString json_dir = fs::join(fs::dirname(__FILE__), "json");
+		CString json_dir = fs::join(fs::dirname(__FILE__), "data");
 		for (auto&& json_file: fs::listdir(json_dir))
 		{
 			CString path = fs::join(json_dir, json_file);
