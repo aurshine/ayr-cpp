@@ -14,7 +14,7 @@ case "$config" in
 esac
 
 script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
-repo_dir="$(cd -- "$script_dir/.." && pwd -P)"
+repo_dir="$script_dir"
 build_dir="$repo_dir/out/build"
 
 if [[ -e "$build_dir" ]]; then

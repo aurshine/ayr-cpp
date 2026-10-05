@@ -34,7 +34,7 @@ jobs:
           "$CXX" --version
 
       - name: Build and test
-        run: bash test/RunTest.sh Debug
+        run: bash ./RunTest.sh Debug
 
   windows:
     name: Windows 2022 / MSVC / Debug
@@ -73,4 +73,4 @@ jobs:
         shell: pwsh
         run: |
           $env:CMAKE_TOOLCHAIN_FILE = "$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-          ./test/RunTest.ps1 -Config Debug
+          ./RunTest.ps1 -Config Debug

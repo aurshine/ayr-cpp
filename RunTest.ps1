@@ -5,7 +5,7 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$repoDir = Split-Path -Parent $PSScriptRoot
+$repoDir = $PSScriptRoot
 $buildDir = Join-Path $repoDir "out/build"
 
 if (Test-Path $buildDir) {

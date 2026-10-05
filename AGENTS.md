@@ -14,7 +14,7 @@ cmake --build out/build --parallel
 ctest --test-dir out/build --output-on-failure
 ```
 
-For Visual Studio or another multi-configuration generator, add `--config Debug` to build and `-C Debug` to CTest. The repository wrappers rebuild and run the suite: `bash test/RunTest.sh Debug` or `./test/RunTest.ps1 -Config Debug`. GCC/Clang coverage instrumentation is available with `-DAYR_ENABLE_COVERAGE=ON`.
+For Visual Studio or another multi-configuration generator, add `--config Debug` to build and `-C Debug` to CTest. The repository wrappers rebuild and run the suite: `bash ./RunTest.sh Debug` or `./RunTest.ps1 -Config Debug`. GCC/Clang coverage instrumentation is available with `-DAYR_ENABLE_COVERAGE=ON`.
 
 ## Coding Style & Naming
 
@@ -22,7 +22,7 @@ Use four spaces and follow `StyleGuide.md`: snake_case for functions and variabl
 
 ## Testing
 
-Add or update a focused `test/<module>_test.cpp` program for behavior changes; CMake discovers `test/*.cpp` and registers each executable with CTest. Keep tests self-contained and use local fixtures or loopback networking. Socket tests use local ports 7777–7783, so ensure they are available. Run the affected executable or the full CTest suite before submitting.
+Add or update a focused `test/<module>/*_test.cpp` program for behavior changes; CMake recursively discovers `test/**/*.cpp` and registers each executable with CTest. Keep tests self-contained and use local fixtures or loopback networking. Socket tests use local ports 7777–7783, so ensure they are available. Run the affected executable or the full CTest suite before submitting.
 
 ## Commits & Pull Requests
 

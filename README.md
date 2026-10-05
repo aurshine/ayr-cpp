@@ -33,7 +33,7 @@ ayr-cpp 是一个以“简洁语法 + 轻量高效”为理念的现代 C++20 �
 | 异步 Socket/TLS | `<ayr/net/Socket.hpp>` | 非阻塞 TCP 客户端/服务端、异步读写、TLS |
 | HTTP | `<ayr/net/http.hpp>` | URI、请求头、HTTP/1.1 请求构造、响应解析、HTTP/HTTPS 客户端 |
 
-ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `ayr` 后，
+ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `ayr::ayr` 后，
 头文件路径、OpenSSL、可选 fmt 以及 Windows 所需系统库会自动传递给使用方。
 
 ## 环境与第三方依赖
@@ -56,9 +56,10 @@ ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `
 | 标准库 `<format>` | 条件必需 | 未找到 fmt 时作为格式化后端 |
 | Crypt32 | Windows 自动链接 | 从 Windows 系统证书存储加载受信任根证书 |
 
-即使只使用基础容器，当前顶层 `CMakeLists.txt` 仍会执行
-`find_package(OpenSSL REQUIRED)`，因此通过 `add_subdirectory` 引入时也必须提供
-OpenSSL。
+通过 CMake 引入时，配置阶段必须能找到 OpenSSL（`find_package(OpenSSL REQUIRED)`）。
+这对只使用基础容器的项目也适用，因为当前 CMake 目标会统一传递 TLS 所需依赖。
+请先安装 OpenSSL 开发包；使用 vcpkg 时，在第一次配置项目时指定 vcpkg toolchain
+文件。fmt 是可选依赖，找不到 fmt 时要求标准库提供 C++20 `<format>`。
 
 Ubuntu/Debian：
 
@@ -80,19 +81,38 @@ vcpkg install openssl:x64-windows fmt:x64-windows
 
 ## 引入项目
 
-推荐将仓库放到项目的 `third_party` 目录，并通过 CMake 引入：
+先将仓库放到项目的 `third_party/ayr-cpp` 目录，并安装上文所述的 OpenSSL
+开发依赖。然后在主项目的 `CMakeLists.txt` 中添加子目录，并链接提供的
+`ayr::ayr` 接口目标：
 
 ```cmake
 cmake_minimum_required(VERSION 3.28)
 project(my_app LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
 add_subdirectory(third_party/ayr-cpp)
 
 add_executable(my_app main.cpp)
-target_link_libraries(my_app PRIVATE ayr)
+target_link_libraries(my_app PRIVATE ayr::ayr)
+```
+
+`ayr::ayr` 会自动添加 `third_party/ayr-cpp/include`、要求 C++20，并传递
+OpenSSL、可选 fmt 及 Windows 的 `Crypt32` 链接依赖。主项目不需要手动设置
+`include_directories` 或再次链接这些库。ayr 作为子目录加入时不会启用自己的测试，
+也不会覆盖主项目的 `project()` 或 C++ 标准设置。
+
+例如，Linux 上可先安装依赖，再配置主项目：
+
+```bash
+sudo apt install libssl-dev libfmt-dev
+cmake -S . -B out/build
+cmake --build out/build --parallel
+```
+
+Windows 使用 vcpkg 时，在配置主项目时传入 toolchain，例如：
+
+```powershell
+cmake -S . -B out/build -DCMAKE_TOOLCHAIN_FILE="C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake"
+cmake --build out/build --config Debug --parallel
 ```
 
 目录结构示例：
@@ -106,8 +126,8 @@ my_app/
 ```
 
 如果不使用 CMake，也可以直接添加 `ayr-cpp/include` 到编译器头文件搜索路径，
-但需要自行链接 OpenSSL 的 SSL/Crypto 库；Windows 还要链接 `Crypt32`。因此更
-推荐使用仓库提供的 `ayr` 目标。
+但需要自行设置 C++20、链接 OpenSSL 的 SSL/Crypto 库，并在 Windows 链接
+`Crypt32`。因此更推荐通过 `add_subdirectory` 使用仓库提供的 `ayr::ayr` 目标。
 
 ## 构建与测试
 
@@ -129,7 +149,7 @@ cmake --build out/build --config Debug --parallel
 ctest --test-dir out/build -C Debug --output-on-failure
 ```
 
-测试程序按 `test/*.cpp` 分别生成。目前共有 21 个测试程序，覆盖基础字符串与
+测试程序按 `test/` 下递归查找的 `*.cpp` 分别生成。目前共有 21 个测试程序，覆盖基础字符串与
 容器、迭代工具、JSON、文件系统、协程任务、Socket、TLS 和 HTTP 等模块。其中：
 
 - `socket_test` 需要本机 `127.0.0.1:7777` 端口可用；

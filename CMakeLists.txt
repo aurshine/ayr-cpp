@@ -1,20 +1,19 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(ayr-cpp)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-include(CTest)
-
-option(AYR_ENABLE_COVERAGE "Build tests with GCC/Clang coverage instrumentation" OFF)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    project(ayr-cpp LANGUAGES CXX)
+    include(CTest)
+    option(AYR_ENABLE_COVERAGE "Build tests with GCC/Clang coverage instrumentation" OFF)
+endif()
 
 # https需要使用openssl
 find_package(OpenSSL REQUIRED)
 find_package(fmt QUIET)
 
 add_library(ayr INTERFACE)
-target_include_directories(ayr INTERFACE ${PROJECT_SOURCE_DIR}/include)
+add_library(ayr::ayr ALIAS ayr)
+target_include_directories(ayr INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_compile_features(ayr INTERFACE cxx_std_20)
 
 if (MSVC)
     target_compile_options(ayr INTERFACE /Zc:preprocessor)
@@ -35,18 +34,16 @@ else()
     target_compile_definitions(ayr INTERFACE AYR_USE_FMT=0)
 endif()
 
-if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME AND BUILD_TESTING)
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND BUILD_TESTING)
     
     message(STATUS "Building tests")
 
-    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${PROJECT_SOURCE_DIR}/test/*.cpp)
+    file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cpp)
 
     foreach(TEST_SOURCE ${TEST_SOURCES})
         get_filename_component(TEST_EXE ${TEST_SOURCE} NAME_WE)
         add_executable(${TEST_EXE} ${TEST_SOURCE})
         target_link_libraries(${TEST_EXE} PRIVATE ayr)
-        target_include_directories(${TEST_EXE} PRIVATE ${PROJECT_SOURCE_DIR}/include)
-
         if (AYR_ENABLE_COVERAGE AND CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
             target_compile_options(${TEST_EXE} PRIVATE -O0 -g --coverage)
             target_link_options(${TEST_EXE} PRIVATE --coverage)
