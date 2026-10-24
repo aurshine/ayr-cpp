@@ -39,6 +39,10 @@ namespace ayr
 
 			using co_type = std::coroutine_handle<self>;
 
+			/** @brief 禁止在 Generator 协程中使用 co_await。 */
+			template<typename Awaitable>
+			void await_transform(Awaitable&&) = delete;
+
 			std::suspend_never initial_suspend() const noexcept { return {}; }
 
 			std::suspend_always final_suspend() const noexcept { return {}; }

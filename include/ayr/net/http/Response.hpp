@@ -51,8 +51,11 @@ namespace ayr
 					// 等待解析 chunked 编码中以十六进制表示的 chunk 长度行。
 					EXPECT_CHUNK_SIZE,
 
-					// 等待读取当前 chunk 的数据及其后的 CRLF。
+					// 等待按行读取当前 chunk 的数据。
 					EXPECT_CHUNK_DATA,
+
+					// 当前 chunk 数据已读完，等待验证其后的 CRLF。
+					EXPECT_CHUNK_CRLF,
 
 					// 已读到零长度 chunk，等待解析 trailer 字段及结尾空行。
 					EXPECT_CHUNK_TRAILER,
@@ -67,7 +70,7 @@ namespace ayr
 				// 当前解析状态，决定下一次从输入缓冲区解析哪种结构。
 				Expect parse_expect;
 
-				// 当前 chunk 的字节数，或固定长度响应体的 Content-Length。
+				// 当前 chunk 或固定长度响应体尚未消费的字节数。
 				c_size chunk_size_;
 
 				// 服务端 Socket 对象，流式响应体时用于读取后续数据
@@ -89,6 +92,9 @@ namespace ayr
 				bool done_;
 
 				Buffer resp_buffer;
+
+				// 尚未遇到换行的正文，可能跨越多次网络读取或多个 chunk。
+				Buffer chunk_line_;
 			public:
 				BodyReader(Socket&& server, CString request_method):
 					parse_expect(Expect::EXPECT_STATUS_LINE), 
@@ -111,13 +117,14 @@ namespace ayr
 					trailers_(std::move(other.trailers_)),
 					eof(other.eof),
 					done_(other.done_),
-					resp_buffer(std::move(other.resp_buffer)) {}
+					resp_buffer(std::move(other.resp_buffer)),
+					chunk_line_(std::move(other.chunk_line_)) {}
 
 				bool done() const { return done_; }
 
 				const HttpHeaders& trailers() const { return trailers_; }
 
-				// 解析http完整响应
+				// 固定长度和 chunked 正文每次返回一行（保留换行符），结束时返回剩余尾行。
 				coro::Task<CString> read()
 				{
 					if (done()) co_return vstr("");
@@ -153,7 +160,7 @@ namespace ayr
 								RuntimeError(read_result.error);
 
 							// 对端关闭连接
-							eof = read_result.bytes == 0;
+							eof = (read_result.bytes == 0);
 						}
 						else
 						{
@@ -235,7 +242,7 @@ namespace ayr
 							auto [ok, content] = parse_fixed_body(buffer);
 							if (!ok)
 								return { incomplete_or_eof("fixed-length response body"), vstr("") };
-							return { true, std::move(content) };
+							return { chunk_size_ == 0, std::move(content) };
 						}
 						case Expect::EXPECT_CHUNK_SIZE:
 							if (!parse_chunk_size(buffer))
@@ -247,7 +254,20 @@ namespace ayr
 							auto [ok, content] = parse_chunk_data(buffer);
 							if (!ok)
 								return { incomplete_or_eof("chunk data"), vstr("") };
-							return { false, std::move(content) };
+							if (!content.empty())
+								return { false, std::move(content) };
+							break;
+						}
+						case Expect::EXPECT_CHUNK_CRLF:
+						{
+							if (buffer.readable_size() < 2)
+								return { incomplete_or_eof("chunk data CRLF"), vstr("") };
+							const char* bytes = buffer.peek();
+							if (bytes[0] != '\r' || bytes[1] != '\n')
+								ValueError("HTTP chunk data is not followed by CRLF.");
+							buffer.retrieve(2);
+							parse_expect = Expect::EXPECT_CHUNK_SIZE;
+							break;
 						}
 						case Expect::EXPECT_CHUNK_TRAILER:
 						{
@@ -258,7 +278,7 @@ namespace ayr
 							CString line = consume_line(buffer, line_size);
 
 							if (line.empty())
-								return { true, vstr("") };
+								return { true, take_line() };
 							else
 								parse_header_line(line, true);
 
@@ -535,21 +555,50 @@ namespace ayr
 				}
 
 				/**
-				 * @brief 解析 Content-Length 定界的固定长度响应体
+				 * @brief 取出已累积的正文行并重置行缓冲区
+				 */
+				CString take_line()
+				{
+					CString content = dstr(chunk_line_.peek(), chunk_line_.readable_size());
+					chunk_line_.clear();
+					return content;
+				}
+
+				/**
+				 * @brief 在当前正文或 chunk 的剩余长度内累积一行，保留 LF 或 CRLF
+				 * @return 遇到 LF 时返回完整行，否则保留未完成行并返回空字符串
+				 */
+				CString parse_chunk_line(Buffer& buffer)
+				{
+					c_size size = std::min(buffer.readable_size(), chunk_size_);
+					if (size == 0)
+						return vstr("");
+					const char* newline = static_cast<const char*>(std::memchr(buffer.peek(), '\n', size));
+					if (newline)
+						size = newline - buffer.peek() + 1;
+
+					chunk_line_.append_bytes(buffer.peek(), size);
+					buffer.retrieve(size);
+					chunk_size_ -= size;
+					return ifelse(newline, take_line(), vstr(""));
+				}
+
+				/**
+				 * @brief 按行解析 Content-Length 定界的固定长度响应体
 				 *
 				 * @param buffer 保存待消费的响应体字节
 				 *
-				 * @return 可读字节达到声明长度并成功消费时返回 true，否则返回 false
+				 * @return 取得一行或正文结束时返回 true，否则返回 false
 				 *
 				 * @note 完成后仍保留 buffer 中超出 Content-Length 的后续字节。
 				 */
 				std::pair<bool, CString> parse_fixed_body(Buffer& buffer)
 				{
-					if (buffer.readable_size() < chunk_size_)
-						return { false, "" };
-					CString content = dstr(buffer.peek(), chunk_size_);
-					buffer.retrieve(chunk_size_);
-					return { true, std::move(content) };
+					CString content = parse_chunk_line(buffer);
+					if (chunk_size_ == 0 && content.empty())
+						content = take_line();
+					bool ok = chunk_size_ == 0 || !content.empty();
+					return { ok, std::move(content) };
 				}
 
 				/**
@@ -564,7 +613,6 @@ namespace ayr
 				 */
 				bool parse_chunk_size(Buffer& buffer)
 				{
-
 					c_size line_size = buffer.find_crlf();
 					if (line_size == -1)
 						return false;
@@ -586,30 +634,19 @@ namespace ayr
 				}
 
 				/**
-				 * @brief 读取当前 chunk 数据并验证结尾 CRLF
+				 * @brief 按行读取当前 chunk 数据，跨 chunk 的未完成行保留在行缓冲区
 				 *
 				 * @param buffer 保存 chunk 数据、结尾 CRLF 及可能的后续 chunk
 				 *
-				 * @return 当前 chunk 数据及 CRLF 已完整到达时返回 true，否则返回 false
+				 * @return 取得完整行或当前 chunk 数据读完时返回 true，否则返回 false
 				 */
 				std::pair<bool, CString> parse_chunk_data(Buffer& buffer)
 				{
-					if (buffer.readable_size() < chunk_size_ + 2)
-						return { false, vstr("") };
-
-					const char* bytes = buffer.peek();
-					if (bytes[chunk_size_] != '\r' || bytes[chunk_size_ + 1] != '\n')
-						ValueError(ayr::format(
-							"HTTP chunk data of {} bytes is not followed by CRLF "
-							"(next bytes: {}, {}).",
-							chunk_size_,
-							static_cast<unsigned char>(bytes[chunk_size_]),
-							static_cast<unsigned char>(bytes[chunk_size_ + 1])
-						));
-					CString content = dstr(bytes, chunk_size_);
-					buffer.retrieve(chunk_size_ + 2);
-					parse_expect = Expect::EXPECT_CHUNK_SIZE;
-					return { true, content };
+					CString content = parse_chunk_line(buffer);
+					if (chunk_size_ == 0)
+						parse_expect = Expect::EXPECT_CHUNK_CRLF;
+					bool ok = chunk_size_ == 0 || !content.empty();
+					return { ok, std::move(content) };
 				}
 			};
 

@@ -108,18 +108,18 @@ namespace
 			UTEST_EXPECT(response.body.empty());
 
 			Buffer events;
-			int chunks = 0;
+			int lines = 0;
 			for (auto& next : response.stream())
 			{
-				CString chunk = co_await next;
-				if (!chunk.empty())
+				CString line = co_await next;
+				if (!line.empty())
 				{
-					events << chunk;
-					++chunks;
+					events << line;
+					++lines;
 				}
 			}
 
-			UTEST_EXPECT_EQ(chunks, 2);
+			UTEST_EXPECT_EQ(lines, 4);
 			UTEST_EXPECT_EQ(from_buffer(std::move(events)), "data: first\n\ndata: second\n\n");
 			UTEST_EXPECT_EQ(response.trailers().get("x-stream-end"), "yes");
 		}
