@@ -169,6 +169,9 @@ namespace ayr
 		// 字符串拼接
 		constexpr self operator+(const self& other) const
 		{
+			if (empty()) return other;
+			if (other.empty()) return *this;
+
 			c_size m_size = size(), o_size = other.size();
 			self res;
 
@@ -739,45 +742,118 @@ namespace ayr
 		}
 
 		/*
+		* @brief 判断字符串是否为整数
+		*
+		* @details 支持正负号
+		*
+		* @param base 数字的进制，范围[2, 36]，默认10进制
+		*
+		* @return true表示是整数，false表示不是
+		*/
+		constexpr bool isint(int base = 10) const
+		{
+			if (base < 2 || base > 36)
+				ValueError("Base must be in range [2, 36]");
+			
+			// 必须要有合法数值
+			bool has_num = false;
+			for (c_size i = 0; i < size(); ++i)
+			{
+				AChar ch = at(i);
+				if (i == 0 && (ch == '+' || ch == '-'))
+					continue;
+				if (ch.tobase(base) == -1)
+					return false;
+				else
+					has_num = true;
+			}
+				
+			return has_num;
+		}
+
+		/*
+		* @brief 判断字符串是否为浮点数
+		*
+		* @details 支持正负号和小数点
+		*
+		* @param base 数字的进制，范围[2, 36]，默认10进制
+		*
+		* @return true表示是浮点数，false表示不是
+		*/
+		constexpr bool isfloat(int base) const
+		{
+			if (base < 2 || base > 36)
+				ValueError("Base must be in range [2, 36]");
+
+			// 必须要有合法数值
+			bool has_num = false, dot_flag = false;
+			for (c_size i = 0; i < size(); ++i)
+			{
+				AChar ch = at(i);
+				if (i == 0 && (ch == '+' || ch == '-'))
+					continue;
+				if (ch == '.')
+				{
+					if (has_num == false || dot_flag)
+						return false;
+					dot_flag = true;
+				}
+				else if (ch.tobase(base) == -1)
+					return false;
+				else
+					has_num = true;
+			}
+			
+			return has_num;
+		}
+
+		/*
+		* @brief 判断字符串是否为数字
+		* 
+		* @details 支持正负号和小数点
+		* 
+		* @param base 数字的进制，范围[2, 36]，默认10进制
+		*
+		* @return true表示是数字，false表示不是
+		*/
+		constexpr bool isnum(int base = 10) const { return isfloat(base); }
+
+		/*
 		* brief 将字符串转换为整数
 		*
 		* @details 支持正负号
 		*
 		* @param base 数字的进制，范围[2, 36]，默认10进制
 		*
-		* @return 解析后的整数和未解析的字符串部分
+		* @return 解析后的整数
 		*/
-		constexpr std::pair<c_size, self> toint(int base = 10) const
+		constexpr c_size toint(int base = 10) const
 		{
-			if (base <= 1 || base > 36)
+			if (base < 2 || base > 36)
 				ValueError("Base must be in range [2, 36]");
-			if (empty()) return { 0, *this };
 
+			// 必须要有合法数值
+			bool has_num = false;
 			c_size num = 0, i = (at(0) == '+' || at(0) == '-');
-			c_size remain_length = size();
 			bool neg = (at(0) == '-');
 
-			for (c_size m_size = size(); i < m_size; ++i)
+			for (c_size i = 0; i < size(); ++i)
 			{
-				int digit = 0;
-				if (at(i) >= '0' && at(i) <= '9')
-					digit = at(i).ord() - '0';
-				else if (at(i) >= 'A' && at(i) <= 'Z')
-					digit = at(i).ord() - 'A' + 10;
-				else if (at(i) >= 'a' && at(i) <= 'z')
-					digit = at(i).ord() - 'a' + 10;
-				else
-					digit = base;
+				AChar ch = at(i);
+				if (i == 0 && (ch == '+' || ch == '-'))
+					continue;
 
-				if (digit < 0 || digit >= base)
-				{
-					remain_length = i;
-					break;
-				}
+				int digit = ch.tobase(base);
+				if (digit == -1)
+					ValueError(ayr::format("Invalid character for base {}: {}", base, ch));
+				
 				num = num * base + digit;
+				has_num = true;
 			}
-
-			return { ifelse(neg, -num, num), slice(remain_length) };
+			
+			if (!has_num)
+				ValueError("Invalid integer string: no digits found");
+			return ifelse(neg, -num, num);
 		}
 
 		/*
@@ -785,42 +861,56 @@ namespace ayr
 		*
 		* @details 支持正负号和小数点
 		*
-		* @return 解析后的浮点数和未解析的字符串部分
+		* @return 解析后的浮点数
 		*/
-		constexpr std::pair<double, self> tofloat() const
+		constexpr double tofloat() const
 		{
-			if (empty()) return { 0, *this };
+			if (empty())
+				ValueError("Empty string");
 
-			c_size num = 0;
-			c_size frac_num = 0, frac_div = 1;
-			c_size i = (at(0) == '+' || at(0) == '-');
-			c_size remain_length = size();
+			c_size num = 0, frac_div = 1;
+			double frac_num = 0;
 			bool neg = (at(0) == '-');
 			bool frac = false;
 
-			for (c_size m_size = size(); i < m_size; ++i)
-				if (at(i).isdigit())
+			// 必须要有合法数值
+			bool has_num = false, dot_flag = false;
+			for (c_size i = 0; i < size(); ++i)
+			{
+				AChar ch = at(i);
+				if (i == 0 && (ch == '+' || ch == '-'))
+					continue;
+
+				if (ch == '.')
 				{
+					if (has_num == false)
+						ValueError("Invalid float string: no digits before decimal point");
 					if (frac)
-					{
-						frac_num = frac_num * 10 + at(i).ord() - '0';
-						frac_div *= 10;
-					}
-					else
-						num = num * 10 + at(i).ord() - '0';
+						ValueError("Invalid float string: multiple decimal points");
+					frac = true;
 				}
 				else
 				{
-					if (at(i) == '.' && !frac)
-						frac = true;
-					else
+					int digit = ch.tobase();
+					if (digit == -1)
+						ValueError(ayr::format("Invalid character for base 10: {}", ch));
+
+					if (frac)
 					{
-						remain_length = i;
-						break;
+						frac_div *= 10;
+						frac_num = frac_num + (double)digit / frac_div;
 					}
+					else
+						num = num * 10 + digit;
+					has_num = true;
 				}
-			double res = num + (frac_num / (double)frac_div);
-			return { ifelse(neg, -res, res) , slice(remain_length) };
+			}
+			
+			if (!has_num)
+				ValueError("Invalid integer string: no digits found");
+
+			double res = num + frac_num;
+			return ifelse(neg, -res, res);
 		}
 
 		// 将字符串编码为指定的编码格式

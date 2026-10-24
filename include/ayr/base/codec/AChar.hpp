@@ -60,6 +60,28 @@ namespace ayr
 		// 是否为字母
 		constexpr bool isalpha() const { return isupper() || islower(); }
 
+		/*
+		* @brief 转换成base进制的数字
+		* 
+		* @param base 进制，范围[2, 36]，默认10进制
+		* 
+		* @return 转换后的数字，如果不是数字则返回-1
+		*/
+		constexpr int tobase(int base = 10) const
+		{
+			int digit = 0;
+			if (isdigit())
+				digit = ord() - '0';
+			else if (isalpha())
+				digit = lower().ord() - 'a' + 10;
+			else
+				digit = base;
+
+			if (digit < 0 || digit >= base)
+				digit = -1;
+			return digit;
+		}
+
 		constexpr std::strong_ordering operator<=> (const self& other) const { return unicode_ <=> other.unicode_; }
 
 		constexpr std::strong_ordering operator<=> (char other) const { return unicode_ <=> other; }
