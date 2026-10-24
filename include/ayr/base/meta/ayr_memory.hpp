@@ -18,7 +18,8 @@ namespace ayr
 
 	// 在ptr上调用构造函数, 并返回ptr
 	template<typename T, typename ... Args>
-	constexpr def ayr_construct(T* ptr, Args&&... args) -> T*
+	constexpr def ayr_construct(T* ptr, Args&&... args)
+		noexcept(std::is_nothrow_constructible_v<T, Args...>) -> T*
 	{
 		return std::construct_at(ptr, std::forward<Args>(args)...);
 	}
@@ -31,7 +32,7 @@ namespace ayr
 	}
 
 	template<typename T>
-	constexpr def ayr_destroy(T* ptr)
+	constexpr def ayr_destroy(T* ptr) noexcept
 	{
 		if constexpr (Not<NoDestroy<T>>)
 			ptr->~T();
@@ -39,7 +40,7 @@ namespace ayr
 
 	// 调用ptr的析构函数,不会释放内存
 	template<typename T>
-	constexpr def ayr_destroy(T* ptr, size_t size)
+	constexpr def ayr_destroy(T* ptr, size_t size) noexcept
 	{
 		if constexpr (Not<NoDestroy<T>>)
 			while (size--)
@@ -51,11 +52,11 @@ namespace ayr
 
 	// 释放ptr指向的内存
 	template<typename T>
-	def ayr_delloc(T* ptr) { ::operator delete(ptr); }
+	def ayr_delloc(T* ptr) noexcept { ::operator delete(ptr); }
 
 	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
-	def ayr_desloc(T* ptr)
+	def ayr_desloc(T* ptr) noexcept
 	{
 		if (ptr == nullptr) return;
 		ayr_destroy(ptr);
@@ -64,7 +65,7 @@ namespace ayr
 
 	// 释放ptr指向的内存, 并调用析构函数
 	template<typename T>
-	def ayr_desloc(T* ptr, size_t size)
+	def ayr_desloc(T* ptr, size_t size) noexcept
 	{
 		if (ptr == nullptr) return;
 		ayr_destroy(ptr, size);
