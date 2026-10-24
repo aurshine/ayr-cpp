@@ -170,30 +170,35 @@ namespace ayr
 		void pop(Node_t* node) { pop_range(node, node); }
 
 		// 删除尾部n个元素
-		void pop_back(c_size n = 1)
+		c_size pop_back(c_size n = 1)
 		{
-			Node_t* pos = head_;
-			if (n < size_)
-				for (c_size i = 0; i < size_ - n; ++i)
-					pos = pos->next();
+			if (n <= 0) return 0;
+			if (n > size_) n = size_;
 
-			pop_range(pos, tail_);
+			Node_t* pos = head_;
+			for (c_size i = 0; i < size_ - n; ++i)
+				pos = pos->next();
+
+			return pop_range(pos, tail_);
 		}
 
 		// 删除头部n个元素
-		void pop_front(c_size n = 1)
+		c_size pop_front(c_size n = 1)
 		{
-			Node_t* pos = head_;
-			if (n < size_)
-				for (c_size i = 0; i < n - 1; ++i)
-					pos = pos->next();
+			if (n <= 0) return 0;
+			if (n > size_) n = size_;
 
-			pop_range(head_, pos);
+			Node_t* pos = head_;
+			for (c_size i = 0; i < n - 1; ++i)
+				pos = pos->next();
+
+			return pop_range(head_, pos);
 		}
 
 		// 删除区间[l, r]内的所有节点
-		void pop_range(Node_t* l, Node_t* r)
+		c_size pop_range(Node_t* l, Node_t* r)
 		{
+			c_size cnt = 0;
 			if (l == head_)
 			{
 				if (r == tail_)
@@ -215,6 +220,7 @@ namespace ayr
 			while (true)
 			{
 				--size_;
+				++cnt;
 				Node_t* nxt = cur->next();
 				ayr_desloc(cur);
 
@@ -223,6 +229,8 @@ namespace ayr
 				else
 					cur = nxt;
 			}
+
+			return cnt;
 		}
 
 		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }

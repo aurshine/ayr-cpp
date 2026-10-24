@@ -30,7 +30,7 @@ namespace ayr
 		bool empty() const { return derived().size() == 0; }
 
 		// 删除最后n个元素
-		void pop_back(c_size n = 1) { NotImplementedError(ayr::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
+		c_size pop_back(c_size n = 1) { NotImplementedError(ayr::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
 
 		Value_t& front() { return *derived().begin(); }
 

@@ -11,6 +11,10 @@ namespace ayr
 		using self = Appender<T>;
 
 		using super = Sequence<Appender<T>, T>;
+
+		c_size size_, capacity_;
+
+		T* buffer_;
 	public:
 		using Value_t = T;
 
@@ -76,16 +80,14 @@ namespace ayr
 			return *result;
 		}
 
-		void pop_back(c_size n = 1)
+		c_size pop_back(c_size n = 1)
 		{
-			if (n <= 0) return;
+			if (n <= 0) return 0;
+			if (n > size()) n = size();
 
-			c_size new_size = std::max<c_size>(0, size_ - n);
-			if constexpr (NoDestroy<Value_t>)
-				size_ = new_size;
-			else
-				while (size_ > new_size)
-					ayr_destroy(buffer_ + (--size_));
+			ayr_destroy(buffer_ + size_ - n, n);
+			size_ -= n;
+			return n;
 		}
 
 		// 清空元素，保留已分配的内存
@@ -133,10 +135,6 @@ namespace ayr
 		std::strong_ordering operator<=>(const self& other) const { return super::operator<=>(other); }
 
 		bool operator==(const self& other) const { return super::operator==(other); }
-	private:
-		c_size size_, capacity_;
-
-		Value_t* buffer_;
 	};
 }
 #endif // AYR_AIR_APPENDER_HPP

@@ -59,22 +59,30 @@ namespace ayr
 					pos_ += 5;
 					return Json(false);
 				}
-				else if (startswith("-"as) || json_str_.at(pos_).isdigit()) // number类型
+				else if (first_char() == '-' || first_char().isdigit()) // number类型
 				{
-					bool negative = startswith("-"as);
-					
-					auto [num_int, int_remain_str] = remain_str().toint();
-					if (int_remain_str.startswith("."as))
+					c_size i = pos_ + 1;
+					bool dot_flag = false;
+					while (i < end_)
 					{
-						auto [num_float, float_remain_str] = int_remain_str.tofloat();
-						pos_ = end_ - float_remain_str.size();
-						return floating(ifelse(negative, num_int - num_float, num_int + num_float));
+						AChar ch = json_str_.at(i);
+						if (!ch.isdigit())
+							if (ch == '.')
+								dot_flag = true;
+							else
+								break;
+						++i;
 					}
 
-					pos_ = end_ - int_remain_str.size();
-					return integer(num_int);
+					JsonStr num_str = json_str_.slice(pos_, i);
+					pos_ = i;
+
+					if (dot_flag)
+						return floating(num_str.tofloat());
+					else
+						return integer(num_str.toint());
 				}
-				ValueError(ayr::format("invalid simple parse: {}", first_char()));
+				ValueError(ayr::format("Invalid simple parse: {}", first_char()));
 				return None;
 			}
 
@@ -95,7 +103,7 @@ namespace ayr
 				{
 					AChar ch = json_str_.at(pos_ ++);
 					if (ch.ord() < 0x20)
-						JsonValueError("unescaped control character in json string");
+						JsonValueError("Unescaped control character in json string");
 					
 					if (ch == '"')
 					{
@@ -113,7 +121,7 @@ namespace ayr
 					}
 				}
 
-				JsonValueError("unterminated json string");
+				JsonValueError("Unterminated json string");
 				return None;
 			}
 
@@ -140,7 +148,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1); // 去掉 ,
 					else
-						JsonValueError(ayr::format("invalid array parse: {}", remain_str()));
+						JsonValueError(ayr::format("Invalid array parse: {}", remain_str()));
 				}
 				
 				// 去掉 ]
@@ -167,12 +175,12 @@ namespace ayr
 					// 解析到key
 					Json key = parse_obj();
 					if (!key.is<JsonStr>())
-						JsonValueError(ayr::format("invalid dict key parse: {}", key));
+						JsonValueError(ayr::format("Invalid dict key parse: {}", key));
 					
 					// 找到 ':'
 					first_non_space();
 					if (first_char() != ':')
-						JsonValueError(ayr::format("invalid dict parse: {}, expect ':'", first_char()));
+						JsonValueError(ayr::format("Invalid dict parse: {}, expect ':'", first_char()));
 
 					// 去掉 ':'
 					first_non_space(1);
@@ -186,7 +194,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1);
 					else
-						JsonValueError(ayr::format("invalid dict parse: {}", remain_str()));
+						JsonValueError(ayr::format("Invalid dict parse: {}", remain_str()));
 				}
 
 				// 去掉 }
@@ -224,6 +232,7 @@ namespace ayr
 				while (pos_ < end_ && first_char().isspace()) ++pos_;
 			}
 
+			// 从pos_开始检查是否以prefix开头
 			bool startswith(const Atring& prefix)
 			{
 				if (pos_ + prefix.size() > end_)
@@ -264,7 +273,7 @@ namespace ayr
 				else if (escaped == 't')
 					return '\t';
 				else
-					JsonValueError(ayr::format("invalid escape character: {}", escaped));
+					JsonValueError(ayr::format("Invalid escape character: {}", escaped));
 			}
 		};
 
@@ -290,7 +299,7 @@ namespace ayr
 			if (!remain_str.empty())
 				JsonValueError(ayr::format("load remaining, {}", remain_str));
 
-			return json_obj;
+			return std::move(json_obj);
 		}
 	}
 }

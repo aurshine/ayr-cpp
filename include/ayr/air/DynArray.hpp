@@ -8,6 +8,94 @@
 
 namespace ayr
 {
+    template<typename T>
+    class SmallVector : public Sequence<SmallVector<T>, T>
+    {
+        using self = SmallVector<T>;
+
+		using super = Sequence<self, T>;
+
+        T* buffer_;
+
+        c_size size_, capacity_;
+    public:
+        SmallVector() noexcept : buffer_(nullptr), size_(0), capacity_(0) {}
+
+        SmallVector(const self& other): buffer_(ayr_alloc<T>(other.capacity_)), size_(0), capacity_(other.capacity_)
+        {
+			while (size_ < other.size_)
+			{
+				ayr_construct(buffer_ + size_, other.buffer_[size_]);
+				++size_;
+			}
+        }
+
+        SmallVector(self&& other) noexcept
+            : buffer_(std::exchange(other.buffer_, nullptr)),
+              size_(std::exchange(other.size_, 0)),
+              capacity_(std::exchange(other.capacity_, 0)) {}
+
+        ~SmallVector() { ayr_desloc(buffer_, size_); }
+
+        self& operator=(const self& other)
+        {
+            if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, other);
+        }
+
+        self& operator=(self&& other) noexcept
+        {
+            if (this == &other) return *this;
+			ayr_destroy(this);
+			return *ayr_construct(this, std::move(other));
+        }
+
+        c_size size() const { return size_; }
+
+        T& at(c_size index) { return buffer_[index]; }
+
+        const T& at(c_size index) const { return buffer_[index]; }
+
+        void clear()
+        {
+            ayr_destroy(buffer_, size_);
+            size_ = 0;
+        }
+
+
+        c_size pop_back(c_size n = 1)
+        {
+            if (n <= 0 || size_ == 0) return 0;
+            if (n > size_) n = size_;
+            ayr_destroy(buffer_ + size_ - n, n);
+            size_ -= n;
+            return n;
+        }
+
+        template<typename... Args>
+        T& append(Args&&... args)
+        {
+			T* result = nullptr;
+			if (size_ == capacity_)
+			{
+				capacity_ = ifelse(capacity_ <= 0, 1, capacity_ * 2);
+				T* new_buffer = ayr_alloc<T>(capacity_);
+
+				result = ayr_construct(new_buffer + size_, std::forward<Args>(args)...);
+				for (c_size i = 0; i < size_; ++ i)
+					ayr_construct(new_buffer + i, std::move(buffer_[i]));
+				
+				ayr_desloc(buffer_, size_);
+				buffer_ = new_buffer;
+			} else
+				result = ayr_construct(buffer_ + size_, std::forward<Args>(args)...);
+
+            ++size_;
+            return *result;
+        }
+    };
+
 	// 动态数组
 	template<typename T>
 	class DynArray : public Sequence<DynArray<T>, T>
@@ -22,7 +110,7 @@ namespace ayr
 		// 最小块大小
 		constexpr static c_size BASE_SIZE = 8;
 
-		Appender<Appender<T>> blocks_;
+		SmallVector<Appender<T>> blocks_;
 
 		c_size size_;
 
@@ -30,7 +118,7 @@ namespace ayr
 	public:
 		using Value_t = T;
 
-		DynArray() : blocks_(DYNARRAY_BLOCK_SIZE), size_(0), back_block_index_(-1) {}
+		DynArray() : blocks_(), size_(0), back_block_index_(-1) {}
 
 		DynArray(std::initializer_list<Value_t>&& init) : DynArray()
 		{
@@ -121,23 +209,19 @@ namespace ayr
 				std::swap(at(i), at(i - 1));
 		}
 
-		void pop_back(c_size n = 1)
+		c_size pop_back(c_size n = 1)
 		{
+			if (n <= 0) return 0;
+			if (n > size()) n = size();
 			c_size temp_n = n;
-			while (n > 0)
+			while (temp_n > 0)
 			{
-				if (_back_block().size() <= n)
-				{
-					n -= _back_block().size();
+				temp_n -= _back_block().pop_back(temp_n);
+				if (_back_block().empty())
 					_pop_back_block();
-				}
-				else
-				{
-					_back_block().pop_back(n);
-					n = 0;
-				}
 			}
-			size_ -= temp_n;
+			size_ -= n;
+			return n;
 		}
 
 		// 移除指定位置的元素
