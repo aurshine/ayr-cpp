@@ -34,7 +34,6 @@ namespace ayr
 		{ one == other } -> std::convertible_to<bool>;
 	};
 
-
 	template<typename T>
 	concept StdHashable = requires(const T & one, const T & other)
 	{

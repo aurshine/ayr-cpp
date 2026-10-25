@@ -175,9 +175,9 @@ namespace ayr
 			if (n <= 0) return 0;
 			if (n > size_) n = size_;
 
-			Node_t* pos = head_;
-			for (c_size i = 0; i < size_ - n; ++i)
-				pos = pos->next();
+			Node_t* pos = tail_;
+			for (c_size i = 1; i < n; ++i)
+				pos = pos->prev();
 
 			return pop_range(pos, tail_);
 		}
@@ -189,7 +189,7 @@ namespace ayr
 			if (n > size_) n = size_;
 
 			Node_t* pos = head_;
-			for (c_size i = 0; i < n - 1; ++i)
+			for (c_size i = 1; i < n; ++i)
 				pos = pos->next();
 
 			return pop_range(head_, pos);

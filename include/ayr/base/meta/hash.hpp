@@ -1,60 +1,87 @@
 ﻿#ifndef AYR_BASE_HASH_HPP
 #define AYR_BASE_HASH_HPP
 
-#include "ayr_concepts.hpp"
+#include <cstring>
 
+#include "ayr_concepts.hpp"
 
 namespace ayr
 {
-	inline uint32_t decode_fixed32(const char* ptr)
+	 // 混合 64 位整数，使高位信息充分影响用于取桶的低位
+	constexpr def integer_hash(hash_t value) noexcept -> hash_t
 	{
-		const uint8_t* buffer = reinterpret_cast<const uint8_t*>(ptr);
-
-		return (
-			static_cast<uint32_t>(buffer[0]) |
-			(static_cast<uint32_t>(buffer[1]) << 8) |
-			(static_cast<uint32_t>(buffer[2]) << 16) |
-			(static_cast<uint32_t>(buffer[3]) << 24)
-			);
+		value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
+		value = (value ^ (value >> 27)) * 0x94d049bb133111ebULL;
+		return value ^ (value >> 31);
 	}
 
+	/**
+	 * @brief 从原始内存读取一个 32 位无符号小端整数。
+	 * @param data 指向至少 4 个连续可读字节，允许未对齐。
+	 * @note 不推进调用方的指针，也不检查缓冲区长度。
+	 */
+	def load_u32_le(const void* data) noexcept -> uint32_t
+	{
+		const auto* p = static_cast<const uint8_t*>(data);
 
-	inline hash_t bytes_hash(const char* data, size_t n, uint32_t seed = 0xbc9f1d34)
+		return uint32_t(p[0])
+			| uint32_t(p[1]) << 8
+			| uint32_t(p[2]) << 16
+			| uint32_t(p[3]) << 24;
+	}
+
+	// 计算字节序列哈希，保留既有四字节尾部及种子对应的哈希结果
+	def bytes_hash(const char* data, size_t n, uint32_t seed = 0xbc9f1d34) -> hash_t
 	{
 		constexpr hash_t m = 0xc6a4a793;
 		constexpr hash_t r = 24;
-		const char* end = data + n;
 		hash_t h = seed ^ (n * m);
 
-		while (data + 4 < end)
+		// 以剩余长度控制读取，避免短输入形成越过数组末端的指针。
+		// 保留恰好四字节时的尾部路径，以兼容现有字符串哈希。
+		while (n > 4)
 		{
-			hash_t w = decode_fixed32(data);
+			hash_t w = load_u32_le(data);
 			data += 4;
+			n -= 4;
 			h = (h + w) * m;
 			h ^= (h >> 16);
 		}
 
-		int dis = end - data;
-		for (int i = 0; i < dis; i++)
-			h += static_cast<uint8_t>(data[i]) << (i * 8);
-
+		uint32_t tail = 0;
+		for (size_t i = 0; i < n; ++i)
+			tail |= static_cast<uint32_t>(static_cast<uint8_t>(data[i])) << (i * 8);
+		
+		h += static_cast<hash_t>(static_cast<int32_t>(tail));
 		h *= m;
 		h ^= (h >> r);
 		return h;
 	}
 
-	template<AyrLikeHashable K>
-	inline hash_t ayr_hash_impl(const K& key) { return key.__hash__(); }
-
-	template<StdHashable K>
-	inline hash_t ayr_hash_impl(const K& key) { return std::hash<std::decay_t<K>>{}(key); }
-
+	// 优先使用自定义哈希，为整型和枚举使用快速混合，其余类型保留标准哈希
 	template<Hashable K>
-	inline hash_t ayrhash(const K& key) { return ayr_hash_impl(key); }
+	def ayr_hash_impl(const K& key) -> hash_t
+	{
+		using Key = std::decay_t<K>;
+		if constexpr (AyrLikeHashable<K>)
+			return key.__hash__();
+		else if constexpr (std::is_integral_v<Key> && sizeof(Key) <= sizeof(hash_t))
+			return integer_hash(static_cast<hash_t>(key));
+		else if constexpr (std::is_enum_v<Key> && sizeof(Key) <= sizeof(hash_t))
+			return integer_hash(static_cast<hash_t>(static_cast<std::underlying_type_t<Key>>(key)));
+		else
+			return std::hash<Key>{}(key);
+	}
 
-	inline hash_t ayrhash(const char* key) { return bytes_hash(key, strlen(key)); }
+	// 计算键的哈希；整数和枚举的哈希值不再依赖标准库实现
+	template<Hashable K>
+	def ayrhash(const K& key) { return ayr_hash_impl(key); }
 
+	// 按以空字符结尾的字符串内容计算哈希
+	def ayrhash(const char* key) { return bytes_hash(key, std::strlen(key)); }
+
+	// 按字符数组内容计算哈希，不包含末尾的空字符
 	template<size_t N>
-	inline hash_t ayrhash(const char(&key)[N]) { return bytes_hash(key, N - 1); }
+	def ayrhash(const char(&key)[N]) { return bytes_hash(key, N - 1); }
 }
 #endif // AYR_BASE_HASH_HPP
