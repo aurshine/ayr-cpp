@@ -1,6 +1,8 @@
 #ifndef AYR_JSON_JSONDUMPER_HPP
 #define AYR_JSON_JSONDUMPER_HPP
 
+#include <string_view>
+
 #include "JsonValue.hpp"
 
 namespace ayr
@@ -27,7 +29,16 @@ namespace ayr
 
 			void operator()(const JsonInt& obj) { buffer << obj; }
 
-			void operator()(const JsonFloat& obj) { buffer << obj; }
+            void operator()(const JsonFloat& obj)
+            {
+                c_size start = buffer.readable_size();
+                buffer << obj;
+                std::string_view number(buffer.peek() + start, buffer.readable_size() - start);
+                // 最短表示可能省略小数点，保留重新加载后的浮点类型。
+                if (!number.empty() && number.back() >= '0' && number.back() <= '9'
+                    && number.find_first_of(".eE") == std::string_view::npos)
+                    buffer << ".0";
+            }
 
 			void operator()(const JsonBool& obj) { buffer << obj; }
 
@@ -114,7 +125,7 @@ namespace ayr
 			void enter_depth()
 			{
 				if (++depth_ >= MAX_DEPTH)
-					JsonValueError(ayr::format("exceed max depth: {}", MAX_DEPTH));
+					JsonValueError(fmt("exceed max depth: {}", MAX_DEPTH));
 			}
 
 			// 输出换行和缩进

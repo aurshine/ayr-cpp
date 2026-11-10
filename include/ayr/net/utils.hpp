@@ -203,7 +203,7 @@ namespace ayr
 			else if (mode == "w")
 				setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size));
 			else
-				ValueError(ayr::format("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
+				ValueError(fmt("Invalid buffer mode {}. Should be 'r' or 'w'.", mode));
 		}
 
 		/*
@@ -427,7 +427,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
 					&lpfnAcceptEx4, sizeof(lpfnAcceptEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError(ayr::format("Failed to load AcceptEx for IPv4: {}", win_error2str(WSAGetLastError())));
+					RuntimeError(fmt("Failed to load AcceptEx for IPv4: {}", win_error2str(WSAGetLastError())));
 				}
 
 				return lpfnAcceptEx4;
@@ -444,7 +444,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidAcceptEx, sizeof(guidAcceptEx),
 					&lpfnAcceptEx6, sizeof(lpfnAcceptEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError(ayr::format("Failed to load AcceptEx for IPv6: {}", win_error2str(WSAGetLastError())));
+					RuntimeError(fmt("Failed to load AcceptEx for IPv6: {}", win_error2str(WSAGetLastError())));
 				}
 
 				return lpfnAcceptEx6;
@@ -459,7 +459,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
 					&lpfnConnectEx4, sizeof(lpfnConnectEx4), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError(ayr::format("Failed to load ConnectEx for IPv4: {}", win_error2str(WSAGetLastError())));
+					RuntimeError(fmt("Failed to load ConnectEx for IPv4: {}", win_error2str(WSAGetLastError())));
 				}
 				return lpfnConnectEx4;
 			}
@@ -474,7 +474,7 @@ namespace ayr
 				if (WSAIoctl(net::socket(AF_INET6, SOCK_STREAM, 0), SIO_GET_EXTENSION_FUNCTION_POINTER, &guidConnectEx, sizeof(guidConnectEx),
 					&lpfnConnectEx6, sizeof(lpfnConnectEx6), &bytes, NULL, NULL) == SOCKET_ERROR)
 				{
-					RuntimeError(ayr::format("Failed to load ConnectEx for IPv6: {}", win_error2str(WSAGetLastError())));
+					RuntimeError(fmt("Failed to load ConnectEx for IPv6: {}", win_error2str(WSAGetLastError())));
 				}
 				return lpfnConnectEx6;
 			}
@@ -505,7 +505,7 @@ namespace ayr
 			case AF_INET6:
 				return _StartSocket::singleton().acceptex6()(sListenSocket, sAcceptSocket, lpOutputBuffer, dwReceiveDataLength, dwLocalAddressLength, dwRemoteAddressLength, lpdwBytesReceived, lpOverlapped);
 			default:
-				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+				RuntimeError(fmt("Unsupported family: {}", famliy));
 				return None;
 			}
 		}
@@ -531,7 +531,7 @@ namespace ayr
 			case AF_INET6:
 				return _StartSocket::singleton().connectex6()(sConnectSocket, name, namelen, lpSendBuffer, dwSendDataLength, lpdwBytesSent, lpOverlapped);
 			default:
-				RuntimeError(ayr::format("Unsupported family: {}", famliy));
+				RuntimeError(fmt("Unsupported family: {}", famliy));
 				return None;
 			}
 		}

@@ -158,7 +158,7 @@ int main()
 		fs::write(protected_file, "keep");
 		CString directory_link = fs::join(root, "directory_link");
 		if (::symlink(link_target.c_str(), directory_link.c_str()) != 0)
-			SystemError(ayr::format("Failed to create test symlink, {}", get_system_error_msg()));
+			SystemError(fmt("Failed to create test symlink, {}", get_system_error_msg()));
 		fs::remove(directory_link);
 		UTEST_EXPECT(fs::exists(protected_file));
 		UTEST_EXPECT(!fs::exists(directory_link));

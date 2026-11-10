@@ -16,6 +16,9 @@ int main()
 		UTEST_EXPECT_EQ(json::loads("123"as).as<json::JsonInt>(), 123);
 		UTEST_EXPECT_EQ(json::loads("-42"as).as<json::JsonInt>(), -42);
 		UTEST_EXPECT_NEAR(json::loads("3.25"as).as<json::JsonFloat>(), 3.25, 1e-9);
+        UTEST_EXPECT(json::loads(json::dumps(json::floating(2))).is<json::JsonFloat>());
+        UTEST_EXPECT(json::loads(json::dumps(json::floating(-0.0))).is<json::JsonFloat>());
+        UTEST_EXPECT_EQ(json::dumps(json::floating(2)), "2.0"as);
 		UTEST_EXPECT_EQ(json::loads(R"("abc")"as).as<json::JsonStr>(), "abc"as);
 	};
 

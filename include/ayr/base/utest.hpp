@@ -45,18 +45,18 @@ namespace ayr
 		void fail(const CString& action, const CString& expr, const CString& file, int line)
 		{
 			++failed_count_;
-			this->action(failed_print, vstr(ayr::format("[FALIED  {}]", action)), expr, file, line);
+			this->action(failed_print, fmt("[FALIED  {}]", action), expr, file, line);
 		}
 
 		void fail(const CString& action, const CString& expr, const CString& file, int line, const CString& ex_msg)
 		{
 			++failed_count_;
-			this->action(failed_print, vstr(ayr::format("[FALIED  {}]", action)), expr, file, line, ex_msg);
+			this->action(failed_print,fmt("[FALIED  {}]", action), expr, file, line, ex_msg);
 		}
 
 		void success(const CString& action, const CString& expr, const CString& file, int line)
 		{
-			this->action(success_print, vstr(ayr::format("[SUCCESS {}]", action)), expr, file, line);
+			this->action(success_print, fmt("[SUCCESS {}]", action), expr, file, line);
 		}
 
 		void action(ColorPrinter& cp, const CString& action, const CString& expr, const CString& file, int line)
@@ -133,7 +133,7 @@ namespace ayr
 		{
 			++total_count_;
 			if (t1 != t2)
-				fail("EQUAL    ", expr, file, line, vstr(ayr::format("{} != {}", cstr(t1), cstr(t2))));
+				fail("EQUAL    ", expr, file, line, fmt("{} != {}", t1, t2));
 			else
 				success("EQUAL    ", expr, file, line);
 		}
@@ -153,7 +153,7 @@ namespace ayr
 			++total_count_;
 			double diff = ifelse(actual > expected, actual - expected, expected - actual);
 			if (diff > eps)
-				fail("NEAREQUAL", expr, file, line, vstr(ayr::format("|{} - {}| > {}", actual, expected, diff)));
+				fail("NEAREQUAL", expr, file, line, fmt("|{} - {}| > {}", actual, expected, diff));
 			else
 				success("NEAREQUAL", expr, file, line);
 		}

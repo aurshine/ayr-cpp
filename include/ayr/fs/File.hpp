@@ -40,7 +40,7 @@ namespace ayr
 				{
 					uint32_t code = ch.ord();
 					if (code > 0x10FFFF || (code >= 0xD800 && code <= 0xDFFF))
-						EncodingError(ayr::format("Invalid Unicode code point in Windows path: {}", code));
+						EncodingError(fmt("Invalid Unicode code point in Windows path: {}", code));
 
 					if (code <= 0xFFFF)
 						output[output_size++] = static_cast<wchar_t>(code);
@@ -87,7 +87,7 @@ namespace ayr
 					dwCreationDisposition = OPEN_ALWAYS;
 				}
 				else
-					ValueError(ayr::format("Invalid value {}, that only support [w, r, a]", mode));
+					ValueError(fmt("Invalid value {}, that only support [w, r, a]", mode));
 
 				fd_ = CreateFileA(
 					filename.c_str(),
@@ -100,7 +100,7 @@ namespace ayr
 				);
 
 				if (fd_ == INVALID_FD)
-					SystemError(ayr::format("Failed to create or open file {} with mode {}, {}",filename, mode, get_system_error_msg()));
+					SystemError(fmt("Failed to create or open file {} with mode {}, {}",filename, mode, get_system_error_msg()));
 #else
 
 				int flags = 0;
@@ -111,12 +111,12 @@ namespace ayr
 				else if (mode == "a")
 					flags = O_WRONLY | O_CREAT | O_APPEND;
 				else
-					ValueError(ayr::format("Invalid value {}, that only support [w, r, a]", mode));
+					ValueError(fmt("Invalid value {}, that only support [w, r, a]", mode));
 
 				fd_ = ::open(filename.c_str(), flags, 0666);
 
 				if (fd_ == -1)
-					SystemError(ayr::format("Failed to create or open file {} with mode {}, {}",filename, mode, get_system_error_msg()));
+					SystemError(fmt("Failed to create or open file {} with mode {}, {}",filename, mode, get_system_error_msg()));
 #endif
 			}
 
@@ -160,10 +160,10 @@ namespace ayr
 				if (fd_ == INVALID_FD) return;
 #if defined(AYR_WIN)
 				if (!CloseHandle(fd_))
-					SystemError(ayr::format("Failed to close file, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to close file, {}", get_system_error_msg()));
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 				if (::close(fd_) != 0)
-					SystemError(ayr::format("Failed to close file, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to close file, {}", get_system_error_msg()));
 #endif
 				fd_ = INVALID_FD;
 			}
@@ -200,7 +200,7 @@ namespace ayr
 					DWORD request_size = std::min<c_size>(MAXDWORD, size - total_read);
 					ok = ReadFile(fd_, buffer.write_ptr(), request_size, &read_bytes, nullptr);
 					if (!ok)
-						SystemError(ayr::format("Failed to read from file, {}", get_system_error_msg()));
+						SystemError(fmt("Failed to read from file, {}", get_system_error_msg()));
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 					size_t request_size = std::min<c_size>(SSIZE_MAX, size - total_read);
 					do
@@ -208,7 +208,7 @@ namespace ayr
 						read_bytes = ::read(fd_, buffer.write_ptr(), request_size);
 					} while (read_bytes < 0 && errno == EINTR);
 					if (read_bytes < 0)
-						SystemError(ayr::format("Failed to read from file, {}", get_system_error_msg()));
+						SystemError(fmt("Failed to read from file, {}", get_system_error_msg()));
 #endif
 					// 读完了
 					if (read_bytes == 0) break;
@@ -300,7 +300,7 @@ namespace ayr
 					DWORD request_size = std::min<c_size>(MAXDWORD, size - num_written); 
 					ok = WriteFile(fd_, data.data() + num_written, request_size, &written_bytes, nullptr);
 					if (!ok)
-						SystemError(ayr::format("Failed to write to file, {}", get_system_error_msg()));
+						SystemError(fmt("Failed to write to file, {}", get_system_error_msg()));
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 					size_t request_size = std::min<c_size>(SSIZE_MAX, size - num_written);
 					do
@@ -308,7 +308,7 @@ namespace ayr
 						written_bytes = ::write(fd_, data.data() + num_written, request_size);
 					} while (written_bytes < 0 && errno == EINTR);
 					if (written_bytes < 0)
-						SystemError(ayr::format("Failed to write to file, {}", get_system_error_msg()));
+						SystemError(fmt("Failed to write to file, {}", get_system_error_msg()));
 #endif
 					if (written_bytes == 0)
 						SystemError("Failed to write to file: system call wrote zero bytes");
@@ -363,14 +363,14 @@ namespace ayr
 #if defined(AYR_WIN)
 				LARGE_INTEGER size{};
 				if (!GetFileSizeEx(fd_, &size))
-					SystemError(ayr::format("Failed to get file size, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to get file size, {}", get_system_error_msg()));
 				if (size.QuadPart < 0)
 					SystemError("Failed to get file size: system returned a negative size");
 				return size.QuadPart;
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 				struct stat st;
 				if (::fstat(fd_, &st) == -1)
-					SystemError(ayr::format("Failed to get file size, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to get file size, {}", get_system_error_msg()));
 				if (st.st_size < 0)
 					SystemError("Failed to get file size: system returned a negative size");
 				return st.st_size;
@@ -399,7 +399,7 @@ namespace ayr
 					FALSE,
 					DUPLICATE_SAME_ACCESS
 				))
-					SystemError(ayr::format("Failed to duplicate file handle, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to duplicate file handle, {}", get_system_error_msg()));
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 				int duplicate_fd = INVALID_FD;
 				do
@@ -407,7 +407,7 @@ namespace ayr
 					duplicate_fd = ::dup(fd_);
 				} while (duplicate_fd == INVALID_FD && errno == EINTR);
 				if (duplicate_fd == INVALID_FD)
-					SystemError(ayr::format("Failed to duplicate file descriptor, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to duplicate file descriptor, {}", get_system_error_msg()));
 #endif
 			return self(duplicate_fd);
 			}
@@ -425,12 +425,12 @@ namespace ayr
 #if defined(AYR_WIN)
 				LARGE_INTEGER zero{}, current{};
 				if (!SetFilePointerEx(fd_, zero, &current, FILE_CURRENT))
-					SystemError(ayr::format("Failed to get current file position, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to get current file position, {}", get_system_error_msg()));
 				return ifelse(current.QuadPart < total_size, total_size - current.QuadPart, 0);
 #elif defined(AYR_LINUX) || defined(AYR_MAC)
 				off_t current = ::lseek(fd_, 0, SEEK_CUR);
 				if (current == static_cast<off_t>(-1))
-					SystemError(ayr::format("Failed to get current file position, {}", get_system_error_msg()));
+					SystemError(fmt("Failed to get current file position, {}", get_system_error_msg()));
 				return ifelse(current < total_size, total_size - current, 0);
 #endif
 			}

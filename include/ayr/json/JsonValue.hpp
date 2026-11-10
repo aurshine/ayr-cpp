@@ -370,7 +370,7 @@ namespace ayr
 		private:
 			decltype(None) func_call_error(const CString& fname) const
 			{
-				JsonValueError(ayr::format("type {} cannot call {}", type_name(), fname));
+				JsonValueError(fmt("type {} cannot call {}", type_name(), fname));
 				return None;
 			}
 		};
