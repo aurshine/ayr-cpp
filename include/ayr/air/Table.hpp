@@ -1,12 +1,11 @@
 #ifndef AYR_AIR_TABLE_HPP
 #define AYR_AIR_TABLE_HPP
 
-#include <array>
-
 #include "DynArray.hpp"
 
 namespace ayr
 {
+	/** @brief 以 2 的幂作为容量、以 3/4 作为负载阈值的哈希表容量策略。 */
 	class Pow2Policy
 	{
 		using self = Pow2Policy;
@@ -14,10 +13,13 @@ namespace ayr
 		// 当前容量, 2^n
 		c_size capacity_;
 	public:
+		/** @brief 使用最小容量初始化策略。 */
 		constexpr Pow2Policy() : capacity_(min_capacity()) {}
 
+		/** @brief 复制容量配置。 */
 		constexpr Pow2Policy(const self& other) : capacity_(other.capacity_) {}
 
+		/** @brief 复制容量配置，支持自赋值。 */
 		constexpr self& operator=(const self& other)
 		{
 			if (this == &other) return *this;
@@ -26,220 +28,211 @@ namespace ayr
 			return *this;
 		}
 
-		// 当前策略的容量
+		/** @brief 返回当前槽位容量。 */
 		constexpr c_size capacity() const { return capacity_; }
 
-		// 最小容量
+		/** @brief 返回最小槽位容量。 */
 		constexpr c_size min_capacity() const { return 16; }
 
-		// 最大容量
+		/** @brief 返回策略允许的容量上限。 */
 		constexpr c_size max_capacity() const { return 1ll << 62; }
 
-		// 负载阈值, 负载因子为 3 / 4
-		constexpr c_size load_threshold() { return (capacity() >> 2) * 3; }
+		/** @brief 返回触发扩容的元素数量，即当前容量的 3/4。 */
+		constexpr c_size load_threshold() const { return capacity() - (capacity() >> 2); }
 
-		// 掩码
+		/** @brief 返回用于环形索引的容量掩码。 */
 		constexpr c_size mask() const { return capacity() - 1; }
 
-		// 缩小容量，并返回缩小后的容量
+		/** @brief 将容量减半并返回新容量；调用方负责保证容量仍在有效范围内。 */
 		constexpr c_size shrink_capacity() { return capacity_ >>= 1; }
 
-		// 扩大容量，并返回扩大后的容量
+		/** @brief 将容量加倍并返回新容量；调用方负责保证容量仍在有效范围内。 */
 		constexpr c_size expand_capacity() { return capacity_ <<= 1; }
 
-		// hash值转化为索引
+		/** @brief 使用哈希值的低位计算初始槽位索引。 */
 		constexpr c_size hash2index(hash_t hashv) const { return hashv & mask(); }
 
-		// 下一个索引
+		/** @brief 返回下一个槽位索引，到达表尾时回绕到表头。 */
 		constexpr c_size next_index(c_size index) const { return (index + 1) & mask(); }
 
-		// 调整到初始值
+		/** @brief 恢复最小容量并返回该容量。 */
 		constexpr c_size reset() { return capacity_ = min_capacity(); }
 
-		/*
-		* @brief 容量调整到最小满足负载阈值的容量
-		*
-		* @param n 期望的容量
-		*
-		* @return 调整后的容量
-		*/
+		/**
+		 * @brief 按预期元素数量选择容量，使负载阈值严格大于 n。
+		 * @param n 预期存储的元素数量。
+		 * @return 调整后的槽位容量，至少为 min_capacity()。
+		 * @note n 必须非负且小于最大容量的负载阈值，非法输入不改变当前容量。
+		 */
 		constexpr c_size adapt_at_least(c_size n)
 		{
-			if (n > max_capacity())
-				RuntimeError("n is too large!");
+			const c_size max_elements = max_capacity() - (max_capacity() >> 2);
+			if (n < 0 || n >= max_elements)
+				RuntimeError("n is outside the supported element count range!");
 
-			/*
-			* 假设 n 的二进制形式为 b[n] b[n - 1] .... b[0]
-			*
-			* 其中b[n] 为最高位
-			*
-			* 需要计算值 res，使得 res * 3 / 4 > n
-			*
-			* res的二进制形式为 r[k + 1] r[k] r[k - 1] ... r[0]
-			*
-			* r[k] 为最高位为1，其余位为0
-			*
-			* r[k + 1] 为附加位，也为0
-			*
-			* res * 3 可表示为 res * 2 + res
-			*
-			* 即让res[k + 1] 为 1
-			*
-			* 再 / 4，r[k - 1] = 1, r[k - 2] = 1，其余为为0
-			*
-			* 此时最高位为r[k - 1]为1，与b[n]对齐比较
-			*
-			* 当b[n] = 1, b[n - 1] = 0，其余位为任意值，则k - 1 = n
-			*
-			* 当b[n] = 1，b[n - 1] = 1，其余位为任意值，则 k - 1 = n + 1
-			*
-			* 即当b最高位为 10, res = 1 << (n + 1);
-			*
-			* 当b最高位为 11，res = 1 << (n + 2);
-			*/
-			c_size h_index = highbit_index(n);
-			c_size res = 0;
-			if (h_index <= 0 || (((n >> (h_index - 1)) & 1) == 0))
-				res = 1 << (h_index + 1);
-			else
-				res = 1 << (h_index + 2);
-
-			// 溢出
-			if (res <= 0)
-				RuntimeError("n is too large!");
-			if (res < min_capacity())
-				res = min_capacity();
-			return capacity_ = res;
+			// 3 * capacity / 4 > n 等价于 capacity > 4 * n / 3。
+			// 先验证上限，保证加法和 bit_ceil 的结果均可由 64 位整数表示。
+			const auto count = static_cast<uint64_t>(n);
+			const auto required = count + count / 3 + 1;
+			const auto capacity = std::bit_ceil(required);
+			return capacity_ = static_cast<c_size>(std::max(capacity, static_cast<uint64_t>(min_capacity())));
 		}
 	};
 
-	template<typename T>
-	class RobinItem
+	/**
+	 * @brief Table 表项需要提供的键、值、哈希及移动操作接口。
+	 * @details 默认构造的表项可用于空槽位；键值访问仅在表项有效时使用。
+	 * 相等的键必须具有相同的哈希，查询哈希必须与表项保存的哈希一致。
+	 */
+	template<typename KV>
+	concept ItemConcept =
+		std::default_initializable<KV> &&
+		std::movable<KV> &&
+		requires(KV & kv, const KV & ckv, const typename KV::Key & key)
 	{
-		using self = RobinItem<T>;
+		typename KV::Key;
+		typename KV::Val;
 
-		std::aligned_storage_t<sizeof(T), alignof(T)> value_;
+		// 比较 Key
+		{ ckv.key_equal(key) } -> std::same_as<bool>;
+
+		// 获取哈希值
+		{ ckv.hashv() } -> std::same_as<hash_t>;
+
+		// 获取 Key
+		{ ckv.key() } -> std::same_as<const typename KV::Key&>;
+
+		// 获取 Value
+		{ kv.value() } -> std::same_as<typename KV::Val&>;
+		{ ckv.value() } -> std::same_as<const typename KV::Val&>;
+	};
+
+	/**
+	 * @brief 在业务表项上附加 Robin Hood 探测距离的槽位。
+	 * @details Item 负责键值及其资源语义；dist 为 EMPTY_DIST 时表示空槽位。
+	 */
+	template<ItemConcept Item>
+	class RobinItem: public Item
+	{
+		using super = Item;
+
+		using self = RobinItem<super>;
 	public:
 		using Dist_t = int32_t;
 
-		constexpr static Dist_t EMPITY_DIST = -1;
+		/** @brief 空槽位的探测距离标记。 */
+		constexpr static Dist_t EMPTY_DIST = -1;
 
-		// 元素的移动距离
-		Dist_t dist;
+		// 从初始哈希槽位到当前槽位的环形探测距离。
+		Dist_t dist = EMPTY_DIST;
 
-		// 元素的hash值
-		hash_t hashv;
+		/** @brief 默认构造业务表项，并将槽位标记为空。 */
+		constexpr RobinItem() : super() {}
 
-		constexpr RobinItem() : hashv(0), dist(-1) {}
-
-		constexpr RobinItem(const self& other) : RobinItem()
+		/** @brief 移动业务表项及探测距离，并将来源槽位标记为空。 */
+		constexpr RobinItem(self&& other) : super(std::move(other)), dist(other.dist)
 		{
-			if (other.used())
-				set_empty_value(other.hashv, other.dist, other.value());
+			other.dist = EMPTY_DIST;
 		}
 
-		constexpr RobinItem(self&& other) : RobinItem()
+		/** @brief 销毁槽位及其 Item 基类。 */
+		constexpr ~RobinItem() { dist = EMPTY_DIST; }
+
+		/** @brief 按成员复制槽位；是否可用取决于 Item 的拷贝赋值能力。 */
+		constexpr self& operator=(const self& other) = default;
+
+		/** @brief 按成员移动业务表项并赋值距离，不重置来源槽位的距离。 */
+		constexpr self& operator=(self&& other) = default;
+
+		/** @brief 判断槽位是否已被占用。 */
+		constexpr bool used() const { return dist != EMPTY_DIST; }
+
+		/**
+		 * @brief 先比较缓存哈希，再比较键是否相等。
+		 * @pre 当前 Item 必须有效；本函数不检查槽位是否被占用。
+		 */
+		constexpr bool check_kv_item(const typename super::Key& key, hash_t hashv) const
 		{
-			if (other.used())
-			{
-				set_empty_value(other.hashv, other.dist, std::move(other.value()));
-				other.set_unused();
-			}
+			return super::hashv() == hashv && super::key_equal(key);
 		}
 
-		constexpr ~RobinItem() { if (used()) { destroy_value(); } }
+		/** @brief 仅将槽位标记为空，不重置或销毁 Item。 */
+		constexpr void set_unused() { dist = EMPTY_DIST; }
 
-		constexpr self& operator=(const self& other)
-		{
-			if (this == &other) return *this;
-
-			ayr_destroy(this);
-			return *ayr_construct(this, other);
-		}
-
-		constexpr self& operator=(self&& other)
-		{
-			if (this == &other) return *this;
-
-			ayr_destroy(this);
-			return *ayr_construct(this, std::move(other));
-		}
-
-		// 元素是否被使用
-		constexpr bool used() const { return dist != EMPITY_DIST; }
-
-		// value必须有效，将元素设置为不使用
-		constexpr void set_unused()
-		{
-			destroy_value();
-			hashv = 0;
-			dist = EMPITY_DIST;
-		}
-
-		// 不检查value的有效性,value必须有效
-		constexpr T& value() { return reinterpret_cast<T&>(value_); }
-
-		// 不检查value的有效性,value必须有效
-		constexpr const T& value() const { return reinterpret_cast<const T&>(value_); }
-
-		// 原来不存在value, 构造一个新的value
-		template<typename... Args>
-		constexpr void set_empty_value(const hash_t& hashv, const Dist_t& dist, Args&& ... args)
-		{
-			ayr_construct(&value(), std::forward<Args>(args)...);
-			this->hashv = hashv;
+		/**
+		 * @brief 移入业务表项，并设置当前槽位的探测距离。
+		 * @param dist 新表项到当前槽位的探测距离。
+		 * @param kv_item 要移入的业务表项。
+		 */
+		constexpr void set_kv_item(Dist_t dist, super&& kv_item) 
+		{ 
+			super::operator=(std::move(kv_item)); 
 			this->dist = dist;
 		}
 
-		// 原来存在value, 设置一个新的value
-		template<typename ... Args>
-		constexpr void set_new_value(Args&&... args)
+		/**
+		 * @brief 交换业务表项及探测距离，供 Robin Hood 插入继续搬移被挤出的表项。
+		 * @param dist 待插入表项的距离；交换后保存原槽位表项的距离。
+		 * @param kv_item 待插入表项；交换后保存原槽位的业务表项。
+		 */
+		constexpr void swap_kv_item(Dist_t& dist, super& kv_item)
 		{
-			destroy_value();
-			ayr_construct(&value(), std::forward<Args>(args)...);
-		}
-
-		// 原来存在value, 交换value, hashv, dist
-		constexpr void swap_elements(hash_t& hashv, Dist_t& dist, T& value)
-		{
-			std::swap(this->value(), value);
-			std::swap(this->hashv, hashv);
 			std::swap(this->dist, dist);
+			std::swap(static_cast<super&>(*this), kv_item);
 		}
 
-		// 销毁value，value必须有效
-		constexpr void destroy_value()
-		{
-			ayr_destroy(&value());
-		}
-
+		/** @brief 输出槽位占用状态，或已占用槽位的距离和值。 */
 		void __repr__(Buffer& buffer) const
 		{
-			if (!used()) buffer << "[unused]";
+			if (!used()) 
+				buffer << "[unused]";
 			else
-				buffer << "[hashv:" << hashv << " dist:" << dist << " value:" << value() << "]";
+				buffer << "[dist:" << dist << " value:" << this->value() << "]";
 		}
 	};
 
-	template<typename T>
+	/**
+	 * @brief 使用开放寻址和 Robin Hood 探测的哈希表，仅支持移动。
+	 * @details 缓存哈希并通过键相等判断区分哈希碰撞，负载达到 3/4 时扩容。
+	 * 表内保存 Item 对象；DictItem 和 SetItem 引用的链表节点由上层容器管理。
+	 */
+	template<ItemConcept Item>
 	class Table
 	{
-		using self = Table<T>;
+		using self = Table<Item>;
 
-		using Dist_t = typename RobinItem<T>::Dist_t;
+		using Dist_t = typename RobinItem<Item>::Dist_t;
 
+		using Key = typename Item::Key;
 	public:
-		RobinItem<T>* items_;
+		/** @brief 一次探测的候选槽位、探测距离和键命中状态。 */
+		struct ProbeResult
+		{
+			// 命中时为目标槽位，未命中时为插入起点。
+			c_size index;
 
+			// 查询键从初始哈希槽位到 index 的探测距离。
+			Dist_t dist;
+
+			// 哈希与键均匹配时为 true，无需再次比较键。
+			bool found;
+		};
+
+		using RobinItem_t = RobinItem<Item>;
+
+		// 连续槽位数组，扩容时重新分配。
+		RobinItem_t* items_;
+
+		// 槽位容量和环形索引策略。
 		Pow2Policy policy_;
 
+		// 已占用槽位的数量。
 		c_size size_;
 
-		using RobinItem_t = RobinItem<T>;
-
-		using Value_t = T;
-
-		// capacity = 0时选择policy的最小容量方案
+		/**
+		 * @brief 根据预期元素数量分配并默认构造槽位。
+		 * @param capacity 预期元素数量；0 表示使用策略的最小槽位容量。
+		 */
 		Table(c_size capacity = 0) : policy_(), items_(nullptr), size_(0)
 		{
 			items_ = ayr_alloc<RobinItem_t>(policy_.adapt_at_least(capacity));
@@ -247,29 +240,17 @@ namespace ayr
 				ayr_construct(items_ + i);
 		}
 
-		Table(const self& other) : policy_(other.policy_), items_(nullptr), size_(other.size_)
-		{
-			items_ = ayr_alloc<RobinItem_t>(capacity());
-			for (c_size i = 0, n = capacity(); i < n; ++i)
-				ayr_construct(items_ + i, other.items_[i]);
-		}
-
+		/** @brief 接管槽位数组及其容量和计数，来源数组指针置空、计数归零。 */
 		Table(self&& other) noexcept : policy_(std::move(other.policy_)), items_(other.items_), size_(other.size_)
 		{
 			other.items_ = nullptr;
 			other.size_ = 0;
 		}
 
+		/** @brief 销毁全部槽位并释放数组存储。 */
 		~Table() { ayr_desloc(items_, policy_.capacity()); }
 
-		self& operator=(const self& other)
-		{
-			if (this == &other) return *this;
-
-			ayr_destroy(this);
-			return *ayr_construct(this, other);
-		}
-
+		/** @brief 释放当前槽位数组并接管来源存储，支持自移动赋值。 */
 		self& operator=(self&& other) noexcept
 		{
 			if (this == &other) return *this;
@@ -278,153 +259,91 @@ namespace ayr
 			return *ayr_construct(this, std::move(other));
 		}
 
+		/** @brief 返回已占用槽位的数量。 */
 		c_size size() const { return size_; }
 
+		/** @brief 判断是否没有已占用的槽位。 */
 		bool empty() const { return size_ == 0; }
 
+		/** @brief 返回槽位数组的容量。 */
 		c_size capacity() const { return policy_.capacity(); }
 
-		/*
-		* @brief 找到hashv最适配的元素索引
-		*
-		* @detail
-		* - 未使用表示当前table没有该元素，该位置可以插入元素
-		* - hashv不相等表示当前table没有该元素，该位置插入元素需要整体后移
-		* - hashv相等表示找到了对应的元素，该位置可以更新元素
-		*
-		* @param hashv 元素的hash值
-		*
-		* @return 索引和移动距离
-		*/
-		std::pair<c_size, Dist_t> try_get(const hash_t& hashv) const
+		/**
+		 * @brief 探测键，返回命中状态及目标槽位或插入起点。
+		 * @details 遇到空槽位或探测距离小于当前查找距离的表项时，说明键不存在；
+		 * 仅哈希相等不足以命中，键也必须相等。查找过程不修改表。
+		 * @param key 待查找的键。
+		 * @param hashv 待查找键的哈希值。
+		 * @return 包含槽位索引、探测距离和 found 标记的探测结果。
+		 * @note found 为 false 时可在 index、dist 指示的位置开始插入；表修改后需重新探测。
+		 */
+		ProbeResult probe(const Key& key, hash_t hashv) const
 		{
-			c_size j = policy_.hash2index(hashv);
-			c_size move_dist = 0;
+			c_size i = policy_.hash2index(hashv);
+			Dist_t move_dist = 0;
 			while (true)
 			{
-				// 元素为空时，dist == -1，move_dist > items_[j]一定成立
-				// 当前的移动距离大于items_[j]元素的移动距离，可以替换items_[j]元素
-				// 或者当前元素的hash值等于hashv
-				if (move_dist > items_[j].dist || items_[j].hashv == hashv)
-					return { j, move_dist };
+				const auto& item = items_[i];
+				// 空槽位的距离为 -1，会先短路返回，避免访问无效的业务表项。
+				// 当前查找距离更大时，后续槽位也不会包含该键，可在此开始插入。
+				if (move_dist > item.dist)
+					return { i, move_dist, false };
+
+				if (item.check_kv_item(key, hashv))
+					return { i, move_dist, true };
 
 				++move_dist;
-				j = policy_.next_index(j);
+				i = policy_.next_index(i);
 			};
 		}
 
-		// table是否包含hashv对应的元素
-		bool contains(hash_t hashv) const
+		/** @brief 根据键及其哈希判断目标表项是否存在。 */
+		bool contains(const Key& key, hash_t hashv) const
 		{
-			auto [index, move_dist] = try_get(hashv);
-			return items_[index].used() && items_[index].hashv == hashv;
+			return probe(key, hashv).found;
 		}
 
-		/*
-		* @brief 存入value到hashv对应的元素
-		*
-		* @detail
-		* - 如果没有找到，则插入到第一个空闲的位置
-		* - 如果找到，则更新对应的元素
-		*
-		* @param hashv 元素的hash值
-		*
-		* @param args 元素的构造参数
-		*/
-		template<typename ... Args>
-		void insert(const hash_t& hashv, Args&&... args)
-		{
-			auto [index, move_dist] = try_get(hashv);
-
-			// 找到的是对应自己的元素
-			if (items_[index].used() && items_[index].hashv == hashv)
-				items_[index].set_new_value(std::forward<Args>(args)...);
-			else
-				insert_value_on_index(index, hashv, move_dist, std::forward<Args>(args)...);
-		}
-
-		/*
-		* @brief 从index开始插入或更新value
-		*
-		* @param index 插入位置
-		*
-		* @param hashv 元素的hash值
-		*
-		* @param move_dist 元素移动的距离
-		*
-		* @param value 元素的值
-		*/
-		void insert_value_on_index(c_size index, hash_t hashv, Dist_t move_dist, Value_t value)
+		/**
+		 * @brief 从候选槽位开始插入新表项，必要时搬移表项并扩容。
+		 * @param index probe() 未命中时返回的插入起点。
+		 * @param move_dist 新表项到插入起点的探测距离。
+		 * @param kv_item 要移入的业务表项。
+		 * @pre 调用方已确认该键不存在，且 index、move_dist 与该键的哈希一致。
+		 */
+		void insert_value_on_index(c_size index, Dist_t move_dist, Item&& kv_item)
 		{
 			while (items_[index].used())
 			{
 				if (move_dist > items_[index].dist)
-					items_[index].swap_elements(hashv, move_dist, value);
+					items_[index].swap_kv_item(move_dist, kv_item);
 				index = policy_.next_index(index);
 				++move_dist;
 			}
 
-			items_[index].set_empty_value(hashv, move_dist, std::move(value));
+			items_[index].set_kv_item(move_dist, std::move(kv_item));
 			++size_;
 
 			try_expand();
 		}
 
-		/*
-		* @brief 从index开始插入或更新value
-		*
-		* @param index 插入位置
-		*
-		* @param hashv 元素的hash值
-		*
-		* @param move_dist 元素移动的距离
-		*
-		* @param args 构造元素的值
-		*/
-		template<typename ... Args>
-		void insert_value_on_index(c_size index, hash_t hashv, Dist_t move_dist, Args&&... args)
+		/**
+		 * @brief 删除指定槽位的表项，并将后续冲突表项向前回移。
+		 * @param index 要删除的有效槽位索引；本函数不执行键匹配。
+		 * @return 槽位已占用并完成删除时为 true，空槽位返回 false。
+		 * @note 删除前若需保留表项中的节点指针，应先保存；回移可能覆盖原槽位。
+		 * Dict/Set 在本函数返回后负责释放保存的链表节点。
+		 */
+		bool pop_value_on_index(c_size index)
 		{
-			insert_value_on_index(index, hashv, move_dist, Value_t{ std::forward<Args>(args)... });
-		}
+			if (!items_[index].used()) return false;
 
-		/*
-		* @brief 删除hashv对应的元素
-		*
-		* @param hashv 元素的hash值
-		*
-		* @return 是否删除成功
-		*/
-		bool pop(const hash_t& hashv)
-		{
-			auto [index, move_dist] = try_get(hashv);
-			return pop_value_on_index(index, hashv, move_dist);
-		}
-
-		/*
-		* @brief 从index开始找到hashv对应的元素并删除
-		*
-		* @param index 元素的索引
-		*
-		* @param hashv 元素的hash值
-		*
-		* @param move_dist 元素移动的距离
-		*
-		* @return 是否删除成功
-		*/
-		bool pop_value_on_index(c_size index, hash_t hashv, Dist_t move_dist)
-		{
-			// 没找到对应元素
-			if (!items_[index].used() || items_[index].hashv != hashv)
-				return false;
-
-
-			// 当前下标和下一个下标，下一个下标的值 -> 当前下标的值
+			// i 是待填补的位置，j 是下一候选回移槽位；表尾按容量掩码回绕。
 			c_size i = index, j = policy_.next_index(i);
 
-			// items_[j] 可以向前移动获得更快的查询速度
+			// 仅回移偏离初始桶的表项；遇到空槽位或距离为 0 的表项即停止。
 			while (items_[j].dist > 0)
 			{
-				items_[i].swap_elements(items_[j].hashv, items_[j].dist, items_[j].value());
+				std::swap(items_[i], items_[j]);
 				items_[i].dist -= 1;
 
 				i = j;
@@ -436,7 +355,7 @@ namespace ayr
 			return true;
 		}
 
-		// 清空表并且释放内存
+		/** @brief 销毁并释放旧槽位数组，重新分配最小容量的空表。 */
 		void clear()
 		{
 			const c_size old_capacity = capacity();
@@ -448,57 +367,55 @@ namespace ayr
 			size_ = 0;
 		}
 
-		/*
-		* @brief 尝试扩容
-		*
-		* @detail
-		* - 当元素个数小于阈值时，不扩容
-		* - 当元素个数大于等于阈值时，扩容到原来的两倍
-		*/
+		/**
+		 * @brief 元素数量达到负载阈值时，将容量加倍并重新分布全部表项。
+		 * @details 使用 Item 中缓存的哈希计算新位置，不重新计算键的哈希。
+		 */
 		void try_expand()
 		{
 			if (size_ < policy_.load_threshold()) return;
 
 			c_size n = policy_.capacity();
-			// 根据policy的at_least策略，实际容量是传入数值的两倍
+			// 构造函数按预期元素数适配容量；传入当前容量会分配两倍槽位。
 			self new_table(policy_.capacity());
 			new_table.size_ = size_;
 
 			for (c_size i = 0; i < n; ++i)
 				if (items_[i].used())
-					new_table.insert_value_on_rehash(items_[i].hashv, std::move(items_[i].value()));
+					new_table.insert_when_rehash(static_cast<Item&&>(items_[i]));
 
 			*this = std::move(new_table);
 		}
 
-		/*
-		* @brief rehash时插入元素，假定所有插入元素都不存在
-		*
-		* @param hashv 元素的hash值
-		*
-		* @param value 元素的值
-		*/
-		void insert_value_on_rehash(hash_t hashv, Value_t&& value)
+		/**
+		 * @brief 扩容重排时，使用缓存哈希移入一个表项。
+		 * @param kv_item 要移入的业务表项。
+		 * @pre 目标表有空槽位，且该键尚未插入。
+		 * @note 不检查重复键、不增加 size_、不触发扩容；计数由调用方统一设置。
+		 */
+		void insert_when_rehash(Item&& kv_item)
 		{
 			Dist_t move_dist = 0;
-			c_size j = policy_.hash2index(hashv);
+			c_size j = policy_.hash2index(kv_item.hashv());
 
 			while (true)
 			{
-				if (!items_[j].used())
+				auto& item = items_[j];
+				if (!item.used())
 				{
-					items_[j].set_empty_value(hashv, move_dist, std::move(value));
+					item.set_kv_item(move_dist, std::move(kv_item));
 					return;
 				}
 
-				if (move_dist > items_[j].dist)
-					items_[j].swap_elements(hashv, move_dist, value);
+				if (move_dist > item.dist)
+					item.swap_kv_item(move_dist, kv_item);
 
 				j = policy_.next_index(j);
 				++move_dist;
 			}
 		}
 
+		/** @brief 按槽位顺序输出整张表，包括空槽位。 */
 		void __repr__(Buffer& buffer) const
 		{
 			for (c_size i = 0, n = capacity(); i < n; ++i)

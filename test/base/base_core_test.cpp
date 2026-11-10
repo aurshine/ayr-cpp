@@ -184,7 +184,7 @@ int main()
 		UTEST_EXPECT(!only_one(10));
 		UTEST_EXPECT_EQ(roundup2(0), 1);
 		UTEST_EXPECT_EQ(roundup2(17), 32);
-		UTEST_EXPECT_EQ(decode_fixed32("\x01\x02\x03\x04"), 0x04030201u);
+		UTEST_EXPECT_EQ(load_u32_le("\x01\x02\x03\x04"), 0x04030201u);
 		UTEST_EXPECT_EQ(ayrhash("stable"), ayrhash("stable"));
 		UTEST_EXPECT(ayrhash("stable") != ayrhash("different"));
 
