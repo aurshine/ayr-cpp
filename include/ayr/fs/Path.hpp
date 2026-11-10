@@ -56,7 +56,7 @@ namespace ayr
 		def raise_error_msg_for_path(const CString& operation, const CString& path)
 		{
 			CString error_msg = get_system_error_msg();
-			SystemError(ayr::format("{} {}: {}", operation, path, error_msg));
+			SystemError(fmt("{} {}: {}", operation, path, error_msg));
 		}
 
 		/**
@@ -253,17 +253,17 @@ namespace ayr
 #ifdef AYR_WIN
 			DWORD required = GetCurrentDirectoryA(0, nullptr);
 			if (required == 0)
-				SystemError(ayr::format("getcwd failed: {}", get_system_error_msg()));
+				SystemError(fmt("getcwd failed: {}", get_system_error_msg()));
 			Buffer cwd_path(required);
 			DWORD len = GetCurrentDirectoryA(required, cwd_path.write_ptr());
 			if (len == 0 || len >= required)
-				SystemError(ayr::format("getcwd failed: {}", get_system_error_msg()));
+				SystemError(fmt("getcwd failed: {}", get_system_error_msg()));
 #else
 			Buffer cwd_path(256);
 			while (::getcwd(cwd_path.write_ptr(), cwd_path.capacity()) == nullptr)
 			{
 				if (errno != ERANGE)
-					SystemError(ayr::format("getcwd failed: {}", get_system_error_msg()));
+					SystemError(fmt("getcwd failed: {}", get_system_error_msg()));
 				cwd_path.adjust_util(cwd_path.capacity() + 10);
 			}
 			int len = ayr::strlen(cwd_path.peek());
@@ -452,7 +452,7 @@ namespace ayr
 					return;
 			}
 #endif
-			SystemError(ayr::format("Failed to create directory {}: {}", path, error_msg));
+			SystemError(fmt("Failed to create directory {}: {}", path, error_msg));
 		}
 
 		/**
@@ -545,7 +545,7 @@ namespace ayr
 			{
 				uint64_t child_size = filesize(join(path, sub_path));
 				if (UINT64_MAX - size_ < child_size)
-					SystemError(ayr::format("Directory size overflow while reading {}", path));
+					SystemError(fmt("Directory size overflow while reading {}", path));
 				size_ += child_size;
 			}
 			return size_;

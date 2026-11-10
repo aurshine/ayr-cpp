@@ -82,7 +82,7 @@ namespace ayr
 					else
 						return integer(num_str.toint());
 				}
-				ValueError(ayr::format("Invalid simple parse: {}", first_char()));
+				ValueError(fmt("Invalid simple parse: {}", first_char()));
 				return None;
 			}
 
@@ -148,7 +148,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1); // 去掉 ,
 					else
-						JsonValueError(ayr::format("Invalid array parse: {}", remain_str()));
+						JsonValueError(fmt("Invalid array parse: {}", remain_str()));
 				}
 				
 				// 去掉 ]
@@ -175,12 +175,12 @@ namespace ayr
 					// 解析到key
 					Json key = parse_obj();
 					if (!key.is<JsonStr>())
-						JsonValueError(ayr::format("Invalid dict key parse: {}", key));
+						JsonValueError(fmt("Invalid dict key parse: {}", key));
 					
 					// 找到 ':'
 					first_non_space();
 					if (first_char() != ':')
-						JsonValueError(ayr::format("Invalid dict parse: {}, expect ':'", first_char()));
+						JsonValueError(fmt("Invalid dict parse: {}, expect ':'", first_char()));
 
 					// 去掉 ':'
 					first_non_space(1);
@@ -194,7 +194,7 @@ namespace ayr
 					else if (first_char() == ',')
 						first_non_space(1);
 					else
-						JsonValueError(ayr::format("Invalid dict parse: {}", remain_str()));
+						JsonValueError(fmt("Invalid dict parse: {}", remain_str()));
 				}
 
 				// 去掉 }
@@ -253,7 +253,7 @@ namespace ayr
 			void enter_depth()
 			{
 				if (++ depth_ > MAX_DEPTH)
-					JsonValueError(ayr::format("exceed max depth: {}", MAX_DEPTH));
+					JsonValueError(fmt("exceed max depth: {}", MAX_DEPTH));
 			}
 
 			// 解析JSON字符串中的转义字符并写入缓冲区
@@ -273,7 +273,7 @@ namespace ayr
 				else if (escaped == 't')
 					return '\t';
 				else
-					JsonValueError(ayr::format("Invalid escape character: {}", escaped));
+					JsonValueError(fmt("Invalid escape character: {}", escaped));
 			}
 		};
 
@@ -297,7 +297,7 @@ namespace ayr
 		{
 			auto [json_obj, remain_str] = loads_prefix(json_str);
 			if (!remain_str.empty())
-				JsonValueError(ayr::format("load remaining, {}", remain_str));
+				JsonValueError(fmt("load remaining, {}", remain_str));
 
 			return std::move(json_obj);
 		}

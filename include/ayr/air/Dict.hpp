@@ -177,7 +177,7 @@ namespace ayr
 			if (found)
 				return htable_.items_[index].value();
 
-			RuntimeError(ayr::format("Key '{}' not found in dictionary.", key));
+			RuntimeError(fmt("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 
@@ -194,7 +194,7 @@ namespace ayr
 			if (found)
 				return htable_.items_[index].value();
 
-			RuntimeError(ayr::format("Key '{}' not found in dictionary.", key));
+			RuntimeError(fmt("Key '{}' not found in dictionary.", key));
 			return None;
 		}
 

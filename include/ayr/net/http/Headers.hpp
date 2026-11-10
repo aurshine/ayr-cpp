@@ -59,7 +59,7 @@ namespace ayr
 				c_size index = find_index(key);
 				if (index != -1)
 					return entries_[index].second;
-				RuntimeError(ayr::format("HTTP header '{}' not found.", key));
+				RuntimeError(fmt("HTTP header '{}' not found.", key));
 				return None;
 			}
 

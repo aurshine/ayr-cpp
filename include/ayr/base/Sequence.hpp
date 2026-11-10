@@ -23,14 +23,14 @@ namespace ayr
 
 		using CheckTask = std::function<bool(const Value_t&)>;
 
-		const Value_t& at(c_size index) const { NotImplementedError(ayr::format("{} Not implemented at(c_size)", dtype(Derived))); return None; }
+		const Value_t& at(c_size index) const { NotImplementedError(fmt("{} Not implemented at(c_size)", dtype(Derived))); return None; }
 
-		c_size size() const { NotImplementedError(ayr::format("{} Not implemented size()", dtype(Derived))); return None; }
+		c_size size() const { NotImplementedError(fmt("{} Not implemented size()", dtype(Derived))); return None; }
 
 		bool empty() const { return derived().size() == 0; }
 
 		// 删除最后n个元素
-		c_size pop_back(c_size n = 1) { NotImplementedError(ayr::format("{} Not implemented pop_back(c_size)", dtype(Derived))); }
+		c_size pop_back(c_size n = 1) { NotImplementedError(fmt("{} Not implemented pop_back(c_size)", dtype(Derived))); }
 
 		Value_t& front() { return *derived().begin(); }
 

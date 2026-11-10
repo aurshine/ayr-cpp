@@ -26,7 +26,7 @@ namespace ayr
 			{
 				iocp_handle_ = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 0);
 				if (iocp_handle_ == nullptr)
-					RuntimeError(ayr::format("Failed to create IOCP: {}", get_system_error_msg()));
+					RuntimeError(fmt("Failed to create IOCP: {}", get_system_error_msg()));
 			}
 
 			IOCP(const self&) = delete;
@@ -143,7 +143,7 @@ namespace ayr
 						complete_connect(result, bytes, std::move(error));
 						break;
 					default:
-						RuntimeError(ayr::format("Unknown event type: {}", static_cast<int>(result.event())));
+						RuntimeError(fmt("Unknown event type: {}", static_cast<int>(result.event())));
 					}
 
 					// 释放IOCP_OVERLAPPED对象的内存
@@ -179,7 +179,7 @@ namespace ayr
 				if (!CreateIoCompletionPort(reinterpret_cast<HANDLE>(fd), iocp_handle_, (ULONG_PTR)cache_key_, 0))
 				{
 					registered_sockets_.pop(cache_key_);
-					RuntimeError(ayr::format("Failed to associate socket with IOCP: {}", get_system_error_msg()));
+					RuntimeError(fmt("Failed to associate socket with IOCP: {}", get_system_error_msg()));
 				}
 					
 			}

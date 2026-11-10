@@ -1,12 +1,17 @@
 ﻿#ifndef AYR_BASE_META_BUFFER_HPP
 #define AYR_BASE_META_BUFFER_HPP
 
+#include <charconv>
+#include <cstdio>
 #include <cstring>
+#include <limits>
 #include <string>
+#include <string_view>
+#include <tuple>
+#include <type_traits>
 #include <utility>
 
 #include "ayr_memory.hpp"
-#include "sprintf.h"
 
 namespace ayr
 {
@@ -16,6 +21,8 @@ namespace ayr
 
 		constexpr static c_size INITIAL_CAPACITY = 64;
 	public:
+		friend class FixedFloat;
+
 		friend CString from_buffer(Buffer&& buffer);
 
 		Buffer() : Buffer(INITIAL_CAPACITY) {}
@@ -224,6 +231,51 @@ namespace ayr
 			}
 		}
 	private:
+		template<typename T>
+		friend Buffer& operator<<(Buffer& buffer, const T& value);
+
+        // 将整数直接转换为十进制字节，保留原类型的符号和范围
+        template<typename T>
+        void _repr_int(T value)
+        {
+            if (closed()) return;
+            constexpr c_size MAX_SIZE = std::numeric_limits<T>::digits10 + 2;
+            adjust_util(MAX_SIZE);
+            auto result = std::to_chars(write_ptr_, write_ptr_ + MAX_SIZE, value);
+            write_ptr_ = result.ptr;
+        }
+
+        /**
+         * @brief 写入浮点数，不受当前区域设置影响。
+         * @param precision 小数点后位数；负数（默认 -1）使用可往返的最短表示。
+         */
+        template<typename T>
+        void _repr_float(T value, int precision = -1)
+        {
+            if (closed()) return;
+            // 定点格式需容纳完整整数部分、小数位、符号和小数点。
+            const c_size MAX_SIZE = ifelse(precision < 0, 
+				std::numeric_limits<T>::max_digits10 + 16,
+                static_cast<c_size>(std::numeric_limits<T>::max_exponent10) + precision + 4
+			);
+            adjust_util(MAX_SIZE);
+            auto result = ifelse(precision < 0,
+                std::to_chars(write_ptr_, write_ptr_ + MAX_SIZE, value),
+                std::to_chars(write_ptr_, write_ptr_ + MAX_SIZE, value, std::chars_format::fixed, precision)
+			);
+            write_ptr_ = result.ptr;
+        }
+
+        // 按平台的 %p 规则写入指针地址
+        void _repr_pointer(const void* value)
+        {
+            if (closed()) return;
+            char tmp[sizeof(void*) * 2 + 8];
+            int size = std::snprintf(tmp, sizeof(tmp), "%p", const_cast<void*>(value));
+            if (size > 0 && static_cast<size_t>(size) < sizeof(tmp))
+                append_bytes(tmp, size);
+        }
+
 		/*
 		* @brief 分离缓冲区底部数据
 		*
@@ -232,26 +284,16 @@ namespace ayr
 		void detach() { data_ = write_ptr_ = read_ptr_ = end_ptr_ = nullptr; }
 	};
 
-	void _repr_int(Buffer& buffer, c_size value)
+	class FixedFloat
 	{
-		char tmp[32];
-		sprintf_int(tmp, sizeof(tmp), value);
-		buffer.append_bytes(tmp, strlen(tmp));
-	}
+		double value;
 
-	void _repr_float(Buffer& buffer, double value)
-	{
-		char tmp[32];
-		sprintf_float(tmp, sizeof(tmp), value);
-		buffer.append_bytes(tmp, strlen(tmp));
-	}
-
-	void _repr_pointer(Buffer& buffer, const void* value)
-	{
-		char tmp[32];
-		sprintf_pointer(tmp, sizeof(tmp), value);
-		buffer.append_bytes(tmp, strlen(tmp));
-	}
+		int precision;
+	public:
+		FixedFloat(double value, int precision) : value(value), precision(precision) {}
+		
+		void __repr__(Buffer& buffer) const { buffer._repr_float(value, precision); }
+	};
 
 	Buffer& operator<<(Buffer& buffer, bool value)
 	{
@@ -323,11 +365,11 @@ namespace ayr
 			buffer.append_bytes(str.data(), str.size());
 		}
 		else if constexpr (std::is_integral_v<T>)
-			_repr_int(buffer, value);
+			buffer._repr_int(value);
 		else if constexpr (std::is_floating_point_v<T>)
-			_repr_float(buffer, value);
+			buffer._repr_float(value);
 		else if constexpr (std::is_pointer_v<T>)
-			_repr_pointer(buffer, value);
+			buffer._repr_pointer(value);
 		else
 			buffer << "<" << dtype(T) << " 0x" << &value << ">";
 		return buffer;

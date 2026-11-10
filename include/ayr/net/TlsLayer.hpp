@@ -403,7 +403,7 @@ namespace ayr
 						// DNS主机名规则，也不发送没有意义的SNI IP字面量。
 						X509_VERIFY_PARAM* verify_param = SSL_get0_param(ssl_);
 						if (X509_VERIFY_PARAM_set1_ip_asc(verify_param, hostname_ptr) != 1)
-							SSLError(ayr::format(
+							SSLError(fmt(
 								"Failed to set TLS certificate IP address: {}",
 								ssl_error_msg()
 							));
@@ -413,7 +413,7 @@ namespace ayr
 						// SNI用于让同一IP上的虚拟主机选择正确证书；它本身不做
 						// 安全校验，所以还必须单独调用SSL_set1_host。
 						if (SSL_set_tlsext_host_name(ssl_, hostname_ptr) != 1)
-							SSLError(ayr::format(
+							SSLError(fmt(
 								"Failed to set TLS SNI hostname: {}",
 								ssl_error_msg()
 							));
@@ -422,7 +422,7 @@ namespace ayr
 						// 把期望DNS名写入验证参数，握手验证证书链时自动检查SAN/CN，
 						// 防止“证书受信任但签发给其他域名”的中间人攻击。
 						if (SSL_set1_host(ssl_, hostname_ptr) != 1)
-							SSLError(ayr::format(
+							SSLError(fmt(
 								"Failed to set TLS certificate hostname: {}",
 								ssl_error_msg()
 							));
@@ -604,7 +604,7 @@ namespace ayr
 			// 打开当前Windows逻辑ROOT存储，并把其中证书复制到SSL_CTX的X509_STORE。
 			HCERTSTORE windows_store = CertOpenSystemStoreW(0, L"ROOT");
 			if (windows_store == nullptr)
-				SSLError(ayr::format(
+				SSLError(fmt(
 					"Failed to open Windows root certificate store: {}",
 					win_error2str(GetLastError())
 				));
@@ -671,12 +671,12 @@ namespace ayr
 				&SSL_CTX_free
 			);
 			if (!ssl_ctx)
-				SSLError(ayr::format("Failed to create SSL context: {}", ssl_error_msg()));
+				SSLError(fmt("Failed to create SSL context: {}", ssl_error_msg()));
 
 			// 禁止TLS 1.0/1.1；TLS_client_method仍允许OpenSSL协商TLS 1.2或1.3。
 			ERR_clear_error();
 			if (SSL_CTX_set_min_proto_version(ssl_ctx.get(), TLS1_2_VERSION) != 1)
-				SSLError(ayr::format("Failed to set minimum TLS version: {}", ssl_error_msg()));
+				SSLError(fmt("Failed to set minimum TLS version: {}", ssl_error_msg()));
 
 			// 强制验证对端证书链。具体DNS/IP目标在每个SSL会话创建时设置，
 			// 因为同一个SSL_CTX可能连接多个不同主机。
@@ -689,7 +689,7 @@ namespace ayr
 			// Unix类平台遵循OpenSSL编译时默认CA文件和目录。
 			ERR_clear_error();
 			if (SSL_CTX_set_default_verify_paths(ssl_ctx.get()) != 1)
-				SSLError(ayr::format("Failed to load default CA certificates: {}", ssl_error_msg()));
+				SSLError(fmt("Failed to load default CA certificates: {}", ssl_error_msg()));
 #endif
 
 			// 所有配置成功后把独立引用交给调用方；调用方最终用SSL_CTX_free释放。

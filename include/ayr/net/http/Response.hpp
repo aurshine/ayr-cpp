@@ -360,7 +360,7 @@ namespace ayr
 				bool incomplete_or_eof(const char* structure) const
 				{
 					if (eof)
-						ValueError(ayr::format("Unexpected EOF while parsing HTTP {}.", structure));
+						ValueError(fmt("Unexpected EOF while parsing HTTP {}.", structure));
 					return false;
 				}
 
@@ -386,9 +386,9 @@ namespace ayr
 					auto [part2, cnt2] = _char_split(part1.second, ' ');
 
 					if (cnt2 != 2)
-						ValueError(ayr::format("Invalid status line: {}", line));
+						ValueError(fmt("Invalid status line: {}", line));
 					if (!part1.first.startswith(vstr("HTTP/")))
-						ValueError(ayr::format("Invalid HTTP version: {}", part1.first));
+						ValueError(fmt("Invalid HTTP version: {}", part1.first));
 
 					head_.version = part1.first;
 					head_.status_code = valid_status_code(part2.first);
@@ -409,7 +409,7 @@ namespace ayr
 				{
 					auto status_code = value.toint();
 					if (status_code < 100 || status_code > 999)
-						ValueError(ayr::format("Invalid HTTP status code: {}", value));
+						ValueError(fmt("Invalid HTTP status code: {}", value));
 					return status_code;
 				}
 
@@ -428,17 +428,17 @@ namespace ayr
 				{
 					auto [part, cnt] = _char_split(line, ':');
 					if (cnt != 2 || part.first.empty())
-						ValueError(ayr::format("Invalid header line: {}", line));
+						ValueError(fmt("Invalid header line: {}", line));
 
 					CString key = part.first.strip();
 					CString value = part.second.strip();
 					if (key.empty())
-						ValueError(ayr::format("Invalid header line: {}", line));
+						ValueError(fmt("Invalid header line: {}", line));
 					if (
 						trailer
 						&& (key.lower() == "content-length" || key.lower() == "transfer-encoding")
 						)
-						ValueError(ayr::format("Forbidden HTTP trailer field: {}", key));
+						ValueError(fmt("Forbidden HTTP trailer field: {}", key));
 					if (trailer)
 						trailers_.insert(key, value);
 					else
@@ -461,12 +461,12 @@ namespace ayr
 				static c_size parse_unsigned(const CString& value, int base, const char* field_name)
 				{
 					if (value.isspace())
-						ValueError(ayr::format("Invalid empty HTTP {}.", field_name));
+						ValueError(fmt("Invalid empty HTTP {}.", field_name));
 
 					c_size digit = value.strip().toint(base);
 
 					if (digit < 0)
-						ValueError(ayr::format("Invalid HTTP {}: {}.", field_name, value));
+						ValueError(fmt("Invalid HTTP {}: {}.", field_name, value));
 
 					return digit;
 				}

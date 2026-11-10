@@ -89,7 +89,7 @@ namespace
 	coro::Task<void> http_client(coro::IoContext* io_context)
 	{
 		net::Session session;
-		CString origin = cstr(ayr::format("http://{}:{}", HOST, PORT));
+		CString origin = fmt("http://{}:{}", HOST, PORT);
 
 		{
 			auto response = co_await session.get(io_context, net::uri(origin + "/fixed?value=1"));

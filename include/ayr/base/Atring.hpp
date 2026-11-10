@@ -845,7 +845,7 @@ namespace ayr
 
 				int digit = ch.tobase(base);
 				if (digit == -1)
-					ValueError(ayr::format("Invalid character for base {}: {}", base, ch));
+					ValueError(fmt("Invalid character for base {}: {}", base, ch));
 				
 				num = num * base + digit;
 				has_num = true;
@@ -893,7 +893,7 @@ namespace ayr
 				{
 					int digit = ch.tobase();
 					if (digit == -1)
-						ValueError(ayr::format("Invalid character for base 10: {}", ch));
+						ValueError(fmt("Invalid character for base 10: {}", ch));
 
 					if (frac)
 					{

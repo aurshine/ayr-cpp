@@ -508,7 +508,7 @@ namespace ayr
 			}
 
 			if (!last_error.empty())
-				RuntimeError(ayr::format("Failed to connect to server: {}", last_error));
+				RuntimeError(fmt("Failed to connect to server: {}", last_error));
 			RuntimeError("Failed to connect to server.");
 			co_return Socket(-1, io_context);
 		}

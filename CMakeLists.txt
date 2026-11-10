@@ -8,7 +8,6 @@ endif()
 
 # https需要使用openssl
 find_package(OpenSSL REQUIRED)
-find_package(fmt QUIET)
 
 add_library(ayr INTERFACE)
 add_library(ayr::ayr ALIAS ayr)
@@ -25,13 +24,6 @@ target_link_libraries(ayr INTERFACE OpenSSL::SSL OpenSSL::Crypto)
 if (WIN32)
     # TlsLayer通过Windows CryptoAPI读取系统受信任根证书存储。
     target_link_libraries(ayr INTERFACE Crypt32)
-endif()
-
-if (fmt_FOUND)
-    target_link_libraries(ayr INTERFACE fmt::fmt)
-    target_compile_definitions(ayr INTERFACE AYR_USE_FMT=1)
-else()
-    target_compile_definitions(ayr INTERFACE AYR_USE_FMT=0)
 endif()
 
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND BUILD_TESTING)

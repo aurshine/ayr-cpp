@@ -34,7 +34,7 @@ ayr-cpp 是一个以“简洁语法 + 轻量高效”为理念的现代 C++20 �
 | HTTP | `<ayr/net/http.hpp>` | URI、请求头、HTTP/1.1 请求构造、响应解析、HTTP/HTTPS 客户端 |
 
 ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `ayr::ayr` 后，
-头文件路径、OpenSSL、可选 fmt 以及 Windows 所需系统库会自动传递给使用方。
+头文件路径、OpenSSL 以及 Windows 所需系统库会自动传递给使用方。
 
 ## 环境与第三方依赖
 
@@ -52,29 +52,24 @@ ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `
 | 依赖 | 是否必需 | 用途 |
 | --- | --- | --- |
 | OpenSSL | 必需 | TLS/HTTPS、证书校验和加解密 |
-| fmt | 可选 | 格式化支持；找到 fmt 时定义 `AYR_USE_FMT=1` |
-| 标准库 `<format>` | 条件必需 | 未找到 fmt 时作为格式化后端 |
 | Crypt32 | Windows 自动链接 | 从 Windows 系统证书存储加载受信任根证书 |
 
 通过 CMake 引入时，配置阶段必须能找到 OpenSSL（`find_package(OpenSSL REQUIRED)`）。
 这对只使用基础容器的项目也适用，因为当前 CMake 目标会统一传递 TLS 所需依赖。
 请先安装 OpenSSL 开发包；使用 vcpkg 时，在第一次配置项目时指定 vcpkg toolchain
-文件。fmt 是可选依赖，找不到 fmt 时要求标准库提供 C++20 `<format>`。
+文件。
 
 Ubuntu/Debian：
 
 ```bash
 sudo apt update
-sudo apt install cmake ninja-build libssl-dev libfmt-dev
+sudo apt install cmake ninja-build libssl-dev
 ```
-
-其中 `libfmt-dev` 可以省略，但此时编译器的 C++20 标准库必须提供
-`std::format`。
 
 Windows 可以通过 vcpkg 安装依赖：
 
 ```powershell
-vcpkg install openssl:x64-windows fmt:x64-windows
+vcpkg install openssl:x64-windows
 ```
 
 配置项目时将对应的 vcpkg toolchain 文件传给 CMake。
@@ -96,14 +91,14 @@ target_link_libraries(my_app PRIVATE ayr::ayr)
 ```
 
 `ayr::ayr` 会自动添加 `third_party/ayr-cpp/include`、要求 C++20，并传递
-OpenSSL、可选 fmt 及 Windows 的 `Crypt32` 链接依赖。主项目不需要手动设置
+OpenSSL 及 Windows 的 `Crypt32` 链接依赖。主项目不需要手动设置
 `include_directories` 或再次链接这些库。ayr 作为子目录加入时不会启用自己的测试，
 也不会覆盖主项目的 `project()` 或 C++ 标准设置。
 
 例如，Linux 上可先安装依赖，再配置主项目：
 
 ```bash
-sudo apt install libssl-dev libfmt-dev
+sudo apt install libssl-dev
 cmake -S . -B out/build
 cmake --build out/build --parallel
 ```
