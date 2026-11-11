@@ -203,7 +203,7 @@ int main()
 		AyrError copied(error);
 		AyrError moved(std::move(copied));
 		UTEST_EXPECT_EQ(moved.error(), "SampleError: bad value");
-		UTEST_EXPECT_AYR_ERROR(error.raise());
+		UTEST_EXPECT_AYR_ERROR(raise_error(error));
 	};
 
 	UTEST_SCOPE("测试 Date、Timer 和作用域退出任务。")

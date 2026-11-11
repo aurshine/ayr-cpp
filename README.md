@@ -42,10 +42,7 @@ ayr-cpp 不需要单独编译静态库或动态库。链接 CMake 接口目标 `
 
 - 支持 C++20 的编译器和标准库
 - CMake 3.28 或更高版本
-- Windows 或 Linux（异步网络模块的完整支持平台）
-
-文件系统代码还包含 macOS 分支，但 `IoContext` 的事件选择器目前没有 macOS
-实现，因此在 macOS 上不能使用完整的协程网络模块。
+- Windows 或 Linux
 
 ### 依赖说明
 
@@ -90,7 +87,7 @@ add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE ayr::ayr)
 ```
 
-`ayr::ayr` 会自动添加 `third_party/ayr-cpp/include`、要求 C++20，并传递
+`ayr::ayr` 会自动添加 `third_party/ayr-cpp/include`、要求 C++ 20，并传递
 OpenSSL 及 Windows 的 `Crypt32` 链接依赖。主项目不需要手动设置
 `include_directories` 或再次链接这些库。ayr 作为子目录加入时不会启用自己的测试，
 也不会覆盖主项目的 `project()` 或 C++ 标准设置。
@@ -602,6 +599,33 @@ HTTP 模块还提供：
 ## 更多示例
 
 更多真实用法和边界行为可以参考 [`test`](test) 目录中的测试程序。
+
+## 单元测试与性能测试
+
+`test/` 只存放单元测试；`branchmark/` 只存放性能测试及其辅助代码。
+CMake 默认构建两类程序，只有 `test/` 中的程序注册到 CTest。
+性能测试源文件统一命名为 `*_benchmark.cpp`。
+
+仓库根目录提供两组脚本：
+
+- `./RunTest.ps1` 或 `bash ./RunTest.sh`：默认 Debug，构建后只运行单元测试。
+- `./RunBranchmark.ps1` 或 `bash ./RunBranchmark.sh`：默认 Release，只构建并运行性能测试。
+
+两组脚本均可传入 `Debug` 或 `Release`。性能测试使用独立的
+`out/branchmark-build` 构建目录；也可通过 CMake 的 `branchmarks` 目标单独构建，
+或设置 `-DAYR_BUILD_BRANCHMARKS=OFF` 关闭性能测试构建。
+
+性能报告只显示失败校验，结果按场景汇总为表格：中位耗时、`STD/AYR` 速度倍率、
+AYR 相对 STD 的耗时变化和本轮更快的一方。倍率大于 1 表示 AYR 更快，
+负百分比表示 AYR 耗时更少；这些是本轮观测结果，不代表统计显著性。
+`RunBranchmark` 自动将 Markdown 总报告与终端日志保存到
+`branchmark/`，每次运行保留时间戳版本，`latest.md` 指向最近一次报告。
+Markdown 表格还包含每组采样的最小/最大耗时，用于观察波动。
+测试辅助逻辑优先使用 ayr：字节串用 `CString`，格式化用 `fmt`，文件读写用 `fs`，
+容器和计时使用 `Array` / `DynArray` / `Timer_ms`。标准库仅保留性能比较基线、
+标准类型兼容性校验，以及 ayr 暂无对应接口的能力。报告目录固定，不提供自定义目录参数。
+如需复用其他构建目录，可使用 `./RunBranchmark.ps1 -BuildDir <目录>`，
+或 `bash ./RunBranchmark.sh Release <目录>`。
 
 ## 许可证
 

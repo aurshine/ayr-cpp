@@ -1,10 +1,9 @@
-#include <array>
+#include <ayr/base/Array.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
 #include <string>
-#include <vector>
 
 #include <ayr/base/meta/hash.hpp>
 #include <ayr/base/utest.hpp>
@@ -74,7 +73,7 @@ int main()
         constexpr std::size_t CAPACITY = 16384;
         for (int shift : {12, 32})
         {
-            std::vector<unsigned> buckets(CAPACITY);
+            Array<unsigned> buckets(CAPACITY, 0);
             for (std::uint64_t i = 0; i < COUNT; ++i)
                 ++buckets[ayrhash(i << shift) & (CAPACITY - 1)];
             std::size_t occupied = 0;
@@ -122,7 +121,7 @@ int main()
             {64, 0xce2e7fe3f9702851ULL, 0x96a9ecc3d3e80fecULL},
             {128, 0x5f3055180725ea0dULL, 0x93c7f7e4e696ea66ULL}
         };
-        std::array<char, 129> bytes{};
+        Array<char> bytes(129);
         for (std::size_t i = 0; i < 128; ++i)
             bytes[i + 1] = static_cast<char>((i * 73 + 131) & 255);
         bool all_match = true;

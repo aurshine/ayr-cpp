@@ -2,10 +2,8 @@
 #define AYR_BASE_CSTRING_HPP
 
 #include <charconv>
-#include <sstream>
 #include <string_view>
 
-#include "Buffer.hpp"
 #include "hash.hpp"
 
 namespace ayr
@@ -66,8 +64,6 @@ namespace ayr
 		constexpr const char* begin() const { return c_str(); }
 
 		constexpr const char* end() const { return c_str() + size(); }
-
-		void __repe__(Buffer& buffer) const { buffer << c_str(); }
 	};
 
 	constexpr c_size strlen(const char* str)
@@ -665,9 +661,7 @@ namespace ayr
 			return std::equal(begin(), end(), other);
 		}
 
-		size_t __hash__() const { return bytes_hash(data(), size()); }
-
-		void __repr__(Buffer& buffer) const { buffer.append_bytes(data(), size()); }
+		hash_t __hash__() const { return bytes_hash(data(), size()); }
 
 		constexpr self __str__() const { return *this; }
 	private:
@@ -755,44 +749,5 @@ namespace ayr
 
 	// 将std::string_view 转换为 CString 对象
 	constexpr def cstr(const std::string_view& value) { return dstr(value); }
-
-	// 将任意类型转换为 CString 对象
-	template<typename T>
-	constexpr def cstr(const T& value)
-	{
-		if constexpr (hasmethod(T, __str__))
-			return value.__str__();
-		else
-		{
-			Buffer buffer;
-			buffer << value;
-			return from_buffer(std::move(buffer));
-		}
-	}
-
-	/*
-	* @brief 尝试取代buffer的内存构造 CString 对象
-	*
-	* @param buffer 待转换的 Buffer 对象
-	*/
-	def from_buffer(Buffer&& buffer) -> CString
-	{
-		if (buffer.data() == buffer.peek())
-		{
-			CString res = ostr(buffer.peek(), buffer.readable_size());
-			buffer.detach();
-			return res;
-		}
-		return dstr(buffer.peek(), buffer.readable_size());
-	}
-
-	Buffer& operator<< (Buffer& buffer, const CString& value)
-	{
-		buffer.append_bytes(value.data(), value.size());
-		return buffer;
-	}
 }
-
-der(std::ostream&) operator<<(std::ostream& os, const ayr::CString& str) { return os.write(str.data(), str.size()); }
-
 #endif // AYR_BASE_CSTRING_HPP

@@ -1,7 +1,6 @@
 #include <algorithm>
 #include <cstring>
 #include <memory>
-#include <string>
 
 #include <openssl/rsa.h>
 
@@ -26,10 +25,10 @@ namespace
 			client(std::move(client)), server(std::move(server)) {}
 	};
 
-	void require_ssl(bool condition, const char* operation)
+	void require_ssl(bool condition, const CString& operation)
 	{
 		if (!condition)
-			SSLError(vstr(operation) + vstr(": ") + ssl_error_msg());
+			SSLError(fmt("{}: {}", operation, ssl_error_msg()));
 	}
 
 	TestTlsContexts create_test_contexts()
@@ -193,10 +192,10 @@ int main()
 	Buffer decrypted, response_records;
 	UTEST_SCOPE("测试 TLS 加密数据可按网络分片解密并排空内部 record。")
 	{
-		std::string payload;
-		payload.reserve(40000);
+		Buffer payload_buffer(40000);
 		for (int index = 0; index < 40000; ++index)
-			payload.push_back(static_cast<char>('a' + index % 26));
+			payload_buffer << static_cast<char>('a' + index % 26);
+		CString payload = from_buffer(std::move(payload_buffer));
 
 		Buffer plaintext, encrypted;
 		plaintext.append_bytes(payload.data(), static_cast<c_size>(payload.size()));
@@ -231,7 +230,7 @@ int main()
 		UTEST_EXPECT(decrypt_valid);
 		UTEST_EXPECT(decrypted.readable_size() == static_cast<c_size>(payload.size()));
 		UTEST_EXPECT(
-			std::memcmp(decrypted.peek(), payload.data(), payload.size()) == 0
+			vstr(decrypted.peek(), decrypted.readable_size()) == payload
 		);
 	};
 

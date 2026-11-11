@@ -1,7 +1,7 @@
 #ifndef AYR_BASE_META_FMT_HPP
 #define AYR_BASE_META_FMT_HPP
 
-#include "CString.hpp"
+#include "fmt_wrapper.hpp"
 
 namespace ayr
 {
@@ -9,6 +9,7 @@ namespace ayr
 	struct CheckedFmtStr
 	{
 		const char* ptr;
+
 		c_size length;
 
 		template<size_t N>

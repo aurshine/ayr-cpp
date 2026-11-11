@@ -10,7 +10,7 @@ using namespace ayr;
 
 namespace
 {
-	constexpr const char* HOST = "127.0.0.1";
+	const CString HOST = "127.0.0.1";
 	constexpr int PORT = 7783;
 
 	coro::Task<CString> read_request(net::Socket& socket, const CString& terminator)

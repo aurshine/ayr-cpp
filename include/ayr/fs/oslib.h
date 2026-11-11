@@ -38,7 +38,7 @@
 
 #endif // 平台判断
 
-#include "../base/raise_error.hpp"
+#include "../base/meta.hpp"
 
 namespace ayr
 {

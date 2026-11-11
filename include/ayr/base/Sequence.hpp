@@ -4,7 +4,7 @@
 #include <functional>
 
 #include "itertools/IndexIterator.hpp"
-#include "raise_error.hpp"
+#include "meta.hpp"
 
 namespace ayr
 {

@@ -4,6 +4,7 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     project(ayr-cpp LANGUAGES CXX)
     include(CTest)
     option(AYR_ENABLE_COVERAGE "Build tests with GCC/Clang coverage instrumentation" OFF)
+    option(AYR_BUILD_BRANCHMARKS "Build performance benchmarks" ON)
 endif()
 
 # https需要使用openssl
@@ -42,6 +43,22 @@ if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND BUILD_TESTING)
         endif()
         
         add_test(NAME ${TEST_EXE} COMMAND ${TEST_EXE})
+        set_tests_properties(${TEST_EXE} PROPERTIES LABELS unit)
         
+    endforeach()
+endif()
+
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND AYR_BUILD_BRANCHMARKS)
+    message(STATUS "Building performance benchmarks")
+    file(GLOB_RECURSE BRANCHMARK_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/branchmark/*.cpp)
+    add_custom_target(branchmarks)
+    foreach(BRANCHMARK_SOURCE ${BRANCHMARK_SOURCES})
+        get_filename_component(BRANCHMARK_EXE ${BRANCHMARK_SOURCE} NAME_WE)
+        add_executable(${BRANCHMARK_EXE} ${BRANCHMARK_SOURCE})
+        target_link_libraries(${BRANCHMARK_EXE} PRIVATE ayr)
+        add_dependencies(branchmarks ${BRANCHMARK_EXE})
+        # Keep benchmarks out of CTest; run them explicitly with RunBranchmark.
+        set_target_properties(${BRANCHMARK_EXE} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/branchmark/$<CONFIG>")
     endforeach()
 endif()

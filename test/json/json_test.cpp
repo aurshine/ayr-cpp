@@ -103,10 +103,7 @@ int main()
 		for (auto&& json_file: fs::listdir(json_dir))
 		{
 			CString path = fs::join(json_dir, json_file);
-			Timer_ms tm;
-			tm.into();
 			json::Json file_json = json::loads(Atring::from_utf8(fs::AyrFile(path, "r").read()));
-			print(json_file, "parse", tm.escape(), "ms");
 			UTEST_EXPECT(file_json.is<json::JsonDict>());
 			UTEST_EXPECT(file_json.size() > 0);
 		}

@@ -3,7 +3,7 @@
 
 #include "utils.hpp"
 #include "Selector/IoResult.hpp"
-#include "../base/raise_error.hpp"
+#include "../base/meta.hpp"
 
 #ifdef AYR_WIN
 #include <wincrypt.h>

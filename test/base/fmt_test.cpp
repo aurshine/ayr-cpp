@@ -1,15 +1,9 @@
-#include <algorithm>
-#include <array>
-#include <chrono>
 #include <cstdint>
-#include <cstdio>
 #include <iterator>
 #include <limits>
-#include <random>
 #include <string>
 #include <string_view>
 #include <type_traits>
-#include <vector>
 #include <format>
 
 #include <ayr/base/meta/fmt.hpp>
@@ -31,136 +25,75 @@ namespace
     {
         void __repr__(Buffer& buffer) const { buffer << "custom repr"; }
     };
-
-#if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
-    constexpr size_t INPUT_COUNT = 1024;
-    constexpr size_t ITERATIONS = 100'000;
-    constexpr size_t SAMPLE_COUNT = 7;
-
-    struct Input
-    {
-        int64_t integer;
-        uint64_t unsigned_integer;
-        double fraction;
-        bool flag;
-        std::string text;
-    };
-
-    struct Sample
-    {
-        double milliseconds;
-        uint64_t checksum;
-    };
-
-    /** @brief 计时包含结果分配、销毁和轻量校验和，不包含输入准备及断言。 */
-    template<typename Format>
-    Sample measure(const std::vector<Input>& inputs, Format format)
-    {
-        uint64_t checksum = 0;
-        const auto start = std::chrono::steady_clock::now();
-        for (size_t i = 0; i < ITERATIONS; ++i)
-        {
-            auto output = format(inputs[i % inputs.size()]);
-            std::string_view bytes(output.data(), output.size());
-            checksum = checksum * 131 + bytes.size();
-            if (!bytes.empty())
-                checksum += static_cast<unsigned char>(bytes.front())
-                    + static_cast<unsigned char>(bytes[bytes.size() / 2])
-                    + static_cast<unsigned char>(bytes.back());
-        }
-        const auto stop = std::chrono::steady_clock::now();
-        return {std::chrono::duration<double, std::milli>(stop - start).count(), checksum};
-    }
-
-    /** @brief 先逐字节比较，再预热并交替采样；仅报告速度，不断言耗时。 */
-    template<typename AyrFormat, typename StdFormat>
-    void benchmark(const char* name, const std::vector<Input>& inputs,
-        AyrFormat ayr_format, StdFormat std_format)
-    {
-        bool equal = true;
-        for (const auto& input : inputs)
-        {
-            auto actual = ayr_format(input);
-            auto expected = std_format(input);
-            equal = equal && std::string_view(actual.data(), actual.size()) == expected;
-        }
-        UTEST_EXPECT(equal);
-        if (!equal) return;
-
-        const auto warm_ayr = measure(inputs, ayr_format);
-        const auto warm_std = measure(inputs, std_format);
-        UTEST_EXPECT_EQ(warm_ayr.checksum, warm_std.checksum);
-
-        std::array<double, SAMPLE_COUNT> ayr_times{}, std_times{};
-        for (size_t i = 0; i < SAMPLE_COUNT; ++i)
-        {
-            Sample ayr_sample{}, std_sample{};
-            if (i % 2 == 0)
-            {
-                ayr_sample = measure(inputs, ayr_format);
-                std_sample = measure(inputs, std_format);
-            }
-            else
-            {
-                std_sample = measure(inputs, std_format);
-                ayr_sample = measure(inputs, ayr_format);
-            }
-            ayr_times[i] = ayr_sample.milliseconds;
-            std_times[i] = std_sample.milliseconds;
-            UTEST_EXPECT_EQ(ayr_sample.checksum, warm_std.checksum);
-            UTEST_EXPECT_EQ(std_sample.checksum, warm_std.checksum);
-        }
-
-        std::sort(ayr_times.begin(), ayr_times.end());
-        std::sort(std_times.begin(), std_times.end());
-        const double ayr_ms = ayr_times[SAMPLE_COUNT / 2];
-        const double std_ms = std_times[SAMPLE_COUNT / 2];
-        std::printf("%-16s %12.3f %12.3f %12.2f\n", name, ayr_ms, std_ms,
-            ayr_ms > 0.0 ? std_ms / ayr_ms : 0.0);
-    }
-
-    void compare_with_std_format()
-    {
-        std::mt19937_64 random(20261110);
-        std::vector<Input> inputs;
-        inputs.reserve(INPUT_COUNT);
-        for (size_t i = 0; i < INPUT_COUNT; ++i)
-        {
-            int64_t integer = static_cast<int64_t>(random() >> 1);
-            if (i % 2) integer = -integer;
-            inputs.push_back({integer, random(), static_cast<double>(random() % 4096) / 8.0,
-                i % 2 != 0, "item-" + std::to_string(i)});
-        }
-
-        std::printf("\n[ayr::fmt vs std::format] %zu inputs, %zu operations/sample\n", INPUT_COUNT, ITERATIONS);
-        std::printf("1 warmup + %zu samples; median milliseconds; std / ayr > 1 means ayr faster\n", SAMPLE_COUNT);
-#ifdef NDEBUG
-        std::printf("NDEBUG enabled; use an optimized Release build for performance comparisons.\n");
-#else
-        std::printf("Debug build: timings are diagnostic; use Release to compare performance.\n");
-#endif
-        std::printf("Includes allocation/destruction and a lightweight checksum; input preparation excluded.\n");
-        std::printf("%-16s %12s %12s %12s\n", "workload", "ayr (ms)", "std (ms)", "std / ayr");
-        benchmark("integers", inputs,
-            [](const Input& in) { return ayr::fmt("id={} total={}", in.integer, in.unsigned_integer); },
-            [](const Input& in) { return std::format("id={} total={}", in.integer, in.unsigned_integer); });
-        benchmark("mixed", inputs,
-            [](const Input& in) { return ayr::fmt("id={} cost={} active={} name={}", in.integer,
-                in.fraction, in.flag, std::string_view(in.text)); },
-            [](const Input& in) { return std::format("id={} cost={} active={} name={}", in.integer,
-                in.fraction, in.flag, std::string_view(in.text)); });
-
-        for (size_t i = 0; i < inputs.size(); ++i)
-            inputs[i].text.append(256 + i % 64, 'x');
-        benchmark("long strings", inputs,
-            [](const Input& in) { return ayr::fmt("payload=[{}]", std::string_view(in.text)); },
-            [](const Input& in) { return std::format("payload=[{}]", std::string_view(in.text)); });
-    }
-#endif
 }
 
 int main()
 {
+    UTEST_SCOPE("BaseInt supports default decimal, bases 2 through 36, and integer boundaries")
+    {
+        UTEST_EXPECT_EQ(ayr::fmt("{} {} {} {} {}", BaseInt{42}, baseint(0, 2),
+            baseint(255, 16), baseint(-255, 16), baseint(35, 36)), "42 0 ff -ff z");
+        UTEST_EXPECT_EQ(ayr::fmt("{} {}", baseint(std::numeric_limits<int64_t>::min(), 16),
+            baseint(std::numeric_limits<uint64_t>::max(), 16)), "-8000000000000000 ffffffffffffffff");
+        UTEST_EXPECT_EQ(ayr::fmt("{}", baseint(std::numeric_limits<uint64_t>::max(), 2)),
+            cstr((CString("1") * 64)));
+        for (int base = 2; base <= 36; ++base)
+        {
+            UTEST_EXPECT_EQ(ayr::fmt("{}", baseint(base, base)), "10");
+            UTEST_EXPECT_EQ(ayr::fmt("{}", baseint(-base, base)), "-10");
+        }
+        UTEST_EXPECT_EQ(ayr::fmt("{} {} {}", baseint(int8_t(-128)),
+            baseint(uint8_t(255)), baseint('A', 16)), "-128 255 41");
+    };
+
+    UTEST_SCOPE("Fixed wrappers preserve float types, precision, rounding, and special values")
+    {
+        UTEST_EXPECT_EQ(ayr::fmt("{} {} {}", Fixed{0.1f}, fixed(1.25), fixed(1.25L, -2)),
+            "0.1 1.25 1.25");
+        UTEST_EXPECT_EQ(ayr::fmt("{} {} {} {} {}", fixed(1.234, 2), fixed(1.2f, 3),
+            fixed(1.999, 2), fixed(1.6L, 0), fixed(-0.0, 2)), "1.23 1.200 2.00 2 -0.00");
+        UTEST_EXPECT_EQ(ayr::fmt("{}", fixed(1.0, 1000)), cstr(CString("1.") + (CString("0") * 1000)));
+        UTEST_EXPECT_EQ(ayr::fmt("{} {} {}", fixed(std::numeric_limits<double>::infinity(), 2),
+            fixed(-std::numeric_limits<double>::infinity(), 0),
+            fixed(std::numeric_limits<double>::quiet_NaN(), 3)), "inf -inf nan");
+    };
+
+    UTEST_SCOPE("Pad alignment, custom fills, and widths that do not truncate")
+    {
+        UTEST_EXPECT_EQ(ayr::fmt("[{}] [{}] [{}]", Pad{"xy", 5},
+            left_pad("xy", 5), center_pad("xy", 5)), "[   xy] [xy   ] [ xy  ]");
+        UTEST_EXPECT_EQ(ayr::fmt("{}|{}|{}", left_pad("xy", 6, '.'),
+            right_pad(42, 5, '0'), pad("xy", 6, Pad::Align::Center, '-')),
+            "xy....|00042|--xy--");
+        for (c_size width : {-1, 0, 1, 2})
+        {
+            UTEST_EXPECT_EQ(ayr::fmt("{}", left_pad("xy", width)), "xy");
+            UTEST_EXPECT_EQ(ayr::fmt("{}", right_pad("xy", width)), "xy");
+            UTEST_EXPECT_EQ(ayr::fmt("{}", center_pad("xy", width)), "xy");
+        }
+        UTEST_EXPECT_EQ(ayr::fmt("{}", center_pad("", 3, '.')), "...");
+        UTEST_EXPECT_EQ(ayr::fmt("{}", center_pad("xy", 3, '.')), "xy.");
+        UTEST_EXPECT_EQ(ayr::fmt("{}", right_pad("x", 4096, '.')), cstr((CString(".") * 4095) + "x"));
+    };
+
+    UTEST_SCOPE("Wrappers compose in fmt_to, own temporary text, and preserve binary padding")
+    {
+        auto padded = [] { return right_pad((CString("x") * 128), 130, '.'); }();
+        UTEST_EXPECT_EQ(ayr::fmt("{}", padded), cstr(CString("..") + (CString("x") * 128)));
+        Buffer buffer(1);
+        buffer << "prefix:";
+        ayr::fmt_to(buffer, "{}|{}|{}", right_pad(baseint(255, 16), 4, '0'),
+            left_pad(fixed(1.25, 2), 6, '.'), center_pad(StrValue{}, 16, '_'));
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()),
+            "prefix:00ff|1.25..|_custom string__");
+        CString binary = ayr::fmt("{}", right_pad(vstr("a\0b", 3), 5, '\0'));
+        UTEST_EXPECT_EQ(vstr(binary.data(), binary.size()), vstr("\0\0a\0b", 5));
+        buffer.close();
+        ayr::fmt_to(buffer, "{}{}{}", baseint(42, 2), fixed(1.25, 2), left_pad("x", 1000));
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()),
+            "prefix:00ff|1.25..|_custom string__");
+    };
+
     UTEST_SCOPE("Literal text, placeholders, and empty arguments")
     {
         UTEST_EXPECT(ayr::fmt("").empty());
@@ -190,12 +123,12 @@ int main()
         std::string binary("a\0b", 3);
         CString output = ayr::fmt("[{}]", binary);
         UTEST_EXPECT_EQ(output.size(), 5);
-        UTEST_EXPECT_EQ(std::string(output.data(), output.size()), std::string("[a\0b]", 5));
-        std::string long_text(4096, 'x');
+        UTEST_EXPECT_EQ(vstr(output.data(), output.size()), vstr("[a\0b]", 5));
+        CString long_text = CString("x") * 4096;
         output = ayr::fmt("<{}>", long_text);
-        UTEST_EXPECT_EQ(std::string(output.data(), output.size()), "<" + long_text + ">");
-        output = [] { std::string local(128, 'y'); return ayr::fmt("{}", local); }();
-        UTEST_EXPECT_EQ(std::string(output.data(), output.size()), std::string(128, 'y'));
+        UTEST_EXPECT_EQ(vstr(output.data(), output.size()), CString("<") + long_text + ">");
+        output = [] { CString local = CString("y") * 128; return ayr::fmt("{}", local); }();
+        UTEST_EXPECT_EQ(vstr(output.data(), output.size()), (CString("y") * 128));
     };
 
     UTEST_SCOPE("fmt_to appends literals and consecutive calls without clearing existing bytes")
@@ -218,7 +151,7 @@ int main()
     {
         Buffer buffer(1);
         constexpr CheckedFmtStr<9> pattern("{}|{}|{}|{}|{}|{}|{}|{}|{}");
-        std::string text = "standard";
+        CString text = "standard";
         ayr::fmt_to(buffer, pattern, std::numeric_limits<int64_t>::min(),
             std::numeric_limits<uint64_t>::max(), 1.25, true, 'x', text,
             vstr("CString"), StrValue{}, ReprValue{});
@@ -237,25 +170,25 @@ int main()
     UTEST_SCOPE("fmt_to preserves embedded nulls in arguments and format literals")
     {
         Buffer buffer;
-        std::string binary("a\0b", 3);
+        CString binary("a\0b", 3);
         ayr::fmt_to(buffer, "[{}]\0tail", binary);
-        UTEST_EXPECT_EQ(std::string(buffer.peek(), buffer.readable_size()), std::string("[a\0b]\0tail", 10));
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), vstr("[a\0b]\0tail", 10));
     };
 
     UTEST_SCOPE("fmt_to handles compaction, growth, and reusing an allocated buffer")
     {
         Buffer buffer(64);
-        buffer << std::string(60, 'x');
+        buffer << (CString("x") * 60);
         buffer.retrieve(59);
         ayr::fmt_to(buffer, "value={}!", std::numeric_limits<uint64_t>::max());
         UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), "xvalue=18446744073709551615!");
         UTEST_EXPECT_EQ(buffer.peek(), buffer.data());
         UTEST_EXPECT_EQ(buffer.capacity(), 64);
 
-        std::string long_text(4096, 'y');
+        CString long_text = CString("y") * 4096;
         ayr::fmt_to(buffer, "<{}>", long_text);
-        UTEST_EXPECT_EQ(std::string(buffer.peek(), buffer.readable_size()),
-            "xvalue=18446744073709551615!<" + long_text + ">");
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()),
+            CString("xvalue=18446744073709551615!<") + long_text + ">");
         c_size capacity = buffer.capacity();
         char* allocation = buffer.data();
         buffer.clear();
@@ -271,13 +204,13 @@ int main()
     {
         Buffer buffer;
         {
-            std::string local(128, 'z');
-            ayr::fmt_to(buffer, "{}", std::string_view(local));
+            CString local = CString("z") * 128;
+            ayr::fmt_to(buffer, "{}", local);
         }
-        UTEST_EXPECT_EQ(std::string(buffer.peek(), buffer.readable_size()), std::string(128, 'z'));
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), (CString("z") * 128));
         buffer.close();
         ayr::fmt_to(buffer, "literal {} {} {}", 42, 1.25, "text");
-        UTEST_EXPECT_EQ(std::string(buffer.peek(), buffer.readable_size()), std::string(128, 'z'));
+        UTEST_EXPECT_EQ(vstr(buffer.peek(), buffer.readable_size()), (CString("z") * 128));
     };
 
 #if defined(__cpp_lib_format) && __cpp_lib_format >= 201907L
@@ -292,15 +225,9 @@ int main()
             std::format_to(std::back_inserter(expected), "[{} {} {} {}]", i, i / 8.0,
                 i % 2 == 0, std::string_view("text"));
         }
-        UTEST_EXPECT_EQ(std::string(actual.peek(), actual.readable_size()), expected);
+        UTEST_EXPECT_EQ(vstr(actual.peek(), actual.readable_size()), vstr(expected));
     };
 
-    UTEST_SCOPE("Correctness and performance compared with std::format")
-    {
-        compare_with_std_format();
-    };
-#else
-    std::printf("[SKIPPED] std::format comparison: this standard library does not provide it.\n");
 #endif
     return UTEST_COMPLETE();
 }
