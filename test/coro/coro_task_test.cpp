@@ -2,6 +2,7 @@
 
 #include <ayr/coro.hpp>
 #include <ayr/base/utest.hpp>
+#include <ayr/base/timer.hpp>
 
 using namespace ayr;
 
@@ -93,10 +94,11 @@ int main()
 	{
 		coro::IoContext io_context;
 		auto delayed = delayed_value(&io_context, 9);
-		auto start = std::chrono::steady_clock::now();
+		Timer_ms timer;
+		timer.into();
 		UTEST_EXPECT_EQ(io_context.run(delayed), 9);
-		auto elapsed = std::chrono::steady_clock::now() - start;
-		UTEST_EXPECT(elapsed >= std::chrono::milliseconds(1));
+		auto elapsed = timer.escape();
+		UTEST_EXPECT(elapsed >= 1.0);
 
 		auto current = captures_current_coroutine();
 		UTEST_EXPECT(io_context.run(current));

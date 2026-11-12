@@ -1,7 +1,7 @@
 #ifndef AYR_BASE_UTEST_HPP
 #define AYR_BASE_UTEST_HPP
 
-#include "raise_error.hpp"
+#include "meta.hpp"
 
 namespace ayr
 {
@@ -24,7 +24,7 @@ namespace ayr
 		TestRecorder() : 
 			total_count_(0), 
 			failed_count_(0),
-			info_print(stdout, Color::WHITE),
+			info_print(stdout, Color::AQUA),
 			success_print(stdout, Color::GREEN),
 			failed_print(stdout, Color::RED)
 		{ 
@@ -45,13 +45,13 @@ namespace ayr
 		void fail(const CString& action, const CString& expr, const CString& file, int line)
 		{
 			++failed_count_;
-			this->action(failed_print, fmt("[FALIED  {}]", action), expr, file, line);
+			this->action(failed_print, fmt("[FALIED {}]", action), expr, file, line);
 		}
 
 		void fail(const CString& action, const CString& expr, const CString& file, int line, const CString& ex_msg)
 		{
 			++failed_count_;
-			this->action(failed_print,fmt("[FALIED  {}]", action), expr, file, line, ex_msg);
+			this->action(failed_print, fmt("[FALIED {}]", action), expr, file, line, ex_msg);
 		}
 
 		void success(const CString& action, const CString& expr, const CString& file, int line)
@@ -61,16 +61,12 @@ namespace ayr
 
 		void action(ColorPrinter& cp, const CString& action, const CString& expr, const CString& file, int line)
 		{
-			Buffer buffer;
-			buffer << action << " " << file << ":" << line << " [" << expr << "]\n";
-			cp.write_from_buffer(buffer);
+			cp(fmt("{} {}:{} [{}]", left_pad(action, 20), file, line, expr));
 		}
 
 		void action(ColorPrinter& cp, const CString& action, const CString& expr, const CString& file, int line, const CString& ex_msg)
 		{
-			Buffer buffer;
-			buffer << action << " " << file << ":" << line << " [" << expr << "] -> [" << ex_msg << "]\n";
-			cp.write_from_buffer(buffer);
+			cp(fmt("{} {}:{} [{}] -> [{}]", left_pad(action, 20), file, line, expr, ex_msg));
 		}
 	public:
 		TestRecorder(const self&) = delete;
@@ -89,24 +85,16 @@ namespace ayr
 		}
 
 		template<typename... Args>
-		void print(Args... args) const { info_print(args...); }
-
-		void print_from_buffer(const Buffer& buffer) { info_print.write_from_buffer(buffer); }
+		void info(Args... args) const { info_print(args...); }
 
 		// 完成utest，并返回错误的数量
 		int complete() const
 		{
 			Buffer buffer;
 			if (failed_count_)
-			{
-				buffer << "\nUnit Test Failed: " << failed_count_ << " / " << total_count_ << "\n";
-				failed_print.write_from_buffer(buffer);
-			}
+				failed_print(fmt("\nUnit Test Failed: {} / {}", failed_count_, total_count_));
 			else
-			{
-				buffer << "\nUnit Test Passed: " << total_count_ << "\n";
-				success_print.write_from_buffer(buffer);
-			}
+				success_print(fmt("\nUnit Test Passed: {}", total_count_));
 
 			return failed_count_;
 		}
@@ -133,9 +121,9 @@ namespace ayr
 		{
 			++total_count_;
 			if (t1 != t2)
-				fail("EQUAL    ", expr, file, line, fmt("{} != {}", t1, t2));
+				fail("EQUAL", expr, file, line, fmt("{} != {}", t1, t2));
 			else
-				success("EQUAL    ", expr, file, line);
+				success("EQUAL", expr, file, line);
 		}
 
 		/*
@@ -179,10 +167,10 @@ namespace ayr
 			}
 			catch (const AyrError&)
 			{
-				success("RAISEERR ", expr, file, line);
+				success("RAISEERR", expr, file, line);
 				return;
 			}
-			fail("RAISEERR ", expr, file, line);
+			fail("RAISEERR", expr, file, line);
 		}
 
 		template<typename F>
@@ -195,10 +183,10 @@ namespace ayr
 			}
 			catch (const AyrError& e)
 			{
-				fail("RUNEXPR  ", expr, file, line, e.error());
+				fail("RUNEXPR", expr, file, line, e.error());
 				return;
 			}
-			success("RUNEXPR  ", expr, file, line);
+			success("RUNEXPR", expr, file, line);
 		}
 
 		template<typename F>
@@ -211,10 +199,10 @@ namespace ayr
 			}
 			catch (const AyrError& e)
 			{
-				fail("RUNSCOPE ", expr, file, line, e.error());
+				fail("RUNSCOPE", expr, file, line, e.error());
 				return;
 			}
-			success("RUNSCOPE ", expr, file, line);
+			success("RUNSCOPE", expr, file, line);
 		}
 	};
 	
@@ -230,7 +218,7 @@ namespace ayr
 		template<typename F>
 		void operator+(F&& scope) const
 		{
-			TestRecorder::instance().print("[START_TEST_SCOPE ]", scope_name_);
+			TestRecorder::instance().info(left_pad("[START_TEST_SCOPE]", 20), scope_name_);
 			TestRecorder::instance().expect_run_scope(scope, scope_name_, file_, line_);
 		}
 	};

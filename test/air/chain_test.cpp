@@ -1,4 +1,4 @@
-#include <vector>
+#include <ayr/base/Array.hpp>
 
 #include <ayr/air/Chain.hpp>
 
@@ -53,26 +53,26 @@ int main()
 		UTEST_EXPECT_EQ(chain.back(), 3);
 	};
 
-	Chain<int> from_vector;
+	Chain<int> from_array;
 	UTEST_SCOPE("测试拷贝、移动和由可迭代对象构造。")
 	{
 		Chain<int> copied(chain);
 		UTEST_EXPECT_EQ(copied, chain);
 		Chain<int> moved(std::move(copied));
 		UTEST_EXPECT_EQ(moved.size(), 1);
-		std::vector<int> values{ 7, 8, 9 };
-		from_vector = ayr::chain<int>(values);
-		UTEST_EXPECT_EQ(from_vector.size(), 3);
-		UTEST_EXPECT_EQ(from_vector.front(), 7);
-		UTEST_EXPECT_EQ(from_vector.back(), 9);
+		Array<int> values{ 7, 8, 9 };
+		from_array = ayr::chain<int>(values);
+		UTEST_EXPECT_EQ(from_array.size(), 3);
+		UTEST_EXPECT_EQ(from_array.front(), 7);
+		UTEST_EXPECT_EQ(from_array.back(), 9);
 	};
 
 	UTEST_SCOPE("测试 clear 后链表可继续追加。")
 	{
-		from_vector.clear();
-		UTEST_EXPECT_EQ(from_vector.size(), 0);
-		from_vector.append(10);
-		UTEST_EXPECT_EQ(from_vector.front(), 10);
+		from_array.clear();
+		UTEST_EXPECT_EQ(from_array.size(), 0);
+		from_array.append(10);
+		UTEST_EXPECT_EQ(from_array.front(), 10);
 	};
 
 	return UTEST_COMPLETE();

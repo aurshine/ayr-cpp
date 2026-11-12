@@ -1,7 +1,7 @@
 #ifndef AYR_BASE_CODEC_ACHAR_HPP
 #define AYR_BASE_CODEC_ACHAR_HPP
 
-#include "../raise_error.hpp"
+#include "../meta.hpp"
 
 namespace ayr
 {

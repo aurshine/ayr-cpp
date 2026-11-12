@@ -7,7 +7,7 @@
 
 using namespace ayr;
 
-const char* HOST = "127.0.0.1";
+const CString HOST = "127.0.0.1";
 constexpr int PORT = 7777;
 
 coro::Task<void> client_main(coro::IoContext* io_context, std::atomic<bool>* client_verified)

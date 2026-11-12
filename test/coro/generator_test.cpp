@@ -1,4 +1,4 @@
-#include <vector>
+#include <ayr/air/DynArray.hpp>
 
 #include <ayr/coro.hpp>
 
@@ -47,9 +47,9 @@ int main()
 {
 	UTEST_SCOPE("测试 co_yield 序列和 co_return 末尾值都会被迭代出来。")
 	{
-		std::vector<int> values;
+		DynArray<int> values;
 		for (int value : descending_numbers(3))
-			values.push_back(value);
+			values.append(value);
 		UTEST_EXPECT_EQ(values.size(), 4);
 		UTEST_EXPECT_EQ(values[0], 3);
 		UTEST_EXPECT_EQ(values[1], 2);

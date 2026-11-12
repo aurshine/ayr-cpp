@@ -1,8 +1,7 @@
-#ifndef AYR_BASE_PRINTER_HPP
-#define AYR_BASE_PRINTER_HPP
-#include <source_location>
+#ifndef AYR_BASE_META_PRINTER_HPP
+#define AYR_BASE_META_PRINTER_HPP
 
-#include "meta.hpp"
+#include "cstr_buffer.hpp"
 
 namespace ayr
 {
@@ -16,16 +15,12 @@ namespace ayr
 		{
 			Buffer buffer(BUFFER_SIZE);
 			write_in_buffer(buffer, object, args...);
-			write_from_buffer(buffer);
+			write(buffer.peek(), buffer.readable_size());
 		}
 
-		void operator()() const
-		{
-			Buffer buffer(BUFFER_SIZE);
-			write_in_buffer(buffer);
-			write_from_buffer(buffer);
-		}
+		void operator()() const { write(ew_.data(), ew_.size()); }
 
+		// 刷新输出缓冲区
 		void flush() const { std::fflush(output_file_); }
 
 		// 设置输出结束符
@@ -36,10 +31,12 @@ namespace ayr
 
 		FILE* file() const { return output_file_; }
 
-		void write_from_buffer(const Buffer& buffer) const
-		{
-			std::fwrite(buffer.peek(), 1, buffer.readable_size(), output_file_);
-		}
+		// 输出字符串到文件
+		void write(const char* str, size_t len) const { std::fwrite(str, 1, len, output_file_); }
+
+		void write(const CString& str) const { write(str.data(), str.size()); }
+
+		void write(const Buffer& buffer) const { write(buffer.peek(), buffer.readable_size()); }
 
 		static void set_buffer_size(c_size size) { if (size > 0) BUFFER_SIZE = size; }
 	protected:
@@ -53,8 +50,6 @@ namespace ayr
 				((buffer << sw_ << args), ...);
 			buffer << ew_;
 		}
-
-		void write_in_buffer(Buffer& buffer) const { buffer << ew_; }
 
 		CString ew_; // 结束符
 
@@ -89,27 +84,31 @@ namespace ayr
 		constexpr static const char* AQUA = "\033[94m";
 	};
 
-	class ColorPrinter : public Printer
+	class ColorPrinter : protected Printer
 	{
+		using self = ColorPrinter;
+
 		using super = Printer;
 	public:
 		ColorPrinter(FILE* file_ptr, const CString& color = Color::WHITE)
-			: Printer(file_ptr), color_(color) {
-		}
+			: Printer(file_ptr), color_(color) {}
 
 		template<typename... Args>
 		void operator()(const Args&... args) const
 		{
 			Buffer buffer(BUFFER_SIZE);
+			// write_in_buffer会带分割符和结束符，所以在前后加上颜色控制符
+			buffer << color_;
 			super::write_in_buffer(buffer, args...);
-			write_from_buffer(buffer);
+			buffer << Color::CLOSE;
+			super::write(buffer);
 		}
 
-		void write_from_buffer(const Buffer& buffer) const
+		void operator()() const
 		{
-			std::fwrite(color_.data(), 1, color_.size(), output_file_);
-			super::write_from_buffer(buffer);
-			std::fwrite(Color::CLOSE, 1, 4, output_file_);
+			Buffer buffer(BUFFER_SIZE);
+			buffer << color_ << ew_ << Color::CLOSE;
+			super::write(buffer);
 		}
 
 		void setcolor(const CString& color) { color_ = color; }
@@ -123,4 +122,4 @@ namespace ayr
 
 	static ColorPrinter ayr_error{ stderr, Color::RED };
 }
-#endif // AYR_BASE_PRINTER_HPP
+#endif // AYR_BASE_META_PRINTER_HPP

@@ -13,7 +13,7 @@ if (Test-Path $buildDir) {
     Remove-Item $buildDir -Recurse -Force
 }
 
-cmake -S $repoDir -B $buildDir -DBUILD_TESTING=ON
+cmake -S $repoDir -B $buildDir -DBUILD_TESTING=ON "-DCMAKE_BUILD_TYPE=$Config"
 if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
@@ -23,5 +23,5 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-ctest --test-dir $buildDir -C $Config --output-on-failure
+ctest --test-dir $buildDir -C $Config -L '^unit$' --output-on-failure --no-tests=error
 exit $LASTEXITCODE

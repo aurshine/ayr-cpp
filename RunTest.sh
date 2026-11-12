@@ -33,4 +33,6 @@ cmake --build "$build_dir" --config "$config" --parallel
 ctest \
     --test-dir "$build_dir" \
     -C "$config" \
-    --output-on-failure
+    -L '^unit$' \
+    --output-on-failure \
+    --no-tests=error

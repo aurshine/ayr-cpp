@@ -5,3 +5,5 @@ CMakeSettings.json
 **/maybe_unused/
 .agents
 TodoList.md
+/branchmark/*.md
+/branchmark/*.log
