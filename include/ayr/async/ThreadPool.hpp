@@ -25,7 +25,7 @@ namespace ayr
 			using PoolTask = std::function<void()>;
 
 			// 停止标志，表示线程池的停止状态
-			bool stoped_;
+			// bool stoped_;
 
 			// 当前正在运行的任务数量
 			std::atomic<int32_t> num_running_;
@@ -37,9 +37,22 @@ namespace ayr
 			std::mutex mtx;
 
 			std::queue<PoolTask> tasks;
+
+			enum class PoolState
+			{
+				Running, // 正常运行中，接受新任务
+				Draining, // 优雅关闭，拒绝新任务，等待所有任务完成后停止
+				Stopping, // 尽快停止，拒绝新任务，丢弃所有未开始的任务
+				Stopped // 已停止
+			} state;
 		public:
 			// 线程池构造函数，传入线程池的线程数量
-			ThreadPool(size_t num_pool) : stoped_(false), num_running_(0), threads(num_pool)
+			ThreadPool(size_t num_pool) : 
+				num_running_(0), 
+				threads(num_pool),
+				condition(),
+				mtx(),
+				state(PoolState::Running)
 			{
 				auto work = [this]()
 					{
@@ -47,36 +60,42 @@ namespace ayr
 						{
 							std::unique_lock<std::mutex> lock(this->mtx);
 							this->condition.wait(lock, [this]() {
-								// 当有等待的任务或者线程池已经停止时，线程可以继续执行
-								return this->has_waiting_task() || this->stoped_ok();
+								// 当有等待的任务或者线程池不是运行状态，线程可以继续执行
+								return this->has_waiting_task() || !this->running();
 								});
 
-							if (this->stoped_ok())
-								return;
-
-							PoolTask task = std::move(this->tasks.front());
-							this->tasks.pop();
-
-							lock.unlock();
-							++this->num_running_;
-							task();
-							--this->num_running_;
-							condition.notify_all();
+							if (this->has_waiting_task())
+							{
+								if (this->running() || this->draining())
+								{
+									PoolTask task = std::move(this->tasks.front());
+									this->tasks.pop();
+									++this->num_running_;
+									lock.unlock();
+									
+									task();
+									--this->num_running_;
+									condition.notify_all();
+									continue;
+								}
+							}
+							break;
 						}
 					};
 				for (auto& t : this->threads)
 					t = std::thread(work);
 			}
 
-			~ThreadPool() { if (!stoped_ok()) stop(); }
+			~ThreadPool() { if (!stoped()) stop(); }
 
 			template<AnyRCallable F>
-			std::future<std::invoke_result_t<F>> push_future(F&& task) {
-				if (stoped_ok())
-					RuntimeError("Cannot push task to a stopped ThreadPool");
+			std::future<std::invoke_result_t<F>> future_push(F&& task) 
+			{
+				if (!running())
+					RuntimeError("Thread pool is not running, cannot push task");
+
 				using R = std::invoke_result_t<F>;
 				Shared<std::packaged_task<R()>> pkg_task(task);
-
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
 					tasks.push([pkg_task] { (*pkg_task)(); });
@@ -88,8 +107,8 @@ namespace ayr
 			template<AnyRCallable F>
 			void push(F&& task)
 			{
-				if (stoped_ok())
-					RuntimeError("Cannot push task to a stopped ThreadPool");
+				if (!running())
+					RuntimeError("Thread pool is not running, cannot push task");
 
 				Shared<PoolTask> shared_task(std::forward<F>(task));
 				{
@@ -115,11 +134,12 @@ namespace ayr
 			{
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
-					pool_stoped();
-					while (!tasks.empty()) tasks.pop();
+					state = PoolState::Stopping;
+					condition.notify_all();
 				}
-
+				
 				join(); 
+				while (!tasks.empty()) tasks.pop();
 			}
 
 			// 等待线程池中的所有任务完成后停止线程池
@@ -128,7 +148,8 @@ namespace ayr
 			{ 
 				{
 					std::lock_guard<std::mutex> lock(this->mtx);
-					pool_stoped();
+					state = PoolState::Draining;
+					condition.notify_all();
 				}
 	
 				join(); 
@@ -140,14 +161,7 @@ namespace ayr
 				for (auto& t : threads)
 					if (t.joinable())
 						t.join();
-			}
-
-			// 线程池停止标志设置为 true，并通知所有线程检查停止状态
-			void pool_stoped()
-			{
-				if (stoped_) return;
-				stoped_ = true;
-				condition.notify_all();
+				state = PoolState::Stopped;
 			}
 
 			// 检查是否有任务正在等待执行
@@ -156,12 +170,17 @@ namespace ayr
 			// 检查是否有任务正在执行
 			bool has_running_task() const { return num_running_ > 0; }
 
-			/*
-			* @brief 检查线程池是否可以安全停止
-			* 
-			* 当线程池被标记为停止时，线程池可以安全停止。
-			*/
-			bool stoped_ok() const { return stoped_ == true; }
+			// 检查线程池是否正在运行
+			bool running() const { return state == PoolState::Running; }
+
+			// 检查线程池是否正在优雅关闭
+			bool draining() const { return state == PoolState::Draining; }
+
+			// 检查线程池是否正在停止
+			bool stopping() const { return state == PoolState::Stopping; }
+
+			// 检查线程池是否已经停止
+			bool stoped() const { return state == PoolState::Stopped; }
 		};
 	}
 }

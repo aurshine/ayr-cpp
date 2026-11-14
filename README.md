@@ -376,14 +376,14 @@ int main()
 {
     async::ThreadPool pool(4);
 
-    auto first = pool.push_future([] { return 20; });
-    auto second = pool.push_future([] { return 22; });
+    auto first = pool.future_push([] { return 20; });
+    auto second = pool.future_push([] { return 22; });
 
     print(first.get() + second.get()); // 42
 }
 ```
 
-`push` 提交无返回值任务，`push_future` 返回 `std::future`。`run()` 等待当前
+`push` 提交无返回值任务，`future_push` 返回 `std::future`。`run()` 等待当前
 队列完成但保持线程池可用；`stop()` 停止并丢弃尚未开始的任务。线程池对象
 析构时会停止工作线程。
 
