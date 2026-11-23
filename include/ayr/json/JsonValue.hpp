@@ -154,11 +154,11 @@ namespace ayr
 
 			// 访问json的实际元素
 			template<typename Callable>
-			auto visit(Callable&& fn) { return std::visit(std::forward<Callable>(fn), json_var_); }
+			constexpr auto visit(Callable&& fn) { return std::visit(std::forward<Callable>(fn), json_var_); }
 
 			// 访问json的实际元素
 			template<typename Callable>
-			auto visit(Callable&& fn) const { return std::visit(std::forward<Callable>(fn), json_var_); }
+			constexpr auto visit(Callable&& fn) const { return std::visit(std::forward<Callable>(fn), json_var_); }
 
 			/*
 			* @brief 获取Json类型名称

@@ -67,6 +67,8 @@ namespace ayr
 				case EventOperation::CONNECT:
 					post_event_impl(EPOLLOUT, ctx);
 					break;
+				default:
+					RuntimeError("Invalid event type, only READ, WRITE, ACCEPT and CONNECT are supported.");
 				}
 				++num_post_;
 			}

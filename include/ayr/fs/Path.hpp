@@ -37,7 +37,6 @@ namespace ayr
 		// 获取最后一个路径分隔符的下标
 		def __last_sep_index(const CString& path) -> c_size
 		{
-			c_size last_sep_pos = -1;
 			for (c_size i = path.size() - 1; i >= 0; --i)
 				if (__is_path_sep(path[i]))
 					return i;
@@ -362,6 +361,7 @@ namespace ayr
 				co_yield std::move(d_name);
 			}
 #endif
+			co_return coro::finish;
 		}
 
 		/**

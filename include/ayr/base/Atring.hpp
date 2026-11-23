@@ -1043,6 +1043,14 @@ namespace ayr
 		}
 	};
 
+// 局部屏蔽 literal-suffix 警告
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 4455)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wliteral-suffix"
+#endif
 	namespace literals
 	{
 		// 字符串字面量，使用utf8编码
@@ -1057,6 +1065,12 @@ namespace ayr
 		// 字符串字面量，使用默认的编码格式
 		constexpr Atring operator""as(const char* bytes, size_t size) { return Atring::from<Codec>(vstr(bytes, size)); }
 	}
+// 恢复警告状态
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#elif defined(__GNUC__) || defined(__clang__)
+#pragma GCC diagnostic pop
+#endif
 
 	using namespace literals;
 }

@@ -14,7 +14,8 @@
 namespace ayr
 {
 	// 抛出异常并打印错误信息
-	def raise_error(const AyrError& e)
+	// -Wreturn-type（"control reaches end of non-void function"）。
+	[[noreturn]] def raise_error(const AyrError& e)
 	{
 		if (AyrError::show_error_while_throw)
 			ayr_error(e.details());
