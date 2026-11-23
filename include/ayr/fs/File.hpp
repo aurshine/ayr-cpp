@@ -272,6 +272,7 @@ namespace ayr
 
 				if (buffer.readable_size() > 0)
 					co_return from_buffer(std::move(buffer));
+				co_return coro::finish;
 			}
 
 			/**
@@ -500,9 +501,10 @@ namespace ayr
 		
 		def readlines(const CString& filename) -> coro::Generator<CString> 
 		{ 
-			AyrFile af(filename, "w");
+			AyrFile af(filename, "r");
 			for (const CString& line : af.readlines())
 				co_yield line; 
+			co_return coro::finish;
 		}
 	}
 }

@@ -59,6 +59,7 @@ namespace ayr
 				has_return = true;
 			}
 
+			// 生成器函数需要显式调用co_return finish; 来结束协程，否则会抛出异常
 			void return_value(_GenFinish) noexcept {}
 
 			void unhandled_exception() noexcept { exception_ = std::current_exception(); }
@@ -126,7 +127,13 @@ namespace ayr
 
 				GeneratorIterator(ItInfo::container_type* gen, _GenStatus::status_type status) : gen_(gen), status_(status) {}
 
-				GeneratorIterator(self&& other) : gen_(other.gen_) { other.gen_ = nullptr; }
+				GeneratorIterator(self&& other) : 
+					gen_(other.gen_), 
+					status_(other.status_) 
+				{ 
+					other.gen_ = nullptr; 
+					other.status_ = _GenStatus::DONE;
+				}
 
 				self& operator++()
 				{
