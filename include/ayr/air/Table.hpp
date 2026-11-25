@@ -84,27 +84,26 @@ namespace ayr
 	 * @details 默认构造的表项可用于空槽位；键值访问仅在表项有效时使用。
 	 * 相等的键必须具有相同的哈希，查询哈希必须与表项保存的哈希一致。
 	 */
-	template<typename KV>
+	template<typename Item>
 	concept ItemConcept =
-		std::default_initializable<KV> &&
-		std::movable<KV> &&
-		requires(KV & kv, const KV & ckv, const typename KV::Key & key)
+		std::default_initializable<Item> &&
+		std::movable<Item> &&
+		requires(const Item & item, const typename Item::Key & key)
 	{
-		typename KV::Key;
-		typename KV::Val;
+		typename Item::Key;
+		typename Item::Val;
 
 		// 比较 Key
-		{ ckv.key_equal(key) } -> std::same_as<bool>;
+		{ item.key_equal(key) } -> std::same_as<bool>;
 
 		// 获取哈希值
-		{ ckv.hashv() } -> std::same_as<hash_t>;
+		{ item.hashv() } -> std::same_as<hash_t>;
 
 		// 获取 Key
-		{ ckv.key() } -> std::same_as<const typename KV::Key&>;
+		{ item.key() } -> std::same_as<const typename Item::Key&>;
 
 		// 获取 Value
-		{ kv.value() } -> std::same_as<typename KV::Val&>;
-		{ ckv.value() } -> std::same_as<const typename KV::Val&>;
+		{ item.value() } -> std::same_as<const typename Item::Val&>;
 	};
 
 	/**
