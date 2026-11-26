@@ -1,3 +1,4 @@
+#include <iterator>
 #include <limits>
 
 #include <ayr/air/Dict.hpp>
@@ -206,6 +207,80 @@ int main()
         values.pop(key);
         UTEST_EXPECT_EQ(CountingKey::comparisons, 1);
         UTEST_EXPECT(values.empty());
+    };
+
+    UTEST_SCOPE("Table 迭代器只遍历已占用槽位，支持只读和可写遍历。")
+    {
+        static_assert(std::forward_iterator<TestTable::Iterator>);
+        static_assert(std::forward_iterator<TestTable::ConstIterator>);
+        static_assert(std::bidirectional_iterator<TestTable::Iterator>);
+        static_assert(std::bidirectional_iterator<TestTable::ConstIterator>);
+        static_assert(IteratableV<TestTable, TestItem>);
+        static_assert(IteratableV<const TestTable, const TestItem>);
+
+        TestTable table;
+        const int keys[] = { 3, 17, 42, 100 };
+        for (int key : keys)
+            insert_item(table, CountingKey{ key, static_cast<hash_t>(key) }, key * 10);
+
+        bool seen[101] = {};
+        c_size count = 0;
+        for (auto& item : table)
+        {
+            ++count;
+            seen[item.key().value] = true;
+            item.value() += 1;
+        }
+        UTEST_EXPECT_EQ(count, table.size());
+
+        bool all_mutated = true;
+        for (int key : keys)
+        {
+            UTEST_EXPECT(seen[key]);
+            const auto result = table.probe(CountingKey{ key, static_cast<hash_t>(key) }, key);
+            all_mutated = all_mutated && result.found
+                && table.items_[result.index].value() == key * 10 + 1;
+        }
+        UTEST_EXPECT(all_mutated);
+
+        const TestTable& const_table = table;
+        c_size const_count = 0;
+        bool const_values_valid = true;
+        for (const auto& item : const_table)
+        {
+            ++const_count;
+            const_values_valid = const_values_valid
+                && item.value() == item.key().value * 10 + 1;
+        }
+        UTEST_EXPECT_EQ(const_count, table.size());
+        UTEST_EXPECT(const_values_valid);
+
+        c_size reverse_count = 0;
+        bool reverse_seen_all = true;
+        for (auto it = table.end(); it != table.begin();)
+        {
+            --it;
+            ++reverse_count;
+            reverse_seen_all = reverse_seen_all && seen[it->key().value];
+        }
+        UTEST_EXPECT_EQ(reverse_count, table.size());
+        UTEST_EXPECT(reverse_seen_all);
+    };
+
+    UTEST_SCOPE("空 Table 的 begin 与 end 相等，迭代器支持后置递增。")
+    {
+        TestTable table;
+        UTEST_EXPECT(table.begin() == table.end());
+        const TestTable& const_table = table;
+        UTEST_EXPECT(const_table.begin() == const_table.end());
+
+        insert_item(table, CountingKey{ 1, 1 }, 10);
+        insert_item(table, CountingKey{ 2, 2 }, 20);
+        auto it = table.begin();
+        const auto old = it++;
+        UTEST_EXPECT(old == table.begin());
+        UTEST_EXPECT(it != old);
+        UTEST_EXPECT(it == table.end() || it->value() == 20);
     };
 
     return UTEST_COMPLETE();
