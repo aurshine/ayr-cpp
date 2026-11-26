@@ -111,7 +111,7 @@ namespace ayr
 	 * @details Item 负责键值及其资源语义；dist 为 EMPTY_DIST 时表示空槽位。
 	 */
 	template<ItemConcept Item>
-	class RobinItem: public Item
+	class RobinItem : public Item
 	{
 		using super = Item;
 
@@ -163,9 +163,9 @@ namespace ayr
 		 * @param dist 新表项到当前槽位的探测距离。
 		 * @param kv_item 要移入的业务表项。
 		 */
-		constexpr void set_kv_item(Dist_t dist, super&& kv_item) 
-		{ 
-			super::operator=(std::move(kv_item)); 
+		constexpr void set_kv_item(Dist_t dist, super&& kv_item)
+		{
+			super::operator=(std::move(kv_item));
 			this->dist = dist;
 		}
 
@@ -183,7 +183,7 @@ namespace ayr
 		/** @brief 输出槽位占用状态，或已占用槽位的距离和值。 */
 		void __repr__(Buffer& buffer) const
 		{
-			if (!used()) 
+			if (!used())
 				buffer << "[unused]";
 			else
 				buffer << "[dist:" << dist << " value:" << this->value() << "]";
@@ -217,7 +217,91 @@ namespace ayr
 			bool found;
 		};
 
+		using Value_t = Item;
+
 		using RobinItem_t = RobinItem<Item>;
+
+		/**
+		 * @brief 跳过空槽位、仅遍历已占用槽位的双向迭代器。
+		 * @tparam IsConst 为 true 时提供只读业务表项。
+		 * @details 解引用得到业务表项 Item，而不是内部的 RobinItem 槽位；
+		 * 插入、删除、扩容和 clear() 都可能改变槽位布局，并使已有迭代器失效。
+		 */
+		template<bool IsConst>
+		struct TableIterator : public IteratorInfo<TableIterator<IsConst>, add_const_t<IsConst, Table<Item>>, std::bidirectional_iterator_tag, add_const_t<IsConst, Item>>
+		{
+			using self = TableIterator<IsConst>;
+
+			using ItInfo = IteratorInfo<TableIterator<IsConst>, add_const_t<IsConst, Table<Item>>, std::bidirectional_iterator_tag, add_const_t<IsConst, Item>>;
+
+			// 所属表；默认构造的迭代器不关联任何表。
+			ItInfo::container_type* table_;
+
+			// 当前槽位索引，等于容量时表示尾后位置。
+			c_size index_;
+
+			TableIterator() : table_(nullptr), index_(0) {}
+
+			TableIterator(ItInfo::container_type* table, c_size index) : table_(table), index_(index)
+			{
+				_skip_unused();
+			}
+
+			TableIterator(const self& other) : table_(other.table_), index_(other.index_) {}
+
+			self& operator=(const self& other)
+			{
+				table_ = other.table_;
+				index_ = other.index_;
+				return *this;
+			}
+
+			ItInfo::reference operator*() const { return static_cast<ItInfo::reference>(table_->items_[index_]); }
+
+			ItInfo::pointer operator->() const { return &operator*(); }
+
+			self& operator++()
+			{
+				++index_;
+				_skip_unused();
+				return *this;
+			}
+
+			self operator++(int) { self tmp(*this); ++(*this); return tmp; }
+
+			self& operator--()
+			{
+				_skip_unused_backward();
+				return *this;
+			}
+
+			self operator--(int) { self tmp(*this); --(*this); return tmp; }
+
+			bool operator==(const self& other) const { return table_ == other.table_ && index_ == other.index_; }
+		private:
+			// 从当前槽位向后查找第一个已占用槽位或表尾。
+			void _skip_unused()
+			{
+				const c_size n = table_->capacity();
+				while (index_ < n && !table_->items_[index_].used())
+					++index_;
+			}
+
+			// 从当前槽位向前查找第一个已占用槽位，供 --end() 和反向遍历使用。
+			void _skip_unused_backward()
+			{
+				while (index_ > 0)
+				{
+					--index_;
+					if (table_->items_[index_].used())
+						return;
+				}
+			}
+		};
+
+		using Iterator = TableIterator<false>;
+
+		using ConstIterator = TableIterator<true>;
 
 		// 连续槽位数组，扩容时重新分配。
 		RobinItem_t* items_;
@@ -414,12 +498,19 @@ namespace ayr
 			}
 		}
 
-		/** @brief 按槽位顺序输出整张表，包括空槽位。 */
 		void __repr__(Buffer& buffer) const
 		{
 			for (c_size i = 0, n = capacity(); i < n; ++i)
 				buffer << items_[i];
 		}
+
+		Iterator begin() { return Iterator(this, 0); }
+
+		Iterator end() { return Iterator(this, capacity()); }
+
+		ConstIterator begin() const { return ConstIterator(this, 0); }
+		
+		ConstIterator end() const { return ConstIterator(this, capacity()); }
 	};
 }
 #endif // AYR_AIR_TABLE_HPP
